@@ -816,110 +816,6 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
-      
-      {/* Marketplace Card */}
-       <Card className="lg:col-span-2">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
-                    <Briefcase />
-                    MSME Marketplace
-                </CardTitle>
-                <CardDescription>
-                    Find and connect with services offered by other entrepreneurs in the Financify community.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search by name, service, or location..." 
-                            className="pl-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <Select value={filterService} onValueChange={setFilterService}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by service..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {uniqueServices.map(service => (
-                                    <SelectItem key={service} value={service}>{service}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Select value={filterLocation} onValueChange={setFilterLocation}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by location..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {uniqueLocations.map(location => (
-                                    <SelectItem key={location} value={location}>{location}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                 <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => { setSearchQuery(''); setFilterService(''); setFilterLocation(''); }}
-                    className="text-xs"
-                >
-                    <X className="mr-2 h-3 w-3" /> Clear Filters
-                </Button>
-
-
-                {isLoadingMsmes ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
-                    </div>
-                ) : filteredMsmes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredMsmes.map((msme) => (
-                           <Card key={msme.id} className="glassmorphic flex flex-col hover:border-primary transition-colors duration-300">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{msme.msmeName}</CardTitle>
-                                    <CardDescription>{msme.msmeService}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-1 space-y-4">
-                                     <p className="text-sm text-muted-foreground line-clamp-3">{(msme as any).msmeDescription || 'No description provided.'}</p>
-                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                        <User className="h-4 w-4" />
-                                        <span>{msme.displayName}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        <span>{msme.msmeLocation}</span>
-                                    </div>
-                                </CardContent>
-                                <CardContent className="pt-0 flex items-center justify-end gap-2">
-                                    <Button onClick={() => handleContactClick(msme)} size="sm">
-                                        <MessageSquare className="mr-2"/>
-                                        Contact
-                                    </Button>
-                                    {msme.msmeWebsite && (
-                                        <Button asChild variant="outline" size="icon">
-                                            <a href={msme.msmeWebsite.startsWith('http') ? msme.msmeWebsite : `https://${msme.msmeWebsite}`} target="_blank" rel="noopener noreferrer">
-                                                <Globe/>
-                                            </a>
-                                        </Button>
-                                    )}
-                                </CardContent>
-                           </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-10">
-                        <p className="text-muted-foreground">No matching MSMEs found. Try adjusting your filters.</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Budgets Card */}
@@ -1143,6 +1039,110 @@ export default function DashboardPage() {
         </Dialog>
       </div>
 
+      {/* Marketplace Card */}
+       <Card className="lg:col-span-2">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
+                    <Briefcase />
+                    MSME Marketplace
+                </CardTitle>
+                <CardDescription>
+                    Find and connect with services offered by other entrepreneurs in the Financify community.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search by name, service, or location..." 
+                            className="pl-10"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Select value={filterService} onValueChange={setFilterService}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filter by service..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {uniqueServices.map(service => (
+                                    <SelectItem key={service} value={service}>{service}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Select value={filterLocation} onValueChange={setFilterLocation}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Filter by location..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {uniqueLocations.map(location => (
+                                    <SelectItem key={location} value={location}>{location}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                 <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setSearchQuery(''); setFilterService(''); setFilterLocation(''); }}
+                    className="text-xs"
+                >
+                    <X className="mr-2 h-3 w-3" /> Clear Filters
+                </Button>
+
+
+                {isLoadingMsmes ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+                    </div>
+                ) : filteredMsmes.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredMsmes.map((msme) => (
+                           <Card key={msme.id} className="glassmorphic flex flex-col hover:border-primary transition-colors duration-300">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">{msme.msmeName}</CardTitle>
+                                    <CardDescription>{msme.msmeService}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-1 space-y-4">
+                                     <p className="text-sm text-muted-foreground line-clamp-3">{(msme as any).msmeDescription || 'No description provided.'}</p>
+                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                        <User className="h-4 w-4" />
+                                        <span>{msme.displayName}</span>
+                                    </div>
+                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                        <MapPin className="h-4 w-4" />
+                                        <span>{msme.msmeLocation}</span>
+                                    </div>
+                                </CardContent>
+                                <CardContent className="pt-0 flex items-center justify-end gap-2">
+                                    <Button onClick={() => handleContactClick(msme)} size="sm">
+                                        <MessageSquare className="mr-2"/>
+                                        Contact
+                                    </Button>
+                                    {msme.msmeWebsite && (
+                                        <Button asChild variant="outline" size="icon">
+                                            <a href={msme.msmeWebsite.startsWith('http') ? msme.msmeWebsite : `https://${msme.msmeWebsite}`} target="_blank" rel="noopener noreferrer">
+                                                <Globe/>
+                                            </a>
+                                        </Button>
+                                    )}
+                                </CardContent>
+                           </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-10">
+                        <p className="text-muted-foreground">No matching MSMEs found. Try adjusting your filters.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+
       {/* Budgets Dialog */}
       <Dialog
         open={manageBudgetDialogOpen}
@@ -1337,5 +1337,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
