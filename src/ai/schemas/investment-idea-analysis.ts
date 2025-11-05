@@ -37,6 +37,11 @@ export const GenerateInvestmentIdeaAnalysisOutputSchema = z.object({
     .describe(
       'A summary of 2-3 relevant Indian government schemes or policies that could support this type of business. Include what the scheme offers and who is eligible.'
     ),
+    legalRequirements: z
+    .string()
+    .describe(
+      'A summary of the key legal and regulatory requirements for this business in India, such as registrations, licenses, and permits.'
+    ),
 });
 export type GenerateInvestmentIdeaAnalysisOutput = z.infer<
   typeof GenerateInvestmentIdeaAnalysisOutputSchema

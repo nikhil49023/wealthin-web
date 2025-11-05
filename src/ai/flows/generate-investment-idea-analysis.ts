@@ -14,7 +14,7 @@ import type {
 import { GenerateInvestmentIdeaAnalysisOutputSchema } from '@/ai/schemas/investment-idea-analysis';
 
 const ai = getAI(app, { backend: new GoogleAIBackend() });
-const model = getGenerativeModel(ai, { model: 'gemini-2.5-flash-lite' });
+const model = getGenerativeModel(ai, { model: 'gemini-1.5-flash-latest' });
 
 
 export async function generateInvestmentIdeaAnalysis(
@@ -33,7 +33,8 @@ The schema is:
   "targetAudience": "A description of the target audience and marketing strategy for the business. Prepend \\"*(Powered by Financify AI)*\\".",
   "roi": "An analysis of the potential Return on Investment (ROI), including revenue projections and profitability. Prepend \\"*(Powered by Financify AI)*\\".",
   "futureProofing": "An analysis of the future-proofing of the business, including scalability, competition, and market trends. Prepend \\"*(Powered by Financify AI)*\\".",
-  "relevantSchemes": "A summary of 2-3 relevant Indian government schemes or policies that could support this type of business. Include what the scheme offers and who is eligible. Prepend \\"*(Powered by Financify AI)*\\"."
+  "relevantSchemes": "A summary of 2-3 relevant Indian government schemes or policies that could support this type of business. Include what the scheme offers and who is eligible. Prepend \\"*(Powered by Financify AI)*\\".",
+  "legalRequirements": "A summary of the key legal and regulatory requirements for this business in India, such as registrations (like GST, Udyam), licenses, and permits needed. Prepend \\"*(Powered by Financify AI)*\\"."
 }
 
 Do NOT include any other text, markdown, or explanations. Just the JSON object.

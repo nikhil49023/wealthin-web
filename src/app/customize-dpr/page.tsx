@@ -189,24 +189,22 @@ function CustomizeDPRContent() {
             Select a format below. The AI will tailor the DPR structure and tone for your chosen purpose.
             </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
                 onClick={startGeneration}
             >
                 <Banknote className="h-12 w-12 text-primary" />
-                <h3 className="font-semibold text-lg">Bank Loan</h3>
+                <h3 className="font-semibold text-lg">Bank Loan Application</h3>
                 <p className="text-xs text-muted-foreground">Generate the full report optimized for bank loan applications.</p>
             </Card>
-             <Card className="p-6 text-center cursor-not-allowed bg-muted/50 opacity-50 flex flex-col items-center justify-center gap-4">
-                <FileText className="h-12 w-12 text-muted-foreground" />
-                <h3 className="font-semibold text-lg text-muted-foreground">Govt. Scheme</h3>
-                <p className="text-xs text-muted-foreground">(Coming Soon)</p>
-            </Card>
-             <Card className="p-6 text-center cursor-not-allowed bg-muted/50 opacity-50 flex flex-col items-center justify-center gap-4">
-                <Sparkles className="h-12 w-12 text-muted-foreground" />
-                <h3 className="font-semibold text-lg text-muted-foreground">Social Article</h3>
-                 <p className="text-xs text-muted-foreground">(Coming Soon)</p>
+             <Card 
+                className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
+                onClick={startGeneration}
+             >
+                <FileText className="h-12 w-12 text-primary" />
+                <h3 className="font-semibold text-lg">Legal Documentation</h3>
+                 <p className="text-xs text-muted-foreground">Generate a report focused on legal and regulatory compliance.</p>
             </Card>
         </div>
       </div>
@@ -220,5 +218,3 @@ export default function CustomizeDPRPage() {
         </Suspense>
     )
 }
-
-    

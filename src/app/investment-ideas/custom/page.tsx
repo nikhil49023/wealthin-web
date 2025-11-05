@@ -22,6 +22,7 @@ import {
   ChevronsRight,
   Landmark,
   Share2,
+  FileText,
 } from 'lucide-react';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Button} from '@/components/ui/button';
@@ -71,6 +72,11 @@ const sectionConfig: Omit<AnalysisSection, 'content' | 'status'>[] = [
     key: 'relevantSchemes',
     title: 'Relevant Government Schemes',
     icon: Landmark,
+  },
+  {
+    key: 'legalRequirements',
+    title: 'Legal Requirements',
+    icon: FileText,
   },
 ];
 
