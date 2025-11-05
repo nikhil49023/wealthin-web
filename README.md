@@ -31,26 +31,23 @@ Artha integrates AI to provide intelligent assistance beyond simple tracking.
         *   Return on Investment (ROI) Projections
         *   Future-Proofing & Scalability
         *   Relevant Indian Government Schemes
+        *   Key Legal & Regulatory Requirements
     *   **Save & Manage Ideas**: Any idea you analyze is automatically saved to your "My Ideas" section for future reference.
 
 ### 3. Automated Detailed Project Report (DPR) Generation
 
 This is one of the app's most powerful features, turning your business idea into a bank-ready document.
 
-*   **Two-Stage AI Process**:
-    1.  **Elaboration**: First, the AI takes your basic business idea and elaborates on it, creating a rich, detailed business profile. It creatively fills in details about the business model, target market, competitive landscape, and unique selling propositions (USPs).
-    2.  **DPR Generation**: Using this elaborated profile as a high-quality prompt, the AI then generates a complete, multi-section Detailed Project Report, including financial projections and a SWOT analysis.
-*   **Comprehensive Output**: The final DPR is a structured document ready for review by banks and investors, covering everything from the executive summary to risk assessment.
+*   **Tailored for Purpose**: Choose to generate a DPR optimized for bank loan applications, government schemes, or legal documentation. The AI adapts the structure and tone accordingly.
+*   **Section-by-Section Generation**: The AI intelligently builds a complete, multi-section Detailed Project Report, generating content for everything from the executive summary and market analysis to financial projections and a SWOT analysis.
+*   **Interactive Editing & Refinement**: Manually edit any section of the generated report with a rich text editor or use the AI Toolkit to refine specific sections with custom prompts, ensuring the final document perfectly matches your vision. The final DPR is a structured document ready for review by banks and investors.
 
 ### 4. Launchpad & Growth Hub
 
 This section provides resources and community connections to help you launch and grow your business.
 
 *   **MSME Marketplace**: A community hub where MSMEs can list their services. Other users can search this marketplace to find and connect with local businesses for services like digital marketing, accounting, etc. MSME users can publish their own profiles to be discovered.
-*   **Resource Center**:
-    *   **Government Schemes**: An explorable list of key Indian government schemes (like Startup India, MUDRA, CGTMSE) with descriptions and links.
-    *   **Startup Hubs**: Information on major startup ecosystems in India (Bengaluru, Delhi-NCR, etc.).
-    *   **Entrepreneurial Journey**: A step-by-step guide walking you through the typical phases of launching a business, from idea validation to marketing and growth.
+*   **Resource Center**: An explorable list of key Indian government schemes, information on major startup ecosystems in India, and a step-by-step guide to the entrepreneurial journey.
 
 ### 5. Profile & Authentication
 
