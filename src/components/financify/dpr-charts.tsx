@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -43,16 +42,13 @@ const formatCurrencyForChart = (value: number) => {
 };
 
 const COLORS = [
-  "hsl(259 39% 33%)", // primary
-  "hsl(0 100% 66%)",   // accent
-  "hsl(175 100% 49%)", // secondary-accent (Aqua Glow)
-  "hsl(280 40% 50%)", // A vibrant purple
-  "hsl(300 50% 60%)", // A complementary pink/magenta
-  '#8884d8',
+  "hsl(259, 39%, 33%)", // primary: Indigo Night
+  "hsl(0, 100%, 66%)",  // accent: Electric Coral
+  "hsl(175, 80%, 40%)", // A custom teal
+  "hsl(330, 70%, 55%)", // A vibrant pink
+  "hsl(30, 90%, 60%)",  // A warm orange
   '#82ca9d',
   '#ffc658',
-  '#FF8042',
-  '#00C49F',
 ];
 
 const RADIAN = Math.PI / 180;

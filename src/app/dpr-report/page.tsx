@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useEffect, useState, useRef } from 'react';
@@ -55,7 +54,7 @@ import { useAuth } from '@/context/auth-provider';
 import {
   ProjectCostPieChart,
   FinancialProjectionsBarChart,
-} from '@/components/financify/dpr-charts';
+} from '@/components/wealthin/dpr-charts';
 import { cn } from '@/lib/utils';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -65,12 +64,12 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
-import { FormattedText } from '@/components/financify/formatted-text';
+import { FormattedText } from '@/components/wealthin/formatted-text';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { generateDprAction } from '../actions';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
-import RichTextEditor from '@/components/financify/rich-text-editor';
+import RichTextEditor from '@/components/wealthin/rich-text-editor';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 

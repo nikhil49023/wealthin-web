@@ -10,10 +10,10 @@ import {app} from '@/lib/firebase';
 import type {GenerateFinBiteOutput} from '@/ai/schemas/fin-bite';
 
 const ai = getAI(app, { backend: new GoogleAIBackend() });
-const model = getGenerativeModel(ai, {model: 'gemini-2.5-flash-lite'});
+const model = getGenerativeModel(ai, {model: 'gemini-1.5-flash-latest'});
 
 export async function generateFinBite(): Promise<GenerateFinBiteOutput> {
-  const prompt = `You are "Financify," a specialized financial news anchor for early-stage entrepreneurs in India.
+  const prompt = `You are "WealthIn," a specialized financial news anchor for early-stage entrepreneurs in India.
 Your task is to provide the single latest, most relevant news update for EACH of the following 3 categories: "MSME Schemes", "Finance & Tax", and "Market News".
 
 Your response MUST be a valid JSON object. Do not include any extra text, markdown, or explanations.

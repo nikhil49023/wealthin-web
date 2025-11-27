@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/context/auth-provider';
@@ -30,7 +29,7 @@ export default function AppHeader() {
             <Wallet className="h-8 w-8" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">Financify</h1>
+          <h1 className="text-lg font-bold">WealthIn</h1>
         </div>
       </div>
       <Link href="/profile">

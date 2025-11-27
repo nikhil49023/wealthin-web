@@ -28,13 +28,13 @@ Your response MUST be ONLY a valid JSON object that conforms to the following sc
 The schema is:
 {
   "title": "The title of the business idea.",
-  "summary": "A brief summary of the business idea. Prepend \\"*(Powered by Financify AI)*\\".",
-  "investmentStrategy": "A detailed investment strategy, including initial capital, equipment, and operational costs. Prepend \\"*(Powered by Financify AI)*\\".",
-  "targetAudience": "A description of the target audience and marketing strategy for the business. Prepend \\"*(Powered by Financify AI)*\\".",
-  "roi": "An analysis of the potential Return on Investment (ROI), including revenue projections and profitability. Prepend \\"*(Powered by Financify AI)*\\".",
-  "futureProofing": "An analysis of the future-proofing of the business, including scalability, competition, and market trends. Prepend \\"*(Powered by Financify AI)*\\".",
-  "relevantSchemes": "A summary of 2-3 relevant Indian government schemes or policies that could support this type of business. Include what the scheme offers and who is eligible. Prepend \\"*(Powered by Financify AI)*\\".",
-  "legalRequirements": "A summary of the key legal and regulatory requirements for this business in India, such as registrations (like GST, Udyam), licenses, and permits needed. Prepend \\"*(Powered by Financify AI)*\\"."
+  "summary": "A brief summary of the business idea. Prepend \\"*(Powered by WealthIn AI)*\\".",
+  "investmentStrategy": "A detailed investment strategy, including initial capital, equipment, and operational costs. Prepend \\"*(Powered by WealthIn AI)*\\".",
+  "targetAudience": "A description of the target audience and marketing strategy for the business. Prepend \\"*(Powered by WealthIn AI)*\\".",
+  "roi": "An analysis of the potential Return on Investment (ROI), including revenue projections and profitability. Prepend \\"*(Powered by WealthIn AI)*\\".",
+  "futureProofing": "An analysis of the future-proofing of the business, including scalability, competition, and market trends. Prepend \\"*(Powered by WealthIn AI)*\\".",
+  "relevantSchemes": "A summary of 2-3 relevant Indian government schemes or policies that could support this type of business. Include what the scheme offers and who is eligible. Prepend \\"*(Powered by WealthIn AI)*\\".",
+  "legalRequirements": "A summary of the key legal and regulatory requirements for this business in India, such as registrations (like GST, Udyam), licenses, and permits needed. Prepend \\"*(Powered by WealthIn AI)*\\"."
 }
 
 Do NOT include any other text, markdown, or explanations. Just the JSON object.

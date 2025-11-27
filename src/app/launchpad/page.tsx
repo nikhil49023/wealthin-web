@@ -520,7 +520,7 @@ export default function GrowthHubPage() {
                     MSME Marketplace
                 </CardTitle>
                 <CardDescription>
-                    Find and connect with services offered by other entrepreneurs in the Financify community.
+                    Find and connect with services offered by other entrepreneurs in the WealthIn community.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

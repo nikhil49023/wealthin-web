@@ -13,7 +13,7 @@ import type {
 } from '@/ai/schemas/dashboard-summary';
 
 const ai = getAI(app, { backend: new GoogleAIBackend() });
-const model = getGenerativeModel(ai, {model: 'gemini-2.5-flash-lite'});
+const model = getGenerativeModel(ai, {model: 'gemini-1.5-flash-latest'});
 
 // Helper to safely parse currency strings
 function parseCurrency(amount: string | number): number {
@@ -64,7 +64,7 @@ export async function generateDashboardSummary(
     .map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
     .join('\n');
 
-  const prompt = `You are a financial analyst for "Financify". Based on the following financial summary and transaction list for an entrepreneur, provide one short, actionable "Fin Bite" (a financial tip). Your response must be a single sentence.
+  const prompt = `You are a financial analyst for "WealthIn". Based on the following financial summary and transaction list for an entrepreneur, provide one short, actionable "Fin Bite" (a financial tip). Your response must be a single sentence.
 
 Financial Summary:
 - Total Income: ${totalIncome}

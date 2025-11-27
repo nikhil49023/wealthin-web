@@ -1,4 +1,3 @@
-
 'use client';
 
 import {useEffect, useState, Suspense, useCallback} from 'react';
@@ -29,7 +28,7 @@ import {Button} from '@/components/ui/button';
 import Link from 'next/link';
 import {motion, AnimatePresence} from 'framer-motion';
 import type {GenerateInvestmentIdeaAnalysisOutput} from '@/ai/schemas/investment-idea-analysis';
-import {FormattedText} from '@/components/financify/formatted-text';
+import {FormattedText} from '@/components/wealthin/formatted-text';
 import {useAuth} from '@/context/auth-provider';
 import {useToast} from '@/hooks/use-toast';
 import {useLanguage} from '@/hooks/use-language';
@@ -390,7 +389,7 @@ function InvestmentIdeaContent() {
             <>
               <div className="flex flex-wrap items-center gap-4">
                 <CardTitle className="text-2xl md:text-3xl">{title}</CardTitle>
-                <Badge variant="secondary">Powered by Financify AI</Badge>
+                <Badge variant="secondary">Powered by WealthIn AI</Badge>
               </div>
               <CardDescription className="text-base pt-2">
                 {summary}

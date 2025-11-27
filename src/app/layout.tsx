@@ -1,22 +1,21 @@
-
 'use client';
 
 import './globals.css';
 import {Toaster} from '@/components/ui/toaster';
-import Sidebar from '@/components/financify/sidebar';
+import Sidebar from '@/components/wealthin/sidebar';
 import {motion, AnimatePresence} from 'framer-motion';
 import {usePathname} from 'next/navigation';
 import {Inter} from 'next/font/google';
 import {AuthProvider, useAuth} from '@/context/auth-provider';
 import {LanguageProvider} from '@/context/language-provider';
-import AppHeader from '@/components/financify/app-header';
-import DesktopHeader from '@/components/financify/desktop-header';
-import BottomNavbar from '@/components/financify/bottom-navbar';
+import AppHeader from '@/components/wealthin/app-header';
+import DesktopHeader from '@/components/wealthin/desktop-header';
+import BottomNavbar from '@/components/wealthin/bottom-navbar';
 import {useState, useEffect} from 'react';
 import {cn} from '@/lib/utils';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { Suspense } from 'react';
-import AppTour from '@/components/financify/app-tour';
+import AppTour from '@/components/wealthin/app-tour';
 import { doc, getFirestore, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 
@@ -123,7 +122,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>Financify</title>
+        <title>WealthIn</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💸</text></svg>" />
         <meta name="description" content="Your personal finance dashboard." />
         <meta

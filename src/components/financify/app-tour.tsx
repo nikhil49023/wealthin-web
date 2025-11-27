@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -25,7 +24,7 @@ import { useAuth } from '@/context/auth-provider';
 const tourSteps = [
   {
     icon: Lightbulb,
-    title: 'Welcome to Financify!',
+    title: 'Welcome to WealthIn!',
     description:
       "Let's take a quick tour to see how you can make the most of your financial co-pilot.",
   },

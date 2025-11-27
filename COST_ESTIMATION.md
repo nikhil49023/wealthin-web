@@ -1,6 +1,6 @@
-# Artha Application: Estimated Monthly Cost at Scale
+# WealthIn Application: Estimated Monthly Cost at Scale
 
-This document provides a high-level estimate of the monthly operational costs to run the Artha application for **10,000 active users**.
+This document provides a high-level estimate of the monthly operational costs to run the WealthIn application for **10,000 active users**.
 
 **Disclaimer**: This is an estimate based on a set of assumptions about user behavior. Actual costs may vary depending on real-world usage patterns, feature adoption, and pricing changes from service providers.
 

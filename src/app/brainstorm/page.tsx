@@ -175,7 +175,7 @@ export default function BrainstormPage() {
                 Building a business is a journey, not a solo mission. Join our dedicated community to network with peers, find mentors, ask questions, and validate your next big idea.
            </p>
             <Button asChild>
-                <a href="https://financify.zohocs.in" target="_blank" rel="noopener noreferrer">
+                <a href="https://wealthin.zohocs.in" target="_blank" rel="noopener noreferrer">
                     Join the Community
                 </a>
             </Button>
