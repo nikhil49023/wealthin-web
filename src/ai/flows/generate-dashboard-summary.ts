@@ -1,19 +1,14 @@
 
 'use server';
 /**
- * @fileOverview A flow to generate a dashboard summary using Firebase AI.
+ * @fileOverview A flow to generate a dashboard summary using the Zoho Catalyst LLM.
  * It calculates financial metrics and gets an AI-powered suggestion.
  */
-import {initializeApp, getApps} from 'firebase/app';
-import {getAI, getGenerativeModel, GoogleAIBackend} from 'firebase/ai';
-import {app} from '@/lib/firebase';
+import catalystService from '@/services/catalyst';
 import type {
   GenerateDashboardSummaryInput,
   GenerateDashboardSummaryOutput,
 } from '@/ai/schemas/dashboard-summary';
-
-const ai = getAI(app, { backend: new GoogleAIBackend() });
-const model = getGenerativeModel(ai, {model: 'gemini-1.5-flash-latest'});
 
 // Helper to safely parse currency strings
 function parseCurrency(amount: string | number): number {
@@ -64,7 +59,9 @@ export async function generateDashboardSummary(
     .map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
     .join('\n');
 
-  const prompt = `You are a financial analyst for "WealthIn". Based on the following financial summary and transaction list for an entrepreneur, provide one short, actionable "Fin Bite" (a financial tip). Your response must be a single sentence.
+  const systemPrompt = `You are a financial analyst for "WealthIn". Your response must be a single sentence.`;
+
+  const userPrompt = `Based on the following financial summary and transaction list for an entrepreneur, provide one short, actionable "Fin Bite" (a financial tip).
 
 Financial Summary:
 - Total Income: ${totalIncome}
@@ -75,8 +72,7 @@ Transaction List (sample):
 ${transactionsSample}
 `;
 
-  const {response} = await model.generateContent(prompt);
-  const suggestion = response.text();
+  const suggestion = await catalystService.generateText(userPrompt, systemPrompt);
 
   // 3. Return combined result
   return {

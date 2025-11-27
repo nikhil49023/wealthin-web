@@ -2,24 +2,18 @@
 'use server';
 
 /**
- * @fileOverview A flow for generating "Fin Bites" using Firebase AI.
+ * @fileOverview A flow for generating "Fin Bites" using the Zoho Catalyst LLM.
  */
-import {initializeApp, getApps} from 'firebase/app';
-import {getAI, getGenerativeModel, GoogleAIBackend} from 'firebase/ai';
-import {app} from '@/lib/firebase';
+import catalystService from '@/services/catalyst';
 import type {GenerateFinBiteOutput} from '@/ai/schemas/fin-bite';
 
-const ai = getAI(app, { backend: new GoogleAIBackend() });
-const model = getGenerativeModel(ai, {model: 'gemini-1.5-flash-latest'});
-
 export async function generateFinBite(): Promise<GenerateFinBiteOutput> {
-  const prompt = `You are "WealthIn," a specialized financial news anchor for early-stage entrepreneurs in India.
-Your task is to provide the single latest, most relevant news update for EACH of the following 3 categories: "MSME Schemes", "Finance & Tax", and "Market News".
+  const systemPrompt = `You are "WealthIn," a specialized financial news anchor for early-stage entrepreneurs in India.
+Your response MUST be a valid JSON object. Do not include any extra text, markdown, or explanations.`;
 
-Your response MUST be a valid JSON object. Do not include any extra text, markdown, or explanations.
+  const userPrompt = `Your task is to provide the single latest, most relevant news update for EACH of the following 3 categories: "MSME Schemes", "Finance & Tax", and "Market News".
 
-Example Output:
-\`\`\`json
+Format the output as a JSON object matching this schema:
 {
   "updates": [
     {
@@ -39,18 +33,15 @@ Example Output:
     }
   ]
 }
-\`\`\`
 `;
 
-  const {response} = await model.generateContent(prompt);
-
   try {
-    const text = response.text();
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const responseText = await catalystService.generateText(userPrompt, systemPrompt);
+    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanedText);
     return parsed as GenerateFinBiteOutput;
-  } catch (e) {
-    console.error('Failed to parse JSON from model response:', response.text());
+  } catch (e: any) {
+    console.error('Failed to parse JSON from model response:', e.message);
     throw new Error('Could not generate Fin Bites. The AI returned an invalid format.');
   }
 }

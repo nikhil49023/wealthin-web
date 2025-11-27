@@ -49,7 +49,7 @@ class CatalystService {
       }
 
       this.accessToken = data.access_token;
-      this.tokenExpiry = new Date(new Date().getTime() + (data.expires_in_sec - 300) * 1000); 
+      this.tokenExpiry = new Date(new Date().getTime() + (data.expires_in - 300) * 1000); 
 
       return this.accessToken!;
     } catch (error: any) {
@@ -57,35 +57,41 @@ class CatalystService {
     }
   }
 
-  public async getRagAnswer(input: GenerateRagAnswerInput): Promise<string> {
+  public async generateText(prompt: string, system_prompt: string = "Be concise and factual"): Promise<any> {
     const token = await this.getValidAccessToken();
-    const ragApiUrl = `https://api.catalyst.zoho.in/quickml/v1/project/${this.projectId}/rag/answer`;
+    const chatApiUrl = `https://api.catalyst.zoho.in/quickml/v2/project/${this.projectId}/llm/chat`;
     
-    // Construct the body according to the specified format { "query": "...", "documents": ["id1", "id2"] }
     const body = {
-        query: input.query,
-        documents: input.documents || [] // Use document IDs passed in the input
+      "prompt": prompt,
+      "model": "crm-di-qwen_text_14b-fp8-it",
+      "system_prompt": system_prompt,
+      "top_p": 0.9,
+      "top_k": 50,
+      "best_of": 1,
+      "temperature": 0.7,
+      "max_tokens": 2048 // Increased max tokens for potentially longer outputs like DPR sections
     };
 
-    const apiResponse = await fetch(ragApiUrl, {
+    const apiResponse = await fetch(chatApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'CATALYST-ORG': this.orgId,
-        'Authorization': `Zoho-oauthtoken ${token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
 
     if (!apiResponse.ok) {
       const errorBody = await apiResponse.text();
-      console.error('RAG API request failed with status:', apiResponse.status);
-      console.error('RAG API response body:', errorBody);
-      throw new Error(`RAG API request failed: ${apiResponse.statusText}`);
+      console.error('Zoho LLM API request failed with status:', apiResponse.status);
+      console.error('Zoho LLM API response body:', errorBody);
+      throw new Error(`Zoho LLM API request failed: ${apiResponse.statusText}`);
     }
 
     const responseData: any = await apiResponse.json();
-    return responseData?.response;
+    // The response structure seems to have the content inside an "output" property
+    return responseData?.output;
   }
 }
 
