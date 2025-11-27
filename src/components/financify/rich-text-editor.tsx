@@ -1,116 +1,265 @@
 'use client';
 
-import { useEditor, EditorContent, Editor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
 import {
-  Bold,
-  Italic,
-  List,
-  Heading1,
-  Heading2,
-  Heading3,
+  Home,
+  Wallet,
+  LogOut,
+  User,
+  BrainCircuit,
+  Rocket,
+  Globe,
+  MessagesSquare,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import {usePathname, useRouter} from 'next/navigation';
+import {Button} from '@/components/ui/button';
+import {cn} from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {useLanguage} from '@/hooks/use-language';
+import {useAuth} from '@/context/auth-provider';
 
-const MenuBar = ({ editor }: { editor: Editor | null }) => {
-  if (!editor) {
-    return null;
-  }
+type SidebarProps = {
+  onLinkClick?: () => void;
+  isCollapsed?: boolean;
+};
 
-  const menuItems = [
+export default function Sidebar({
+  onLinkClick,
+  isCollapsed = false,
+}: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const {language, setLanguage, translations} = useLanguage();
+  const {signOut, userProfile} = useAuth();
+
+  const isMsme = userProfile?.role === 'msme';
+
+  const navItems = [
+    {href: '/', label: translations.sidebar.dashboard, icon: Home},
     {
-      Icon: Bold,
-      action: () => editor.chain().focus().toggleBold().run(),
-      isActive: editor.isActive('bold'),
-      label: 'Bold',
+      href: '/transactions',
+      label: translations.sidebar.transactions,
+      icon: Wallet,
     },
     {
-      Icon: Italic,
-      action: () => editor.chain().focus().toggleItalic().run(),
-      isActive: editor.isActive('italic'),
-      label: 'Italic',
+      href: '/brainstorm',
+      label: translations.sidebar.brainstorm,
+      icon: BrainCircuit,
     },
     {
-      Icon: Heading1,
-      action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-      isActive: editor.isActive('heading', { level: 1 }),
-      label: 'Heading 1',
+      href: '/ai-advisor',
+      label: 'AI Advisor',
+      icon: MessagesSquare,
     },
     {
-      Icon: Heading2,
-      action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
-      isActive: editor.isActive('heading', { level: 2 }),
-      label: 'Heading 2',
-    },
-    {
-      Icon: Heading3,
-      action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
-      isActive: editor.isActive('heading', { level: 3 }),
-      label: 'Heading 3',
-    },
-    {
-      Icon: List,
-      action: () => editor.chain().focus().toggleBulletList().run(),
-      isActive: editor.isActive('bulletList'),
-      label: 'Bullet List',
+      href: '/launchpad',
+      label: isMsme
+        ? translations.sidebar.growthHub
+        : translations.sidebar.launchpad,
+      icon: Rocket,
     },
   ];
 
-  return (
-    <div className="border rounded-t-md p-1 flex flex-wrap gap-1 no-print">
-      {menuItems.map(({ Icon, action, isActive, label }) => (
-        <Button
-          key={label}
-          onClick={action}
-          variant={isActive ? 'secondary' : 'ghost'}
-          size="icon"
-          aria-label={label}
-        >
-          <Icon className="h-4 w-4" />
-        </Button>
-      ))}
-    </div>
-  );
-};
+  const handleLogout = () => {
+    signOut();
+    router.push('/login');
+  };
 
-interface RichTextEditorProps {
-  content: string;
-  onChange: (richText: string) => void;
-  editable?: boolean;
+  const handleLinkClick = () => {
+    if (onLinkClick) {
+      onLinkClick();
+    }
+  };
+
+  const NavLink = ({item}: {item: (typeof navItems)[0]}) => {
+    const isActive = pathname === item.href;
+    const linkContent = (
+      <>
+        <item.icon className={cn('h-5 w-5', !isCollapsed && 'mr-3')} />
+        <span className={cn({'hidden': isCollapsed})}>{item.label}</span>
+      </>
+    );
+
+    return (
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              asChild
+              className={cn(
+                'w-full justify-start text-base font-normal text-muted-foreground hover:text-primary hover:bg-primary/10',
+                isActive && 'font-semibold text-primary bg-primary/10',
+                isCollapsed && 'justify-center'
+              )}
+              onClick={handleLinkClick}
+            >
+              <Link href={item.href}>{linkContent}</Link>
+            </Button>
+          </TooltipTrigger>
+          {isCollapsed && (
+            <TooltipContent side="right">
+              <p>{item.label}</p>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
+
+  return (
+    <aside className="w-full h-full glassmorphic flex flex-col p-4">
+      <div
+        className={cn(
+          'flex items-center gap-2 p-2',
+          isCollapsed ? 'justify-center' : 'justify-start'
+        )}
+      >
+        <div className={cn("flex items-center justify-center h-10 w-10 text-primary", isCollapsed && "h-12 w-12")}>
+            <Wallet className="h-8 w-8" />
+        </div>
+        <h1 className={cn('text-xl font-bold', {'hidden': isCollapsed})}>
+          WealthIn
+        </h1>
+      </div>
+      <nav className="flex-1 px-0 py-2 space-y-1 mt-4">
+        {navItems.map(item => (
+          <NavLink key={item.href} item={item} />
+        ))}
+      </nav>
+      <div className={cn('border-t', isCollapsed ? 'p-0' : 'p-4')}>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'w-full justify-start text-muted-foreground font-normal hover:text-primary hover:bg-primary/10',
+                      isCollapsed && 'justify-center'
+                    )}
+                  >
+                    <Globe className={cn('h-5 w-5', !isCollapsed && 'mr-3')} />
+                    <span className={cn({'hidden': isCollapsed})}>
+                      {language === 'en' ? 'English' : 'తెలుగు'}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setLanguage('en')}>
+                    English
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLanguage('te')}>
+                    తెలుగు
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right">
+                <p>Language</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                asChild
+                className={cn(
+                  'w-full justify-start text-muted-foreground font-normal hover:text-primary hover:bg-primary/10',
+                  isCollapsed && 'justify-center'
+                )}
+                onClick={handleLinkClick}
+              >
+                <Link href="/profile">
+                  <User className={cn('h-5 w-5', !isCollapsed && 'mr-3')} />
+                  <span className={cn({'hidden': isCollapsed})}>
+                    {translations.sidebar.myProfile}
+                  </span>
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right">
+                <p>{translations.sidebar.myProfile}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10',
+                      isCollapsed && 'justify-center'
+                    )}
+                  >
+                    <LogOut className={cn('h-5 w-5', !isCollapsed && 'mr-3')} />
+                    <span className={cn({'hidden': isCollapsed})}>
+                      {translations.sidebar.logout}
+                    </span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {translations.logoutDialog.title}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {translations.logoutDialog.description}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      {translations.logoutDialog.cancel}
+                    </AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout}>
+                      {translations.logoutDialog.confirm}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right">
+                <p>{translations.sidebar.logout}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </aside>
+  );
 }
-
-const RichTextEditor = ({ content, onChange, editable = true }: RichTextEditorProps) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Image.configure({
-        inline: false,
-        HTMLAttributes: {
-          class: 'rounded-lg my-4 max-w-full h-auto',
-        },
-      }),
-    ],
-    content: content,
-    editable,
-    editorProps: {
-      attributes: {
-        class:
-          'prose prose-sm sm:prose-base dark:prose-invert prose-headings:font-headline prose-p:font-body min-h-[150px] w-full rounded-md rounded-t-none border border-input bg-transparent px-3 py-2 ring-offset-background focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-      },
-    },
-    onUpdate({ editor }) {
-      onChange(editor.getHTML());
-    },
-  });
-
-  return (
-    <div className="flex flex-col justify-stretch">
-      {editable && <MenuBar editor={editor} />}
-      <EditorContent editor={editor} />
-    </div>
-  );
-};
-
-export default RichTextEditor;
