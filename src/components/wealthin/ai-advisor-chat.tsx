@@ -79,22 +79,16 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
       sender: 'ai',
     };
 
-    const initialUserMessage: Message | null = initialMessage
-      ? {
-          id: getUniqueMessageId(),
-          text: initialMessage,
-          sender: 'user',
-        }
-      : null;
-
-    const messageList = [welcomeMessage];
-    if (initialUserMessage) {
-      messageList.push(initialUserMessage);
-    }
-    setMessages(messageList);
-
-    if (initialUserMessage) {
-      handleSendMessage(undefined, initialUserMessage.text);
+    if (initialMessage) {
+        const initialUserMessage: Message = {
+            id: getUniqueMessageId(),
+            text: initialMessage,
+            sender: 'user',
+        };
+        setMessages([welcomeMessage, initialUserMessage]);
+        handleSendMessage(undefined, initialMessage);
+    } else {
+        setMessages([welcomeMessage]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [translations, initialMessage]);
