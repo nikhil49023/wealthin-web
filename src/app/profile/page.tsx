@@ -42,11 +42,9 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const rechargeOptions = [
+    { credits: 10, price: 10 },
+    { credits: 25, price: 25 },
     { credits: 50, price: 50 },
-    { credits: 100, price: 95 },
-    { credits: 200, price: 180 },
-    { credits: 500, price: 425 },
-    { credits: 1000, price: 800 },
 ];
 
 export default function ProfilePage() {
@@ -445,5 +443,7 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
 
     
