@@ -9,6 +9,7 @@ import {
   Rocket,
   Globe,
   MessagesSquare,
+  DollarSign,
 } from 'lucide-react';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
@@ -59,9 +60,9 @@ export default function Sidebar({
   const navItems = [
     {href: '/', label: translations.sidebar.dashboard, icon: Home},
     {
-      href: '/transactions',
-      label: translations.sidebar.transactions,
-      icon: Wallet,
+      href: '/funds',
+      label: 'Funds',
+      icon: DollarSign,
     },
     {
       href: '/brainstorm',

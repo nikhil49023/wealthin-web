@@ -13,7 +13,6 @@ import {
   YAxis,
   Cell,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // --- Types ---
 type PieChartData = {
@@ -86,8 +85,6 @@ export function ProjectCostPieChart({ data }: { data: PieChartData[] }) {
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Tooltip
@@ -125,8 +122,6 @@ export function ProjectCostPieChart({ data }: { data: PieChartData[] }) {
             <Legend />
           </PieChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -141,54 +136,50 @@ export function FinancialProjectionsBarChart({
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis
-              dataKey="year"
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={value => formatCurrencyForChart(value)}
-            />
-            <Tooltip
-              formatter={(value: number) =>
-                new Intl.NumberFormat('en-IN', {
-                  style: 'currency',
-                  currency: 'INR',
-                  maximumFractionDigits: 0,
-                }).format(value)
-              }
-              contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                borderColor: 'hsl(var(--border))',
-                borderRadius: 'var(--radius)',
-              }}
-              cursor={{ fill: 'hsl(var(--accent))' }}
-            />
-            <Legend />
-            <Bar
-              dataKey="sales"
-              fill={COLORS[0]}
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              dataKey="profit"
-              fill={COLORS[1]}
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <ResponsiveContainer width="100%" height={350}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <XAxis
+          dataKey="year"
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={value => formatCurrencyForChart(value)}
+        />
+        <Tooltip
+          formatter={(value: number) =>
+            new Intl.NumberFormat('en-IN', {
+              style: 'currency',
+              currency: 'INR',
+              maximumFractionDigits: 0,
+            }).format(value)
+          }
+          contentStyle={{
+            backgroundColor: 'hsl(var(--background))',
+            borderColor: 'hsl(var(--border))',
+            borderRadius: 'var(--radius)',
+          }}
+          cursor={{ fill: 'hsl(var(--accent))' }}
+        />
+        <Legend />
+        <Bar
+          dataKey="sales"
+          fill={COLORS[0]}
+          radius={[4, 4, 0, 0]}
+        />
+        <Bar
+          dataKey="profit"
+          fill={COLORS[1]}
+          radius={[4, 4, 0, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
