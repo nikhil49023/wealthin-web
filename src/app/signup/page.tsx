@@ -206,6 +206,7 @@ export default function SignUpPage() {
         email: user.email,
         role: formData.role,
         createdAt: serverTimestamp(),
+        credits: 10, // Start with 10 credits
         hasCompletedTour: false, // New user flag
       };
 

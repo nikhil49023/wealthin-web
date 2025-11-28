@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -39,6 +40,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { Textarea } from '@/components/ui/textarea';
 import Autoplay from "embla-carousel-autoplay"
 import React from 'react';
+import { doc, getFirestore, setDoc } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
+const db = getFirestore(app);
 
 const investmentWays = [
     { 
@@ -98,16 +105,13 @@ const curatedIdeas = [
     }
 ];
 
-type Usage = {
-  month: string;
-  count: number;
-};
+const IDEA_ANALYSIS_COST = 2;
 
 export default function BrainstormPage() {
   const { toast } = useToast();
   const [userIdea, setUserIdea] = useState('');
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [showLimitAlert, setShowLimitAlert] = useState(false);
   const curatedIdeasRef = useRef<HTMLDivElement>(null);
 
@@ -119,7 +123,7 @@ export default function BrainstormPage() {
     curatedIdeasRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleAnalyzeIdea = (ideaToAnalyze: string) => {
+  const handleAnalyzeIdea = async (ideaToAnalyze: string) => {
     if (!ideaToAnalyze.trim()) {
       toast({
         variant: 'destructive',
@@ -129,39 +133,41 @@ export default function BrainstormPage() {
       return;
     }
 
-    if (!user) {
+    if (!user || !userProfile) {
       toast({ variant: 'destructive', description: 'Please log in to analyze an idea.'});
       router.push('/');
       return;
     }
 
-    const usageKey = `insights-usage-${user.uid}`;
-    const today = new Date();
-    const currentMonth = `${today.getFullYear()}-${today.getMonth()}`;
-    
-    let usage: Usage = { month: currentMonth, count: 0 };
-    try {
-      const storedUsage = localStorage.getItem(usageKey);
-      if (storedUsage) {
-        const parsedUsage: Usage = JSON.parse(storedUsage);
-        if (parsedUsage.month === currentMonth) {
-          usage = parsedUsage;
-        }
-      }
-    } catch (e) {
-      console.error("Could not parse usage data from localStorage", e);
-    }
-    
-    if (usage.count >= 3) {
+    if ((userProfile.credits ?? 0) < IDEA_ANALYSIS_COST) {
       setShowLimitAlert(true);
       return;
     }
 
-    // Increment and save usage
-    usage.count++;
-    localStorage.setItem(usageKey, JSON.stringify(usage));
+    const userDocRef = doc(db, 'users', user.uid);
+    const newCredits = (userProfile.credits ?? 0) - IDEA_ANALYSIS_COST;
 
-    router.push(`/investment-ideas/custom?idea=${encodeURIComponent(ideaToAnalyze)}`);
+    try {
+        await setDoc(userDocRef, { credits: newCredits }, { merge: true });
+        toast({
+            title: 'Credits Deducted',
+            description: `You have been charged ${IDEA_ANALYSIS_COST} credits. Remaining: ${newCredits}`,
+        });
+        router.push(`/investment-ideas/custom?idea=${encodeURIComponent(ideaToAnalyze)}`);
+    } catch (e) {
+        console.error("Failed to deduct credits:", e);
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: { credits: newCredits }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not deduct credits. Please try again.',
+        });
+    }
   };
 
   return (
@@ -256,7 +262,7 @@ export default function BrainstormPage() {
             />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Button onClick={() => handleAnalyzeIdea(userIdea)} disabled={!userIdea.trim()} size="lg">
-                <Send className="mr-2" /> Get AI Insights
+                <Send className="mr-2" /> Get AI Insights ({IDEA_ANALYSIS_COST} Credits)
             </Button>
             <Button variant="outline" asChild>
               <Link href="/my-ideas">
@@ -272,9 +278,9 @@ export default function BrainstormPage() {
       <AlertDialog open={showLimitAlert} onOpenChange={setShowLimitAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Monthly Limit Reached</AlertDialogTitle>
+            <AlertDialogTitle>Insufficient Credits</AlertDialogTitle>
             <AlertDialogDescription>
-              You have used your quota of 3 free insights for this month. Please try again next month.
+              You do not have enough credits to perform this action. An idea analysis costs {IDEA_ANALYSIS_COST} credits. You can recharge your credits on your profile page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -101,8 +101,6 @@ export default function TransactionsPage() {
   const [isAddingTransaction, setIsAddingTransaction] = useState(false);
 
   const [isImporting, setIsImporting] = useState(false);
-  const [isImportOnCooldown, setIsImportOnCooldown] = useState(false);
-  const [daysUntilNextImport, setDaysUntilNextImport] = useState(0);
 
   const {toast} = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,44 +108,6 @@ export default function TransactionsPage() {
     useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-
-  const [cooldownAlertOpen, setCooldownAlertOpen] = useState(false);
-
-  const getImportCooldownKey = useCallback(() => {
-    return user ? `import-cooldown-${user.uid}` : null;
-  }, [user]);
-
-  useEffect(() => {
-    const cooldownKey = getImportCooldownKey();
-    if (cooldownKey) {
-      const lastImportTimestamp = localStorage.getItem(cooldownKey);
-      if (lastImportTimestamp) {
-        const lastImportDate = new Date(parseInt(lastImportTimestamp, 10));
-        const now = new Date();
-        const thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
-        const timeSinceLastImport = now.getTime() - lastImportDate.getTime();
-
-        if (timeSinceLastImport < thirtyDaysInMillis) {
-          setIsImportOnCooldown(true);
-          const daysRemaining = Math.ceil(
-            (thirtyDaysInMillis - timeSinceLastImport) / (1000 * 60 * 60 * 24)
-          );
-          setDaysUntilNextImport(daysRemaining);
-        } else {
-          setIsImportOnCooldown(false);
-          localStorage.removeItem(cooldownKey);
-        }
-      }
-    }
-  }, [getImportCooldownKey]);
-
-  const handleImportClick = () => {
-    if (isImportOnCooldown) {
-      setCooldownAlertOpen(true);
-    } else {
-      setImportDialogOpen(true);
-    }
-  };
 
   const invalidateDashboardCache = useCallback(() => {
     if (user) {
@@ -320,12 +280,6 @@ export default function TransactionsPage() {
           await batch.commit();
 
           invalidateDashboardCache();
-          const cooldownKey = getImportCooldownKey();
-          if (cooldownKey) {
-            localStorage.setItem(cooldownKey, Date.now().toString());
-            setIsImportOnCooldown(true);
-            setDaysUntilNextImport(30);
-          }
           toast({
             title: 'Import Successful',
             description: `${result.data.transactions.length} ${translations.transactions.toasts.importSuccess}`,
@@ -455,7 +409,7 @@ export default function TransactionsPage() {
 
           <Button
             variant="outline"
-            onClick={handleImportClick}
+            onClick={() => setImportDialogOpen(true)}
             disabled={isImporting || showLoginPrompt}
             className="w-full"
           >
@@ -510,26 +464,6 @@ export default function TransactionsPage() {
               </div>
             </DialogContent>
           </Dialog>
-
-          <AlertDialog
-            open={cooldownAlertOpen}
-            onOpenChange={setCooldownAlertOpen}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Import Limit Reached</AlertDialogTitle>
-                <AlertDialogDescription>
-                  You can import transactions once every 30 days. Your next
-                  import is available in {daysUntilNextImport} day(s).
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setCooldownAlertOpen(false)}>
-                  OK
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
 
           <Dialog
             open={addTransactionDialogOpen}

@@ -21,6 +21,15 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
 import { FormattedText } from '@/components/wealthin/formatted-text';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
+const db = getFirestore(app);
+
+const DPR_GENERATION_COST = 4;
 
 const mockFinancialPrompt = `Generate a complete set of financial projections for a small-scale eco-friendly packaging manufacturing startup.
 - The response must be a JSON object only.
@@ -59,7 +68,7 @@ function CustomizeDPRContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const [step, setStep] = useState(0); // 0: purpose, 1: generation
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -72,6 +81,7 @@ function CustomizeDPRContent() {
   const [analysis, setAnalysis] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
   const [promoterName, setPromoterName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showCreditAlert, setShowCreditAlert] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -119,6 +129,37 @@ function CustomizeDPRContent() {
         return prev - 1;
       });
     }, 1000);
+  };
+
+  const handleStartGeneration = async () => {
+    if (!user || !userProfile) return;
+
+    if ((userProfile.credits ?? 0) < DPR_GENERATION_COST) {
+        setShowCreditAlert(true);
+        return;
+    }
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const newCredits = (userProfile.credits ?? 0) - DPR_GENERATION_COST;
+
+    try {
+        await setDoc(userDocRef, { credits: newCredits }, { merge: true });
+        toast({
+            title: 'Credits Deducted',
+            description: `DPR generation started. ${DPR_GENERATION_COST} credits have been deducted.`
+        });
+        setStep(1);
+        generateNextSection();
+    } catch (e) {
+        console.error("Failed to deduct credits:", e);
+        const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'update',
+            requestResourceData: { credits: newCredits }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not deduct credits.' });
+    }
   };
   
   const generateNextSection = async () => {
@@ -236,13 +277,13 @@ function CustomizeDPRContent() {
         <div className="text-center">
             <h1 className="text-3xl font-bold">What is the purpose of this report?</h1>
             <p className="text-muted-foreground mt-2">
-            Select a format below. The AI will tailor the DPR structure and tone for your chosen purpose.
+            Select a format below. The AI will tailor the DPR structure and tone for your chosen purpose. This will cost {DPR_GENERATION_COST} credits.
             </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={() => { setStep(1); generateNextSection(); }}
+                onClick={handleStartGeneration}
             >
                 <Banknote className="h-12 w-12 text-primary" />
                 <h3 className="font-semibold text-lg">Bank Loan Application</h3>
@@ -250,13 +291,26 @@ function CustomizeDPRContent() {
             </Card>
              <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={() => { setStep(1); generateNextSection(); }}
+                onClick={handleStartGeneration}
              >
                 <FileText className="h-12 w-12 text-primary" />
                 <h3 className="font-semibold text-lg">Legal Documentation</h3>
                  <p className="text-xs text-muted-foreground">Generate a report focused on legal and regulatory compliance.</p>
             </Card>
         </div>
+        <AlertDialog open={showCreditAlert} onOpenChange={setShowCreditAlert}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Insufficient Credits</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        You do not have enough credits to generate a DPR. This action costs {DPR_GENERATION_COST} credits.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogAction onClick={() => setShowCreditAlert(false)}>OK</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
 }
@@ -268,5 +322,3 @@ export default function CustomizeDPRPage() {
         </Suspense>
     )
 }
-
-    

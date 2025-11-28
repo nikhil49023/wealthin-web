@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
-import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { generateBudgetReportAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -29,8 +29,10 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const db = getFirestore(app);
 
+const BUDGET_REPORT_REWARD = 3;
+
 export default function BudgetReportPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
   const [report, setReport] = useState<GenerateBudgetReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +86,11 @@ export default function BudgetReportPage() {
       });
       return;
     }
+    if (!user || !userProfile) {
+      toast({ variant: 'destructive', description: 'Please log in to generate a report.' });
+      return;
+    }
+
     setIsGenerating(true);
     setProgress(5);
     setError(null);
@@ -98,6 +105,15 @@ export default function BudgetReportPage() {
         const data = result.data;
         setProgress(100);
         setReport(data);
+
+        // Award credits for generating a report
+        const userDocRef = doc(db, 'users', user.uid);
+        const newCredits = (userProfile.credits ?? 0) + BUDGET_REPORT_REWARD;
+        await setDoc(userDocRef, { credits: newCredits }, { merge: true });
+        toast({
+            title: 'Credits Earned!',
+            description: `You've earned ${BUDGET_REPORT_REWARD} credits for generating a report. New balance: ${newCredits}`,
+        });
 
     } catch (e: any) {
         setError(e.message);
@@ -164,7 +180,7 @@ export default function BudgetReportPage() {
             Budget Report
           </h1>
           <p className="text-muted-foreground">
-            Generate a detailed analysis of your monthly finances.
+            Generate a detailed analysis of your monthly finances and earn {BUDGET_REPORT_REWARD} credits.
           </p>
         </div>
          <Button variant="ghost" asChild className="-ml-4">

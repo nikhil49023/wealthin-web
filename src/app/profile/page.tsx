@@ -200,8 +200,13 @@ export default function ProfilePage() {
           </Avatar>
           <CardTitle className="text-2xl">{user.displayName || 'User'}</CardTitle>
           <CardDescription>{user.email}</CardDescription>
+          <div className="flex justify-center items-center gap-2 pt-4">
+            <Gem className="h-5 w-5 text-primary" />
+            <span className="text-xl font-bold">{userProfile?.credits ?? 0} Credits</span>
+          </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Button variant="default">Recharge Credits (Demo)</Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">

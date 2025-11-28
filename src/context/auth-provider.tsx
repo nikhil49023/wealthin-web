@@ -17,6 +17,7 @@ export type UserProfile = {
   email: string | null;
   role: 'individual' | 'msme';
   createdAt: any;
+  credits?: number; // Added credits field
   msmeName?: string;
   msmeDescription?: string;
   msmeService?: string;
@@ -55,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUserProfile(snapshot.data() as UserProfile);
             } else {
                 // If profile doesn't exist, create it.
-                // This case can happen with Google Sign-In on first login.
                 getDoc(userDocRef).then(docSnap => {
                     if (!docSnap.exists()) {
                         const newProfile: UserProfile = {
@@ -64,7 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             email: firebaseUser.email,
                             role: 'individual', // default role
                             createdAt: serverTimestamp(),
-                            hasCompletedTour: false, // New user flag
+                            credits: 10, // Default credits for new user
+                            hasCompletedTour: false,
                         };
                         setDoc(userDocRef, newProfile);
                         setUserProfile(newProfile);
