@@ -34,11 +34,10 @@ Your Answer:
     
     const answer = await catalystService.generateText(fullPrompt, systemPrompt);
 
-    if (!answer) {
-      throw new Error('Received empty or malformed content from the AI service.');
-    }
 
-    return { answer };
+      
+    
+    return { answer: answer?.trim() || 'I apologize, but I could not generate financial advice at this moment. Please try again or rephrase your question.' };
   } catch (e: any) {
     console.error('Failed to get response from AI service:', e);
     throw new Error(`An error occurred while processing the AI response: ${e.message}`);
