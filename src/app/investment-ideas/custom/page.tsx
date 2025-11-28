@@ -21,7 +21,6 @@ import {
   Loader2,
   ChevronsRight,
   Landmark,
-  Share2,
   FileText,
   Timer,
 } from 'lucide-react';
@@ -40,10 +39,6 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-  query,
-  where,
-  getDocs,
-  limit,
 } from 'firebase/firestore';
 import {app} from '@/lib/firebase';
 import { generateInvestmentIdeaAnalysisAction, generateIdeaSectionAction } from '@/app/actions';
@@ -52,10 +47,6 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Progress } from '@/components/ui/progress';
 
 const db = getFirestore(app);
-
-type SavedIdea = GenerateInvestmentIdeaAnalysisOutput & {
-  savedAt: any;
-};
 
 type AnalysisSection = {
   key: keyof Omit<GenerateInvestmentIdeaAnalysisOutput, 'title' | 'summary'>;
@@ -147,7 +138,7 @@ function InvestmentIdeaContent() {
     
     const fullAnalysis: Partial<GenerateInvestmentIdeaAnalysisOutput> = sections.reduce((acc, section) => {
         if(section.content) {
-            acc[section.key] = section.content;
+            (acc as any)[section.key] = section.content;
         }
         return acc;
     }, { title: initialAnalysis.title, summary: initialAnalysis.summary } as Partial<GenerateInvestmentIdeaAnalysisOutput>);
