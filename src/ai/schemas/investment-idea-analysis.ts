@@ -1,7 +1,7 @@
 
 import { z } from 'zod';
 
-// Schemas for Investment Idea Analysis
+// Schema for the original, full analysis generation
 export const GenerateInvestmentIdeaAnalysisInputSchema = z.object({
   idea: z.string().describe('The business investment idea to be analyzed.'),
 });
@@ -46,3 +46,19 @@ export const GenerateInvestmentIdeaAnalysisOutputSchema = z.object({
 export type GenerateInvestmentIdeaAnalysisOutput = z.infer<
   typeof GenerateInvestmentIdeaAnalysisOutputSchema
 >;
+
+
+// --- Schemas for the NEW section-by-section generation ---
+
+export const GenerateIdeaSectionInputSchema = z.object({
+    idea: z.string().describe("The user's initial business idea."),
+    section: z.string().describe("The specific section to generate (e.g., 'investmentStrategy')."),
+    basePrompt: z.string().describe("The detailed base prompt for the AI to generate the content for this specific section."),
+});
+export type GenerateIdeaSectionInput = z.infer<typeof GenerateIdeaSectionInputSchema>;
+
+
+export const GenerateIdeaSectionOutputSchema = z.object({
+    content: z.string().describe("The generated content for the section as a raw string, which may contain basic HTML for formatting.")
+});
+export type GenerateIdeaSectionOutput = z.infer<typeof GenerateIdeaSectionOutputSchema>;

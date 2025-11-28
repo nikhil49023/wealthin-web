@@ -11,6 +11,8 @@ import {generateInvestmentIdeaAnalysis} from '@/ai/flows/generate-investment-ide
 import type {
   GenerateInvestmentIdeaAnalysisInput,
   GenerateInvestmentIdeaAnalysisOutput,
+  GenerateIdeaSectionInput,
+  GenerateIdeaSectionOutput,
 } from '@/ai/schemas/investment-idea-analysis';
 import type {ExtractedTransaction} from '@/ai/schemas/transactions';
 import {generateRagAnswer} from '@/ai/flows/generate-rag-answer';
@@ -32,6 +34,8 @@ import type {
 import {generateTts} from '@/ai/flows/generate-tts';
 import type {GenerateTtsInput, GenerateTtsOutput} from '@/ai/schemas/tts';
 import { generateDprSection } from '@/ai/flows/generate-dpr-section';
+import { generateIdeaSection } from '@/ai/flows/generate-idea-section';
+
 
 export async function extractTransactionsAction(
   input: ExtractTransactionsInput
@@ -69,6 +73,7 @@ export async function generateDashboardSummaryAction(input: {
   }
 }
 
+// This action is now deprecated in favor of generateIdeaSectionAction
 export async function generateInvestmentIdeaAnalysisAction(
   input: GenerateInvestmentIdeaAnalysisInput
 ): Promise<
@@ -86,6 +91,25 @@ export async function generateInvestmentIdeaAnalysisAction(
     };
   }
 }
+
+export async function generateIdeaSectionAction(
+  input: GenerateIdeaSectionInput
+): Promise<
+  | {success: true; data: GenerateIdeaSectionOutput}
+  | {success: false; error: string}
+> {
+  try {
+    const result = await generateIdeaSection(input);
+    return {success: true, data: result};
+  } catch (error: any) {
+    console.error(error);
+    return {
+      success: false,
+      error: `Failed to generate idea section: ${error.message}`,
+    };
+  }
+}
+
 
 export async function generateRagAnswerAction(
   input: GenerateRagAnswerInput
