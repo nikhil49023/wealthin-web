@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,15 +10,17 @@ import {
   Loader2,
   Sparkles,
   FileText,
+  Timer,
+  CheckCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 import { generateDprAction } from '@/app/actions';
 import Link from 'next/link';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
+import { FormattedText } from '@/components/wealthin/formatted-text';
 
 const mockFinancialPrompt = `Generate a complete set of financial projections for a small-scale eco-friendly packaging manufacturing startup.
 - The response must be a JSON object only.
@@ -59,13 +61,19 @@ function CustomizeDPRContent() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [step, setStep] = useState(0); // 0 = purpose, 1 = generation
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [currentGenerationStatus, setCurrentGenerationStatus] = useState('Starting...');
-
+  const [step, setStep] = useState(0); // 0: purpose, 1: generation
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const [generatedReport, setGeneratedReport] = useState<DprReport>({});
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [timer, setTimer] = useState(10);
+  
   const [analysis, setAnalysis] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
   const [promoterName, setPromoterName] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const ideaTitle = searchParams.get('idea');
@@ -98,47 +106,58 @@ function CustomizeDPRContent() {
     }
   }, [searchParams, toast, user]);
 
-  const startGeneration = async () => {
-    if (!analysis || !promoterName) return;
-
-    setStep(1); // Move to generation view
-    let generatedReport: DprReport = {};
-
-    for (let i = 0; i < dprChapters.length; i++) {
-        const chapter = dprChapters[i];
-        setCurrentGenerationStatus(`Generating "${chapter.title}"...`);
-        
-        try {
-            const result = await generateDprAction({
-                idea: analysis,
-                promoterName,
-                section: chapter.key,
-                basePrompt: chapter.isMockable ? mockFinancialPrompt : chapter.prompt
-            });
-
-            if (result.success) {
-                generatedReport[chapter.key] = result.data.content;
-                setGenerationProgress(((i + 1) / dprChapters.length) * 100);
-            } else {
-                throw new Error(result.error || `Failed to generate ${chapter.title}`);
-            }
-        } catch (e: any) {
-            setError(`Failed during section: ${chapter.title}. Error: ${e.message}`);
-            toast({ variant: 'destructive', title: `Error Generating ${chapter.title}`, description: e.message });
-            return; // Stop generation on error
+  const startCooldown = () => {
+    setIsWaiting(true);
+    setTimer(10);
+    timerRef.current = setInterval(() => {
+      setTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          setIsWaiting(false);
+          return 0;
         }
-    }
-
-    setCurrentGenerationStatus('Finalizing Report...');
-    localStorage.setItem('generatedDPR', JSON.stringify(generatedReport));
-    
-    // Brief delay before redirecting
-    setTimeout(() => {
-        router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title || '')}`);
+        return prev - 1;
+      });
     }, 1000);
   };
+  
+  const generateNextSection = async () => {
+    if (!analysis || !promoterName || currentChapterIndex >= dprChapters.length) return;
 
-  if (error) {
+    setIsGenerating(true);
+    setError(null);
+    
+    const chapter = dprChapters[currentChapterIndex];
+
+    try {
+      const result = await generateDprAction({
+        idea: analysis,
+        promoterName,
+        section: chapter.key,
+        basePrompt: chapter.isMockable ? mockFinancialPrompt : chapter.prompt,
+      });
+
+      if (result.success) {
+        setGeneratedReport(prev => ({ ...prev, [chapter.key]: result.data.content }));
+        startCooldown();
+        setCurrentChapterIndex(prev => prev + 1);
+      } else {
+        throw new Error(result.error || `Failed to generate ${chapter.title}`);
+      }
+    } catch (e: any) {
+      setError(`Failed during section: ${chapter.title}. Error: ${e.message}`);
+      toast({ variant: 'destructive', title: `Error Generating ${chapter.title}`, description: e.message });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleFinish = () => {
+    localStorage.setItem('generatedDPR', JSON.stringify(generatedReport));
+    router.push(`/dpr-report?idea=${encodeURIComponent(analysis?.title || '')}`);
+  };
+
+  if (error && !isGenerating) {
       return (
           <div className="text-center py-10">
               <p className="text-destructive font-semibold">An error occurred</p>
@@ -155,22 +174,53 @@ function CustomizeDPRContent() {
   }
 
   if (step === 1) {
+    const isFinished = currentChapterIndex >= dprChapters.length;
+    const progress = (currentChapterIndex / dprChapters.length) * 100;
+    
     return (
-        <div className="max-w-2xl mx-auto text-center space-y-8">
-            <Sparkles className="h-16 w-16 mx-auto text-primary" />
-            <h1 className="text-3xl font-bold">Generating Your DPR</h1>
-            <p className="text-muted-foreground">The AI is building your report. This may take a few minutes. Please don't navigate away from this page.</p>
+        <div className="max-w-2xl mx-auto space-y-6">
+            <h1 className="text-3xl font-bold text-center">Generating Your DPR</h1>
+            <p className="text-muted-foreground text-center">The AI is building your report, section by section. Please review and continue.</p>
+            
             <Card>
                 <CardContent className="pt-6 space-y-4">
-                    <Progress value={generationProgress} className="w-full" />
-                    <p className="text-center text-sm text-muted-foreground">{currentGenerationStatus}</p>
-                    <div className="space-y-2 pt-4">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                    </div>
+                    <Progress value={progress} className="w-full" />
+                    <p className="text-center text-sm font-semibold">
+                        {isFinished ? "Report Generation Complete!" : `Step ${currentChapterIndex + 1} of ${dprChapters.length}: Generating "${dprChapters[currentChapterIndex].title}"`}
+                    </p>
                 </CardContent>
             </Card>
+
+            {Object.keys(generatedReport).length > 0 && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckCircle className="text-green-500"/>
+                          Last Generated Section: {dprChapters[currentChapterIndex - 1].title}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="prose prose-sm dark:prose-invert max-w-none">
+                        <FormattedText text={JSON.stringify(generatedReport[dprChapters[currentChapterIndex - 1].key])} />
+                    </CardContent>
+                 </Card>
+            )}
+
+            <div className="flex justify-center">
+                 {isFinished ? (
+                    <Button onClick={handleFinish} size="lg">
+                        View Full Report
+                    </Button>
+                ) : (
+                    <Button onClick={generateNextSection} disabled={isGenerating || isWaiting} size="lg">
+                        {isGenerating ? (
+                            <Loader2 className="mr-2 animate-spin" />
+                        ) : isWaiting ? (
+                           <Timer className="mr-2" />
+                        ) : null}
+                        {isGenerating ? "Generating..." : isWaiting ? `Please wait... (${timer}s)` : "Generate Next Section"}
+                    </Button>
+                )}
+            </div>
         </div>
     )
   }
@@ -192,7 +242,7 @@ function CustomizeDPRContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={startGeneration}
+                onClick={() => { setStep(1); generateNextSection(); }}
             >
                 <Banknote className="h-12 w-12 text-primary" />
                 <h3 className="font-semibold text-lg">Bank Loan Application</h3>
@@ -200,7 +250,7 @@ function CustomizeDPRContent() {
             </Card>
              <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={startGeneration}
+                onClick={() => { setStep(1); generateNextSection(); }}
              >
                 <FileText className="h-12 w-12 text-primary" />
                 <h3 className="font-semibold text-lg">Legal Documentation</h3>
@@ -218,3 +268,5 @@ export default function CustomizeDPRPage() {
         </Suspense>
     )
 }
+
+    
