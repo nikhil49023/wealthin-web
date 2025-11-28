@@ -77,7 +77,7 @@ class CatalystService {
       headers: {
         'Content-Type': 'application/json',
         'CATALYST-ORG': this.orgId,
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Zoho-oauthtoken ${token}`,
       },
       body: JSON.stringify(body),
     });
