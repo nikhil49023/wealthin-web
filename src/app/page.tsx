@@ -353,22 +353,22 @@ export default function DashboardPage() {
     const fetchSummaryAndCheckAwards = async () => {
       const cacheKey = getCacheKey();
 
-      if (transactions.length === 0 && !isLoading) {
-        const defaultSummary = {
-          totalIncome: 0,
-          totalExpenses: 0,
-          savingsRate: 0,
-          suggestion: translations.dashboard.defaultSuggestion,
-        };
-        setSummary(defaultSummary);
-        if (cacheKey)
-          localStorage.setItem(cacheKey, JSON.stringify(defaultSummary));
+      if (transactions.length === 0) {
+        if (summary?.suggestion !== translations.dashboard.defaultSuggestion) {
+            const defaultSummary = {
+              totalIncome: 0,
+              totalExpenses: 0,
+              savingsRate: 0,
+              suggestion: translations.dashboard.defaultSuggestion,
+            };
+            setSummary(defaultSummary);
+            if (cacheKey) localStorage.setItem(cacheKey, JSON.stringify(defaultSummary));
+        }
+        setIsLoading(false);
         return;
       }
 
-      if (!summary) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
 
       try {
         const result = await generateDashboardSummaryAction({ transactions });
@@ -421,7 +421,7 @@ export default function DashboardPage() {
     };
 
     fetchSummaryAndCheckAwards();
-  }, [transactions, user, userProfile, loadingAuth, translations, getCacheKey, toast, isLoading, summary, awardCredits, savingsGoals]);
+  }, [transactions, user, userProfile, loadingAuth, translations, getCacheKey, toast, awardCredits, savingsGoals]);
 
   // Effect to create default emergency fund
   useEffect(() => {
@@ -565,9 +565,9 @@ export default function DashboardPage() {
 
   // --- Memoized Computations ---
 
-  const formatCurrency = (amount: number | undefined | null) => {
-    if (amount === undefined || amount === null || typeof amount !== 'number') {
-      return <Skeleton className="h-8 w-24" />;
+  const formatCurrency = (amount: number | undefined | null): React.ReactNode => {
+    if (amount === undefined || amount === null) {
+      return <Skeleton className="h-8 w-24 inline-block" />;
     }
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
