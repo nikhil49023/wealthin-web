@@ -12,6 +12,7 @@ import type {
   ExtractTransactionsInput,
   ExtractTransactionsOutput,
 } from '@/ai/schemas/transactions';
+import { ExtractTransactionsOutputSchema } from '@/ai/schemas/transactions';
 
 export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
@@ -33,13 +34,12 @@ export async function extractTransactionsFromDocument(
 
   const userPrompt = `Analyze the provided financial document content and extract all financial transactions you can find.
 
-For each transaction, provide:
-- "description": A clear description of the transaction.
-- "date": The date in DD/MM/YYYY format.
-- "type": "income" or "expense".
-- "amount": The transaction amount, formatted as a string with currency (e.g., "INR 1,234.56").
-
-Your response must be a JSON object with a single key "transactions" containing an array of these objects.
+Your response MUST be a JSON object with a single key "transactions" which contains an array of transaction objects.
+Each transaction object must conform to this schema:
+- "description": (string) A clear description of the transaction.
+- "date": (string) The date in DD/MM/YYYY format.
+- "type": (string) Must be either "income" or "expense".
+- "amount": (string) The transaction amount, formatted as a string with currency (e.g., "INR 1,234.56").
 
 Document Content:
 ---
@@ -51,7 +51,7 @@ ${documentTextContent}
     const responseText = await catalystService.generateText(userPrompt, systemPrompt);
     const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanedText);
-    return parsed as ExtractTransactionsOutput;
+    return ExtractTransactionsOutputSchema.parse(parsed);
   } catch (e) {
     console.error('Failed to parse JSON from model response:', e);
     throw new Error('Could not extract transactions. The AI returned an invalid format.');

@@ -22,21 +22,20 @@ export async function generateRagAnswer(
     const systemPrompt = `You are a helpful financial advisor named WealthIn. Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting.`;
 
     const fullPrompt = `
-User Query: "${input.query}"
+Context: You are providing financial advice.
 
 Recent User Transactions (for context):
 ---
 ${transactionsList}
 ---
 
-Your Answer:
+User Query: "${input.query}"
+
+Based on the transaction history and the user's query, provide a helpful answer.
 `;
     
     const answer = await catalystService.generateText(fullPrompt, systemPrompt);
 
-
-      
-    
     return { answer: answer?.trim() || 'I apologize, but I could not generate financial advice at this moment. Please try again or rephrase your question.' };
   } catch (e: any) {
     console.error('Failed to get response from AI service:', e);

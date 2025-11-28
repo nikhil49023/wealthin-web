@@ -9,6 +9,7 @@ import type {
   GenerateBudgetReportInput,
   GenerateBudgetReportOutput,
 } from '@/ai/schemas/budget-report';
+import { GenerateBudgetReportOutputSchema } from '@/ai/schemas/budget-report';
 
 // Helper to safely parse currency strings
 function parseCurrency(amount: string | number): number {
@@ -35,11 +36,11 @@ export async function generateBudgetReport(
   const userPrompt = `Based on the following transactions, provide a spending analysis and a detailed expense breakdown.
 Group similar expenses into logical categories (e.g., "Food", "Transport", "Shopping").
 
-Your response must match this JSON schema exactly:
+Your response must be a JSON object that conforms exactly to this schema:
 {
-  "summary": "An AI-generated summary and analysis of the spending habits...",
+  "summary": "(string) An AI-generated summary and analysis of the spending habits...",
   "expenseBreakdown": [
-    { "name": "CategoryName", "value": 1234.56 },
+    { "name": "(string) CategoryName", "value": "(number) 1234.56" },
     ...
   ]
 }
@@ -73,12 +74,8 @@ ${transactionsList}
         { name: 'Savings', value: savings }
     ].filter(item => item.value > 0); // Only show items with a value
 
-    // Ensure expense breakdown is always an array
-    if (!parsed.expenseBreakdown) {
-      parsed.expenseBreakdown = [];
-    }
+    return GenerateBudgetReportOutputSchema.parse(parsed);
     
-    return parsed as GenerateBudgetReportOutput;
   } catch (e: any) {
     console.error('Failed to parse JSON from model response:', e.message);
     throw new Error('Could not generate budget report. The AI returned an invalid format.');

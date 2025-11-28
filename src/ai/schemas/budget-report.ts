@@ -1,5 +1,5 @@
 
-import { z } from 'genkit';
+import { z } from 'zod';
 import { ExtractedTransactionSchema } from './transactions';
 
 // Schemas for Budget Report
@@ -17,6 +17,7 @@ export const GenerateBudgetReportOutputSchema = z.object({
     .describe('A JSON array of expense categories and their total amounts for a pie chart.'),
   overallBreakdown: z
     .array(z.object({ name: z.string(), value: z.number() }))
+    .optional()
     .describe('A JSON array containing total income and total expenses for a pie chart.'),
 });
 export type GenerateBudgetReportOutput = z.infer<typeof GenerateBudgetReportOutputSchema>;

@@ -7,7 +7,7 @@
  * - ExtractTransactionsOutput - The return type for the extraction function.
  */
 
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const ExtractedTransactionSchema = z.object({
   description: z.string().describe('The description of the transaction.'),
@@ -43,5 +43,3 @@ export const ExtractTransactionsOutputSchema = z.object({
 export type ExtractTransactionsOutput = z.infer<
   typeof ExtractTransactionsOutputSchema
 >;
-
-    
