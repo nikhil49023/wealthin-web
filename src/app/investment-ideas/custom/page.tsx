@@ -343,29 +343,6 @@ function InvestmentIdeaContent() {
           )}
         </CardHeader>
       </Card>
-      
-        {initialAnalysis && (
-            <Card>
-                <CardContent className="pt-6 space-y-4">
-                    <Progress value={progress} className="w-full" />
-                    <p className="text-center text-sm font-semibold">
-                        {isComplete ? "Analysis Complete!" : `Generating Section ${currentSectionIndex + 1} of ${sections.length}: "${sections[currentSectionIndex]?.title}"`}
-                    </p>
-                    {!isComplete && (
-                        <div className="flex justify-center">
-                            <Button onClick={handleContinue} disabled={isGenerating || isWaiting}>
-                                {isGenerating ? (
-                                    <Loader2 className="mr-2 animate-spin" />
-                                ) : isWaiting ? (
-                                   <Timer className="mr-2" />
-                                ) : null}
-                                {isGenerating ? "Generating..." : isWaiting ? `Please wait... (${timer}s)` : "Generate Next Section"}
-                            </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        )}
 
       <div className="space-y-6 md:space-y-8">
         <AnimatePresence>
@@ -399,6 +376,27 @@ function InvestmentIdeaContent() {
           )}
         </AnimatePresence>
       </div>
+
+      {initialAnalysis && !isComplete && (
+        <Card>
+            <CardContent className="pt-6 space-y-4">
+                <Progress value={progress} className="w-full" />
+                <p className="text-center text-sm font-semibold">
+                    {isComplete ? "Analysis Complete!" : `Generating Section ${currentSectionIndex + 1} of ${sections.length}: "${sections[currentSectionIndex]?.title}"`}
+                </p>
+                <div className="flex justify-center">
+                    <Button onClick={handleContinue} disabled={isGenerating || isWaiting}>
+                        {isGenerating ? (
+                            <Loader2 className="mr-2 animate-spin" />
+                        ) : isWaiting ? (
+                           <Timer className="mr-2" />
+                        ) : null}
+                        {isGenerating ? "Generating..." : isWaiting ? `Please wait... (${timer}s)` : "Generate Next Section"}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+      )}
 
        {isComplete && (
           <Card>
