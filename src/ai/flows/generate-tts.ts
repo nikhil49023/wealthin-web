@@ -1,7 +1,8 @@
+
 'use server';
 /**
  * @fileOverview This flow is for text-to-speech.
- * Note: Firebase AI SDK does not currently have a public client-side TTS model.
+ * Note: The current AI provider does not support TTS.
  * This flow is a placeholder and will not produce audio.
  * A full implementation would require a dedicated TTS service.
  */
