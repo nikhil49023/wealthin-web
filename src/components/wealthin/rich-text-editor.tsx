@@ -11,14 +11,24 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useCallback } from 'react';
 
 const MenuBar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) {
     return null;
   }
+
+  const addImage = useCallback(() => {
+    const url = window.prompt('Enter image URL');
+
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  }, [editor]);
 
   const menuItems = [
     {
@@ -72,6 +82,14 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
           <Icon className="h-4 w-4" />
         </Button>
       ))}
+       <Button
+          onClick={addImage}
+          variant={'ghost'}
+          size="icon"
+          aria-label="Add Image"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
     </div>
   );
 };
