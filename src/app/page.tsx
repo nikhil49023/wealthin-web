@@ -28,6 +28,7 @@ import {
   User,
   Mail,
   X,
+  Award,
 } from 'lucide-react';
 import {
   Card,
@@ -48,7 +49,7 @@ import React, {
 import {Skeleton} from '@/components/ui/skeleton';
 import type {ExtractedTransaction} from '@/ai/schemas/transactions';
 import type {GenerateDashboardSummaryOutput} from '@/ai/schemas/dashboard-summary';
-import {useAuth, type UserProfile} from '@/context/auth-provider';
+import {useAuth, type UserProfile, type CreditTransaction} from '@/context/auth-provider';
 import {useLanguage} from '@/hooks/use-language';
 import {Progress} from '@/components/ui/progress';
 import {Button} from '@/components/ui/button';
@@ -95,6 +96,9 @@ import {
   doc,
   serverTimestamp,
   query,
+  updateDoc,
+  arrayUnion,
+  Timestamp,
 } from 'firebase/firestore';
 import { generateDashboardSummaryAction, generateFinBiteAction } from './actions';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -125,6 +129,10 @@ type SavingsGoal = {
   targetAmount: number;
   isDefault?: boolean;
 };
+
+const SAVINGS_RATE_REWARD = 3;
+const SAVINGS_GOAL_REWARD = 2;
+
 
 export default function DashboardPage() {
   const {user, userProfile, loading: loadingAuth} = useAuth();
@@ -342,11 +350,37 @@ export default function DashboardPage() {
     }
   }, [user, loadingAuth, router, toast]);
 
-  // Effect to generate summary when transactions change
-  useEffect(() => {
-    if (loadingAuth || !user) return; // Don't run if auth is loading or no user
+    const awardCredits = useCallback(async (amount: number, description: string) => {
+        if (!user || !userProfile) return;
 
-    const fetchSummary = async () => {
+        const userDocRef = doc(db, 'users', user.uid);
+        const newCreditTotal = (userProfile.credits || 0) + amount;
+        const newCreditTx: CreditTransaction = {
+            amount: amount,
+            description: description,
+            date: serverTimestamp()
+        };
+
+        try {
+            await updateDoc(userDocRef, {
+                credits: newCreditTotal,
+                creditHistory: arrayUnion(newCreditTx)
+            });
+            toast({
+                title: 'Congratulations!',
+                description: `You've earned ${amount} credits for ${description.toLowerCase()}.`,
+                className: 'bg-green-100 border-green-300 text-green-800'
+            });
+        } catch (error) {
+            console.error(`Failed to award ${amount} credits for ${description}:`, error);
+        }
+    }, [user, userProfile, toast]);
+
+  // Effect to generate summary and check for credit awards
+  useEffect(() => {
+    if (loadingAuth || !user || !userProfile) return; 
+
+    const fetchSummaryAndCheckAwards = async () => {
       const cacheKey = getCacheKey();
 
       if (transactions.length === 0 && !isLoading) {
@@ -362,7 +396,6 @@ export default function DashboardPage() {
         return;
       }
 
-      // Only set loading if we don't have a cached summary
       if (!summary) {
         setIsLoading(true);
       }
@@ -376,6 +409,35 @@ export default function DashboardPage() {
         const data = result.data;
         setSummary(data);
         if (cacheKey) localStorage.setItem(cacheKey, JSON.stringify(data));
+
+        // --- Check for Credit Awards ---
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // 1. Savings Rate Reward (once per month)
+        if (data.savingsRate >= 60) {
+            const lastAwarded = userProfile.lastSavingsRateCreditAwarded?.toDate();
+            if (!lastAwarded || lastAwarded < startOfMonth) {
+                await awardCredits(SAVINGS_RATE_REWARD, 'High Savings Rate');
+                await updateDoc(doc(db, 'users', user.uid), {
+                    lastSavingsRateCreditAwarded: serverTimestamp()
+                });
+            }
+        }
+        
+        // 2. Savings Goal Completion Reward
+        const availableFunds = data.totalIncome - data.totalExpenses;
+        const uncompletedGoals = savingsGoals.filter(g => !(userProfile.completedGoals || []).includes(g.id));
+
+        for (const goal of uncompletedGoals) {
+            if (availableFunds >= goal.targetAmount) {
+                await awardCredits(SAVINGS_GOAL_REWARD, `Completing '${goal.name}' Goal`);
+                await updateDoc(doc(db, 'users', user.uid), {
+                    completedGoals: arrayUnion(goal.id)
+                });
+            }
+        }
+
       } catch (error: any) {
         console.error('Error fetching dashboard summary:', error);
         toast({
@@ -388,8 +450,8 @@ export default function DashboardPage() {
       }
     };
 
-    fetchSummary();
-  }, [transactions, user, loadingAuth, translations, getCacheKey, toast, isLoading]);
+    fetchSummaryAndCheckAwards();
+  }, [transactions, user, userProfile, loadingAuth, translations, getCacheKey, toast, isLoading, summary, awardCredits, savingsGoals]);
 
   // Effect to create default emergency fund
   useEffect(() => {
@@ -996,7 +1058,8 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {savingsGoals.map(goal => {
-                    const progress = Math.min(
+                    const isCompleted = userProfile?.completedGoals?.includes(goal.id);
+                    const progress = isCompleted ? 100 : Math.min(
                       (totalFunds / goal.targetAmount) * 100,
                       100
                     );
@@ -1008,6 +1071,9 @@ export default function DashboardPage() {
                               <p className="font-semibold flex items-center gap-2">
                                 {goal.isDefault && (
                                   <ShieldAlert className="h-5 w-5 text-amber-500" />
+                                )}
+                                {isCompleted && (
+                                    <Award className="h-5 w-5 text-green-500" />
                                 )}
                                 {goal.name}
                               </p>
@@ -1026,7 +1092,7 @@ export default function DashboardPage() {
                           </div>
                           <Progress value={progress} className="mt-2" />
                           <p className="text-xs text-right mt-1 text-muted-foreground">
-                            {Math.round(progress)}% funded
+                            {isCompleted ? 'Completed!' : `${Math.round(progress)}% funded`}
                           </p>
                         </CardContent>
                       </Card>

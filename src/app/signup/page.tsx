@@ -208,6 +208,12 @@ export default function SignUpPage() {
         createdAt: serverTimestamp(),
         credits: 10, // Start with 10 credits
         hasCompletedTour: false, // New user flag
+        creditHistory: [{
+          amount: 10,
+          description: 'Welcome Bonus!',
+          date: serverTimestamp()
+        }],
+        completedGoals: [],
       };
 
       if (formData.role === 'msme') {

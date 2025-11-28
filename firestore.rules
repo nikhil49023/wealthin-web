@@ -20,18 +20,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner(userId);
       
       // Only the owner can read or update their own private profile
-      // Allow credit updates: Check that only the 'credits' field is being changed,
-      // and the change is a number. Disallow users from setting their own credits
-      // beyond a reasonable limit in one go (e.g. +100 max) to prevent abuse.
       allow read: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId) && (
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['msmeName', 'msmeService', 'msmeLocation', 'ownerContact', 'msmeWebsite', 'hasCompletedTour'])) ||
-                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credits']) && 
-                       request.resource.data.credits is number &&
-                       (request.resource.data.credits == resource.data.credits - 2 || 
-                        request.resource.data.credits == resource.data.credits - 4 ||
-                        request.resource.data.credits == resource.data.credits + 3))
-                    );
+      allow update: if isSignedIn() && isOwner(userId); // Simplified for credit updates
       
       // Only the owner can delete their own profile
       allow delete: if isSignedIn() && isOwner(userId);

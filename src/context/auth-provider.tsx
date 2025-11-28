@@ -11,13 +11,19 @@ import { app } from '@/lib/firebase';
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+export type CreditTransaction = {
+    amount: number; // positive for earning, negative for spending
+    description: string;
+    date: any;
+};
+
 export type UserProfile = {
   uid: string;
   displayName: string | null;
   email: string | null;
   role: 'individual' | 'msme';
   createdAt: any;
-  credits?: number; // Added credits field
+  credits?: number;
   msmeName?: string;
   msmeDescription?: string;
   msmeService?: string;
@@ -25,6 +31,9 @@ export type UserProfile = {
   ownerContact?: string;
   msmeWebsite?: string;
   hasCompletedTour?: boolean;
+  creditHistory?: CreditTransaction[];
+  lastSavingsRateCreditAwarded?: any;
+  completedGoals?: string[];
 };
 
 interface AuthContextType {
@@ -51,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
         // Listen for profile changes
-        onSnapshot(userDocRef, (snapshot) => {
+        const unsubProfile = onSnapshot(userDocRef, (snapshot) => {
             if (snapshot.exists()) {
                 setUserProfile(snapshot.data() as UserProfile);
             } else {
@@ -66,6 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             createdAt: serverTimestamp(),
                             credits: 10, // Default credits for new user
                             hasCompletedTour: false,
+                            creditHistory: [{
+                                amount: 10,
+                                description: 'Welcome Bonus!',
+                                date: serverTimestamp()
+                            }],
+                            completedGoals: [],
                         };
                         setDoc(userDocRef, newProfile);
                         setUserProfile(newProfile);

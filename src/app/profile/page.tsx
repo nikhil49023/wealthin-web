@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Loader2, Briefcase, Building, Phone, MapPin, Edit, Link as LinkIcon, Trash2, Gem, Crown, Check } from 'lucide-react';
+import { LogOut, Loader2, Briefcase, Building, Phone, MapPin, Edit, Link as LinkIcon, Trash2, Gem, Crown, Check, Plus, Minus, History } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,21 +24,28 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useLanguage } from '@/hooks/use-language';
-import { useAuth } from '@/context/auth-provider';
+import { useAuth, type CreditTransaction } from '@/context/auth-provider';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { getAuth, deleteUser } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+const rechargeOptions = [
+    { credits: 50, price: 50 },
+    { credits: 100, price: 95 },
+    { credits: 200, price: 180 },
+];
 
 export default function ProfilePage() {
   const { user, userProfile, loading, signOut } = useAuth();
@@ -140,7 +147,6 @@ export default function ProfilePage() {
           const msmeProfileRef = doc(db, 'msme-profiles', user.uid);
           const deleteMsmeDoc = deleteDoc(msmeProfileRef).catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({ path: msmeProfileRef.path, operation: 'delete' });
-            errorEmitter.emit('permission-error', permissionError);
             // Don't throw here to allow user deletion to proceed if only this fails
           });
           operations.push(deleteMsmeDoc);
@@ -175,6 +181,14 @@ export default function ProfilePage() {
       .substring(0, 2)
       .toUpperCase();
   };
+  
+  const sortedCreditHistory = userProfile?.creditHistory
+    ? [...userProfile.creditHistory].sort((a, b) => {
+        const dateA = a.date instanceof Timestamp ? a.date.toMillis() : Date.parse(a.date);
+        const dateB = b.date instanceof Timestamp ? b.date.toMillis() : Date.parse(b.date);
+        return dateB - dateA;
+      })
+    : [];
 
   if (loading) {
     return (
@@ -200,13 +214,8 @@ export default function ProfilePage() {
           </Avatar>
           <CardTitle className="text-2xl">{user.displayName || 'User'}</CardTitle>
           <CardDescription>{user.email}</CardDescription>
-          <div className="flex justify-center items-center gap-2 pt-4">
-            <Gem className="h-5 w-5 text-primary" />
-            <span className="text-xl font-bold">{userProfile?.credits ?? 0} Credits</span>
-          </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <Button variant="default">Recharge Credits (Demo)</Button>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">
@@ -258,6 +267,77 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
       
+      {/* Credits Section */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold flex items-center gap-2"><Gem /> Credits</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1">
+                 <CardHeader>
+                    <CardTitle>Your Balance</CardTitle>
+                 </CardHeader>
+                 <CardContent className="text-center">
+                    <p className="text-5xl font-bold">{userProfile?.credits ?? 0}</p>
+                    <p className="text-muted-foreground">Available Credits</p>
+
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button className="mt-6 w-full">Recharge Credits</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Recharge Credits</DialogTitle>
+                                <DialogDescription>Select a pack to add credits to your account. (1 Credit ≈ ₹1)</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
+                                {rechargeOptions.map(option => (
+                                    <Card key={option.credits} className="text-center p-4 cursor-pointer hover:border-primary transition-colors">
+                                        <p className="text-3xl font-bold">{option.credits}</p>
+                                        <p className="text-muted-foreground">Credits</p>
+                                        <Button variant="outline" size="sm" className="mt-4">
+                                            Pay ₹{option.price}
+                                        </Button>
+                                    </Card>
+                                ))}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                 </CardContent>
+            </Card>
+            <Card className="lg:col-span-2">
+                 <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><History /> Credit History</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                    {sortedCreditHistory.length > 0 ? (
+                        <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+                            {sortedCreditHistory.map((tx, index) => (
+                                <div key={index} className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn("flex items-center justify-center h-8 w-8 rounded-full", tx.amount > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600')}>
+                                            {tx.amount > 0 ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium">{tx.description}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {tx.date instanceof Timestamp ? formatDistanceToNow(tx.date.toDate(), { addSuffix: true }) : 'Just now'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className={cn("font-bold", tx.amount > 0 ? 'text-green-600' : 'text-red-600')}>
+                                        {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-10">No credit history yet.</p>
+                    )}
+                 </CardContent>
+            </Card>
+        </div>
+      </div>
+
+
       {isMsme && userProfile && (
         <Card>
            <CardHeader className="flex flex-row justify-between items-start">
