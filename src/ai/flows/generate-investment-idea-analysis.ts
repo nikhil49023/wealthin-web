@@ -16,19 +16,19 @@ export async function generateInvestmentIdeaAnalysis(
 ): Promise<GenerateInvestmentIdeaAnalysisOutput> {
   const systemPrompt = `You are a specialized financial mentor for early-stage entrepreneurs in India. Your response MUST be ONLY a valid JSON object that conforms to the specified schema. Do NOT include any other text, markdown, or explanations. Just the JSON object.`;
   
-  const userPrompt = `Please analyze the following business idea: "${input.idea}"
+  const userPrompt = `Please provide a comprehensive analysis for the following business idea: "${input.idea}"
 
-And structure your response according to this JSON schema exactly. Ensure the "summary", "investmentStrategy", "targetAudience", "roi", "futureProofing", "relevantSchemes", and "legalRequirements" fields are all prepended with "(Powered by WealthIn AI)".
+Structure your response as a valid JSON object that conforms to the schema below. Each section should be detailed, well-structured, and provide actionable insights for an entrepreneur.
 
 {
-  "title": "The title of the business idea.",
-  "summary": "(Powered by WealthIn AI) A brief summary of the business idea.",
-  "investmentStrategy": "(Powered by WealthIn AI) A detailed investment strategy, including initial capital, equipment, and operational costs.",
-  "targetAudience": "(Powered by WealthIn AI) A description of the target audience and marketing strategy for the business.",
-  "roi": "(Powered by WealthIn AI) An analysis of the potential Return on Investment (ROI), including revenue projections and profitability.",
-  "futureProofing": "(Powered by WealthIn AI) An analysis of the future-proofing of the business, including scalability, competition, and market trends.",
-  "relevantSchemes": "(Powered by WealthIn AI) A summary of 2-3 relevant Indian government schemes or policies that could support this type of business. Include what the scheme offers and who is eligible.",
-  "legalRequirements": "(Powered by WealthIn AI) A summary of the key legal and regulatory requirements for this business in India, such as registrations (like GST, Udyam), licenses, and permits needed."
+  "title": "A concise and professional title for the business idea.",
+  "summary": "A brief, compelling summary of the business concept, its value proposition, and target market.",
+  "investmentStrategy": "A detailed breakdown of the required investment. Include estimated initial capital for equipment, setup, licenses, and initial marketing. Also, estimate the monthly operational costs (working capital).",
+  "targetAudience": "A clear description of the primary and secondary target audience. Include a practical marketing and sales strategy to reach these customers.",
+  "roi": "A realistic analysis of the potential Return on Investment (ROI). Include projected revenue streams, key profitability drivers, and an estimated timeline to break even and achieve profitability.",
+  "futureProofing": "An analysis of the business's long-term viability. Discuss potential for scalability, how to handle competition, and strategies to adapt to future market trends.",
+  "relevantSchemes": "A summary of 2-3 specific and relevant Indian government schemes or policies that could support this business. For each scheme, briefly explain the benefits (e.g., subsidy, loan) and eligibility criteria.",
+  "legalRequirements": "A summary of the key legal and regulatory requirements for starting this business in India. Include necessary registrations (like GST, Udyam), licenses, and permits."
 }
 `;
 
