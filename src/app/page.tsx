@@ -171,14 +171,6 @@ export default function DashboardPage() {
 
   const isMsme = userProfile?.role === 'msme';
 
-  // Marketplace State
-  const [msmeList, setMsmeList] = useState<(UserProfile & { id: string })[]>([]);
-  const [isLoadingMsmes, setIsLoadingMsmes] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMsme, setSelectedMsme] = useState<any | null>(null);
-  const [filterService, setFilterService] = useState('');
-  const [filterLocation, setFilterLocation] = useState('');
-
   const fetchFinBite = useCallback(async () => {
     setIsLoadingFinBite(true);
     setFinBiteError(null);
@@ -316,37 +308,15 @@ export default function DashboardPage() {
         })
       );
 
-      // MSME Profiles listener
-      setIsLoadingMsmes(true);
-      const profilesRef = collection(db, 'msme-profiles');
-      unsubscribes.push(onSnapshot(profilesRef, (snapshot) => {
-        const msmes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as (UserProfile & { id: string })[];
-        setMsmeList(msmes);
-        setIsLoadingMsmes(false);
-      },
-      async (error) => {
-          console.error("Error fetching MSME profiles: ", error);
-          const permissionError = new FirestorePermissionError({
-              path: profilesRef.path,
-              operation: 'list'
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          toast({variant: 'destructive', title: 'Error', description: 'Could not load marketplace profiles.'});
-          setIsLoadingMsmes(false);
-      }));
-
-
       return () => unsubscribes.forEach(unsub => unsub());
     } else if (!loadingAuth) {
       router.push('/login');
       setIsLoading(false);
       setIsLoadingBudgets(false);
       setIsLoadingSavingsGoals(false);
-      setIsLoadingMsmes(false);
       setTransactions([]);
       setBudgets([]);
       setSavingsGoals([]);
-      setMsmeList([]);
     }
   }, [user, loadingAuth, router, toast]);
 
@@ -642,41 +612,6 @@ export default function DashboardPage() {
     if (totalTarget === 0) return 0;
     return Math.min((totalFunds / totalTarget) * 100, 100);
   }, [savingsGoals, totalFunds]);
-
-  const uniqueLocations = useMemo(() => {
-    const locations = new Set(msmeList.map(msme => msme.msmeLocation).filter(Boolean));
-    return Array.from(locations).sort();
-  }, [msmeList]);
-
-  const uniqueServices = useMemo(() => {
-    const services = new Set(msmeList.map(msme => msme.msmeService).filter(Boolean));
-    return Array.from(services).sort();
-  }, [msmeList]);
-
-
-  const filteredMsmes = useMemo(() => {
-    return msmeList.filter(msme => {
-        const searchMatch = (
-            msme.msmeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            msme.msmeService?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            msme.msmeLocation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (msme as any).msmeDescription?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        const serviceMatch = filterService ? msme.msmeService === filterService : true;
-        const locationMatch = filterLocation ? msme.msmeLocation === filterLocation : true;
-
-        return searchMatch && serviceMatch && locationMatch;
-    });
-  }, [msmeList, searchQuery, filterService, filterLocation]);
-
-  const handleContactClick = (msme: any) => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to view contact details.' });
-        return;
-    }
-    setSelectedMsme(msme);
-  };
-
 
   const MetricCard = ({
     title,
@@ -1105,110 +1040,6 @@ export default function DashboardPage() {
         </Dialog>
       </div>
 
-      {/* Marketplace Card */}
-       <Card className="lg:col-span-2">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
-                    <Briefcase />
-                    MSME Marketplace
-                </CardTitle>
-                <CardDescription>
-                    Find and connect with services offered by other entrepreneurs in the WealthIn community.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search by name, service, or location..." 
-                            className="pl-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <Select value={filterService} onValueChange={setFilterService}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by service..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {uniqueServices.map(service => (
-                                    <SelectItem key={service} value={service}>{service}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Select value={filterLocation} onValueChange={setFilterLocation}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by location..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {uniqueLocations.map(location => (
-                                    <SelectItem key={location} value={location}>{location}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-                 <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => { setSearchQuery(''); setFilterService(''); setFilterLocation(''); }}
-                    className="text-xs"
-                >
-                    <X className="mr-2 h-3 w-3" /> Clear Filters
-                </Button>
-
-
-                {isLoadingMsmes ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
-                    </div>
-                ) : filteredMsmes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredMsmes.map((msme) => (
-                           <Card key={msme.id} className="glassmorphic flex flex-col hover:border-primary transition-colors duration-300">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{msme.msmeName}</CardTitle>
-                                    <CardDescription>{msme.msmeService}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-1 space-y-4">
-                                     <p className="text-sm text-muted-foreground line-clamp-3">{(msme as any).msmeDescription || 'No description provided.'}</p>
-                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                        <User className="h-4 w-4" />
-                                        <span>{msme.displayName}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        <span>{msme.msmeLocation}</span>
-                                    </div>
-                                </CardContent>
-                                <CardContent className="pt-0 flex items-center justify-end gap-2">
-                                    <Button onClick={() => handleContactClick(msme)} size="sm">
-                                        <MessageSquare className="mr-2"/>
-                                        Contact
-                                    </Button>
-                                    {msme.msmeWebsite && (
-                                        <Button asChild variant="outline" size="icon">
-                                            <a href={msme.msmeWebsite.startsWith('http') ? msme.msmeWebsite : `https://${msme.msmeWebsite}`} target="_blank" rel="noopener noreferrer">
-                                                <Globe/>
-                                            </a>
-                                        </Button>
-                                    )}
-                                </CardContent>
-                           </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-10">
-                        <p className="text-muted-foreground">No matching MSMEs found. Try adjusting your filters.</p>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-
       {/* Budgets Dialog */}
       <Dialog
         open={manageBudgetDialogOpen}
@@ -1310,45 +1141,6 @@ export default function DashboardPage() {
           </div>
         </DialogContent>
       </Dialog>
-      
-       <Dialog open={!!selectedMsme} onOpenChange={(isOpen) => !isOpen && setSelectedMsme(null)}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Contact {selectedMsme?.msmeName}</DialogTitle>
-                    <DialogDescription>
-                        You can reach out to {selectedMsme?.displayName || 'the owner'} using the details below.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="flex items-center gap-4">
-                        <Phone className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-mono">{selectedMsme?.ownerContact || 'Not Provided'}</span>
-                    </div>
-                     <div className="flex items-center gap-4">
-                        <Mail className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-mono">{selectedMsme?.email || 'Not Provided'}</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-4">
-                        <Button asChild variant="outline" disabled={!selectedMsme?.ownerContact} className="w-full">
-                            <a href={`tel:${selectedMsme?.ownerContact}`}>
-                                <Phone /> Call
-                            </a>
-                        </Button>
-                        <Button asChild variant="outline" disabled={!selectedMsme?.ownerContact} className="w-full">
-                            <a href={`sms:${selectedMsme?.ownerContact}`}>
-                                <MessageSquare /> Message
-                            </a>
-                        </Button>
-                        <Button asChild variant="outline" disabled={!selectedMsme?.email} className="w-full">
-                            <a href={`mailto:${selectedMsme?.email}`}>
-                                <Mail /> Email
-                            </a>
-                        </Button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-
 
       {/* Confirmation Dialogs */}
       <AlertDialog
