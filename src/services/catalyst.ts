@@ -1,4 +1,6 @@
 
+'use server';
+
 import type { GenerateRagAnswerInput } from '@/ai/schemas/rag-answer';
 import fetch from 'node-fetch';
 
@@ -69,7 +71,7 @@ class CatalystService {
       "top_k": 50,
       "best_of": 1,
       "temperature": 0.7,
-      "max_tokens": 2048 // Increased max tokens for potentially longer outputs like DPR sections
+      "max_tokens": 2048
     };
 
     const apiResponse = await fetch(chatApiUrl, {
@@ -90,7 +92,42 @@ class CatalystService {
     }
 
     const responseData: any = await apiResponse.json();
-    // The response structure has the content inside a "response" property
+    return responseData?.response;
+  }
+
+  public async generateTextFromImage(prompt: string, base64Images: string[]): Promise<any> {
+    const token = await this.getValidAccessToken();
+    const vlmApiUrl = `https://api.catalyst.zoho.in/quickml/v1/project/${this.projectId}/vlm/chat`;
+    
+    const body = {
+      "prompt": prompt,
+      "model": "VL-Qwen2.5-7B",
+      "images": base64Images,
+      "system_prompt": "Be concise and factual. Extract the data exactly as requested in the required JSON format.",
+      "top_k": 50,
+      "top_p": 0.9,
+      "temperature": 0.7,
+      "max_tokens": 1024
+    };
+
+    const apiResponse = await fetch(vlmApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CATALYST-ORG': this.orgId,
+        'Authorization': `Zoho-oauthtoken ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!apiResponse.ok) {
+      const errorBody = await apiResponse.text();
+      console.error('Zoho VLM API request failed with status:', apiResponse.status);
+      console.error('Zoho VLM API response body:', errorBody);
+      throw new Error(`Zoho VLM API request failed: ${apiResponse.statusText}`);
+    }
+    
+    const responseData: any = await apiResponse.json();
     return responseData?.response;
   }
 }
