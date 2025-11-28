@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   FileText,
   Send,
@@ -45,7 +45,7 @@ const investmentWays = [
         title: "Start an Enterprise", 
         description: "Analyze a business idea and create a detailed project report.", 
         icon: Building2,
-        href: "/brainstorm"
+        href: "#" // Changed to # to handle click manually
     },
     { 
         title: "Government Schemes", 
@@ -109,10 +109,15 @@ export default function BrainstormPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [showLimitAlert, setShowLimitAlert] = useState(false);
+  const curatedIdeasRef = useRef<HTMLDivElement>(null);
 
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
   )
+
+  const handleScrollToIdeas = () => {
+    curatedIdeasRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleAnalyzeIdea = (ideaToAnalyze: string) => {
     if (!ideaToAnalyze.trim()) {
@@ -167,9 +172,10 @@ export default function BrainstormPage() {
           <CardDescription>Explore different ways to grow your wealth and build your enterprise.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {investmentWays.map((item) => (
-            <Link key={item.title} href={item.href}>
-                <Card className="h-full hover:border-primary transition-colors">
+          {investmentWays.map((item) => {
+            const isEnterpriseCard = item.title === "Start an Enterprise";
+            const CardComponent = (
+                <Card className="h-full hover:border-primary transition-colors cursor-pointer" onClick={isEnterpriseCard ? handleScrollToIdeas : undefined}>
                     <CardHeader>
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/10 rounded-lg">
@@ -182,12 +188,20 @@ export default function BrainstormPage() {
                         <p className="text-sm text-muted-foreground">{item.description}</p>
                     </CardContent>
                 </Card>
-            </Link>
-          ))}
+            );
+
+            return isEnterpriseCard ? (
+              <div key={item.title}>{CardComponent}</div>
+            ) : (
+              <Link key={item.title} href={item.href}>
+                {CardComponent}
+              </Link>
+            );
+          })}
         </CardContent>
       </Card>
       
-      <div className="space-y-4">
+      <div className="space-y-4" ref={curatedIdeasRef}>
         <header>
             <h2 className="text-2xl font-bold flex items-center gap-2">Curated Business Ideas</h2>
             <p className="text-muted-foreground">Explore some popular ideas to get started. Click any idea to analyze it instantly.</p>
