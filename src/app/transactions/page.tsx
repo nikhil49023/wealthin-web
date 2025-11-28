@@ -447,7 +447,7 @@ export default function TransactionsPage() {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.txt,.csv"
+                  accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg"
                   className="hidden"
                 />
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -458,7 +458,7 @@ export default function TransactionsPage() {
                       : translations.transactions.importDialog.dragDrop}
                   </p>
                   <p className="text-xs">
-                    {translations.transactions.importDialog.fileTypes}
+                    Supports PDF, images, documents, and CSV files.
                   </p>
                 </div>
               </div>
