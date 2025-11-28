@@ -42,10 +42,20 @@ Your response MUST be a JSON object with a single key "transactions" which conta
 
   try {
     const responseText = await catalystService.generateTextFromImage(userPrompt, [base64Image]);
-    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleanedText);
+    
+    // Find the start and end of the JSON object
+    const startIndex = responseText.indexOf('{');
+    const endIndex = responseText.lastIndexOf('}');
+    
+    if (startIndex === -1 || endIndex === -1) {
+      throw new Error("No valid JSON object found in the AI response.");
+    }
+    
+    const jsonString = responseText.substring(startIndex, endIndex + 1);
+    const parsed = JSON.parse(jsonString);
+
     return ExtractTransactionsOutputSchema.parse(parsed);
-  } catch (e) {
+  } catch (e: any) {
     console.error('Failed to parse JSON from VLM model response:', e);
     throw new Error('Could not extract transactions. The AI returned an invalid format.');
   }
