@@ -35,7 +35,7 @@ export async function generateBudgetReport(
   const userPrompt = `Based on the following transactions, provide a spending analysis and a detailed expense breakdown.
 Group similar expenses into logical categories (e.g., "Food", "Transport", "Shopping").
 
-The JSON schema is:
+Your response must match this JSON schema exactly:
 {
   "summary": "An AI-generated summary and analysis of the spending habits...",
   "expenseBreakdown": [

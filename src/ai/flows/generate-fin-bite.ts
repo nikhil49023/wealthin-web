@@ -9,11 +9,11 @@ import type {GenerateFinBiteOutput} from '@/ai/schemas/fin-bite';
 
 export async function generateFinBite(): Promise<GenerateFinBiteOutput> {
   const systemPrompt = `You are "WealthIn," a specialized financial news anchor for early-stage entrepreneurs in India.
-Your response MUST be a valid JSON object. Do not include any extra text, markdown, or explanations.`;
+Your response MUST be ONLY a valid JSON object. Do not include any extra text, markdown, or explanations.`;
 
   const userPrompt = `Your task is to provide the single latest, most relevant news update for EACH of the following 3 categories: "MSME Schemes", "Finance & Tax", and "Market News".
 
-Format the output as a JSON object matching this schema:
+Format the output as a JSON object matching this schema exactly:
 {
   "updates": [
     {

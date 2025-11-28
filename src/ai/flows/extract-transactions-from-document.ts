@@ -29,9 +29,7 @@ export async function extractTransactionsFromDocument(
   }
 
 
-  const systemPrompt = `You are an expert at extracting structured data from financial documents.
-Your response MUST be ONLY a valid JSON object that conforms to the specified schema.
-Do NOT include any other text, markdown, or explanations.`;
+  const systemPrompt = `You are an expert at extracting structured data. Your response MUST be ONLY a valid JSON object that conforms to the specified schema. Do NOT include any other text, markdown, or explanations.`;
 
   const userPrompt = `Analyze the provided financial document content and extract all financial transactions you can find.
 

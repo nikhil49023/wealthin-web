@@ -22,6 +22,7 @@ TargetAudience: ${idea.targetAudience}
 ROI Projection: ${idea.roi}
 Future-Proofing: ${idea.futureProofing}
 Relevant Schemes: ${idea.relevantSchemes}
+Legal Requirements: ${idea.legalRequirements}
 ---`;
 
   let finalPrompt: string;
