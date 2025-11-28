@@ -77,6 +77,7 @@ Now, generate the JSON object based on the document image.
     const jsonString = cleanJsonString(rawExtractedText);
     const parsed = JSON.parse(jsonString);
 
+    // After parsing, validate against the Zod schema
     return ExtractTransactionsOutputSchema.parse(parsed);
 
   } catch (e: any) {
