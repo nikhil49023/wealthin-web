@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -6,12 +5,14 @@ import {
   FileText,
   Send,
   Lightbulb,
-  Leaf,
-  Laptop,
-  Recycle,
-  Users,
-  Eye,
-  MessageSquare,
+  Building2,
+  Landmark,
+  TrendingUp,
+  Briefcase,
+  BookOpen,
+  Sprout,
+  GraduationCap,
+  ArrowRight,
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,67 +24,79 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
-import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/context/auth-provider';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import Autoplay from "embla-carousel-autoplay"
+import React from 'react';
 
-const investmentIdeaCategories = {
-  'AgriTech & Food Processing': {
-    icon: Leaf,
-    ideas: [
-      'Mobile Soil & Water Testing Lab',
-      'Millet-Based Snack Production Unit',
-      'Ghost Kitchen for Regional Cuisine',
-      'Vermicomposting Organic Fertilizer Production',
-    ],
-  },
-  'Tech & Digital Services': {
-    icon: Laptop,
-    ideas: [
-      'Digital Marketing Agency for Local Businesses',
-      'Hyperlocal Errand & Delivery Service',
-      'Online Handicrafts Marketplace',
-    ],
-  },
-  'Eco-Friendly & Sustainable': {
-    icon: Recycle,
-    ideas: [
-      'Upcycled Fashion & Home Decor',
-      'EV Charging Station (in partnership with a local business)',
-      'Rental Service for Reusable Event Supplies',
-    ],
-  },
-  'Local & Community Services': {
-    icon: Users,
-    ideas: [
-      'Co-working Space in a Tier-2 City',
-      'Subscription-Based Toy & Book Library',
-      'Senior Citizen Care Services (Non-Medical)',
-      'Customized Gifting & Curation Service',
-      'Local Experience & Tourism Curation',
-    ],
-  },
-};
+const investmentWays = [
+    { 
+        title: "Start an Enterprise", 
+        description: "Analyze a business idea and create a detailed project report.", 
+        icon: Building2,
+        href: "/brainstorm"
+    },
+    { 
+        title: "Government Schemes", 
+        description: "Explore central and state schemes for personal investment and savings.", 
+        icon: Landmark,
+        href: "/launchpad" 
+    },
+    { 
+        title: "Stock Market", 
+        description: "Learn about investing in equities for long-term wealth creation.", 
+        icon: TrendingUp,
+        href: "#" 
+    },
+    { 
+        title: "Mutual Funds", 
+        description: "Diversify your investments with professionally managed funds.", 
+        icon: Briefcase,
+        href: "#"
+    },
+];
+
+const curatedIdeas = [
+    {
+        title: "Digital Marketing Agency for MSMEs",
+        category: "Services",
+        description: "Provide affordable social media management, SEO, and content creation services for small businesses.",
+        icon: BookOpen,
+        idea: "Digital Marketing Agency for local MSMEs"
+    },
+    {
+        title: "Organic Farming & Delivery",
+        category: "AgriTech",
+        description: "Cultivate and deliver fresh, organic produce directly to consumers in urban areas through a subscription model.",
+        icon: Sprout,
+        idea: "Organic Farming & Delivery service"
+    },
+    {
+        title: "Online Tutoring Platform",
+        category: "EdTech",
+        description: "Connect students with tutors for various subjects, leveraging the demand for online education.",
+        icon: GraduationCap,
+        idea: "Online Tutoring Platform for K-12 students"
+    },
+    {
+        title: "Eco-Friendly Packaging Production",
+        category: "Manufacturing",
+        description: "Manufacture and supply biodegradable packaging solutions to local businesses.",
+        icon: Sparkles,
+        idea: "Eco-Friendly Packaging Production"
+    }
+];
 
 type Usage = {
   month: string;
@@ -94,16 +107,19 @@ export default function BrainstormPage() {
   const { toast } = useToast();
   const [userIdea, setUserIdea] = useState('');
   const router = useRouter();
-  const { translations } = useLanguage();
   const { user } = useAuth();
   const [showLimitAlert, setShowLimitAlert] = useState(false);
 
-  const handleAnalyzeIdea = () => {
-    if (!userIdea.trim()) {
+  const plugin = React.useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: true })
+  )
+
+  const handleAnalyzeIdea = (ideaToAnalyze: string) => {
+    if (!ideaToAnalyze.trim()) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: translations.brainstorm.errorEnterIdea,
+        description: 'Please enter an idea to analyze.',
       });
       return;
     }
@@ -140,126 +156,104 @@ export default function BrainstormPage() {
     usage.count++;
     localStorage.setItem(usageKey, JSON.stringify(usage));
 
-    router.push(`/investment-ideas/custom?idea=${encodeURIComponent(userIdea)}`);
+    router.push(`/investment-ideas/custom?idea=${encodeURIComponent(ideaToAnalyze)}`);
   };
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">{translations.brainstorm.title}</h1>
-          <p className="text-muted-foreground">
-            {translations.brainstorm.description}
-          </p>
-        </div>
-        <Button asChild className="w-full sm:w-auto">
-          <Link href="/my-ideas">
-            <Lightbulb className="mr-2" />
-            {translations.brainstorm.mySavedIdeas}
-          </Link>
-        </Button>
+    <div className="space-y-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Investment Ways in India</CardTitle>
+          <CardDescription>Explore different ways to grow your wealth and build your enterprise.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {investmentWays.map((item) => (
+            <Link key={item.title} href={item.href}>
+                <Card className="h-full hover:border-primary transition-colors">
+                    <CardHeader>
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg">
+                                <item.icon className="h-6 w-6 text-primary" />
+                            </div>
+                            <CardTitle className="text-lg">{item.title}</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </CardContent>
+                </Card>
+            </Link>
+          ))}
+        </CardContent>
+      </Card>
+      
+      <div className="space-y-4">
+        <header>
+            <h2 className="text-2xl font-bold flex items-center gap-2">Curated Business Ideas</h2>
+            <p className="text-muted-foreground">Explore some popular ideas to get started. Click any idea to analyze it instantly.</p>
+        </header>
+
+        <Carousel 
+            opts={{ align: "start", loop: true }}
+            plugins={[plugin.current]}
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
+            className="w-full"
+        >
+          <CarouselContent className="-ml-4">
+            {curatedIdeas.map((idea, index) => (
+              <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                <div className="p-1 h-full">
+                  <Card className="h-full flex flex-col justify-between cursor-pointer" onClick={() => handleAnalyzeIdea(idea.idea)}>
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
+                            <div className="p-2 bg-primary/10 rounded-md">
+                                <idea.icon className="h-5 w-5 text-primary" />
+                            </div>
+                        </div>
+                         <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{idea.description}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="absolute left-[-10px] sm:left-[-20px]" />
+          <CarouselNext className="absolute right-[-10px] sm:right-[-20px]" />
+        </Carousel>
       </div>
 
        <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-xl md:text-2xl">
-                <MessageSquare />
-                Join the Entrepreneur Community
-            </CardTitle>
-            <CardDescription>
-                Connect with fellow entrepreneurs, share ideas, and get feedback.
-            </CardDescription>
+            <CardTitle>Analyze Your Own Idea</CardTitle>
+             <CardDescription>Have a different idea? Describe it below to get a detailed analysis.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <p className="text-muted-foreground">
-                Building a business is a journey, not a solo mission. Join our dedicated community to network with peers, find mentors, ask questions, and validate your next big idea.
-           </p>
-            <Button asChild>
-                <a href="https://wealthin.zohocs.in" target="_blank" rel="noopener noreferrer">
-                    Join the Community
-                </a>
-            </Button>
-        </CardContent>
-      </Card>
-
-
-      <Card>
-        <CardHeader className="p-4 md:p-6">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
-              <Sparkles className="h-6 w-6 md:h-7 md:w-7 text-primary" />
-              {translations.brainstorm.ideasTitle}
-            </h2>
-            <Badge variant="outline">Beta</Badge>
-          </div>
-          <CardDescription>
-            {translations.brainstorm.ideasDescription}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 md:p-6 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {Object.entries(investmentIdeaCategories).map(
-              ([category, { icon: Icon, ideas }]) => (
-                <Dialog key={category}>
-                  <DialogTrigger asChild>
-                    <Card className="group cursor-pointer hover:border-primary transition-colors flex flex-col justify-between text-center p-4 md:p-6">
-                      <div className="flex-1 flex flex-col items-center justify-center">
-                        <Icon className="h-10 w-10 md:h-12 md:w-12 text-primary mb-4" />
-                        <CardTitle className="text-base sm:text-lg">{category}</CardTitle>
-                      </div>
-                      <Button variant="link" className="mt-4 text-primary">
-                        <Eye className="mr-2" /> {translations.brainstorm.viewMore}
-                      </Button>
-                    </Card>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-3 text-xl">
-                        <Icon className="h-6 w-6 text-primary" />
-                        {category}
-                      </DialogTitle>
-                      <DialogDescription>
-                        {translations.brainstorm.ideaCategoryDialog.description.replace('{category}', category.toLowerCase())}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 py-4">
-                      {ideas.map(idea => (
-                         <Link
-                          key={idea}
-                          href={`/investment-ideas/custom?idea=${encodeURIComponent(idea)}`}
-                          passHref
-                          className="block p-4 rounded-lg bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <FileText className="h-5 w-5 mt-1 flex-shrink-0 text-primary" />
-                            <span className="flex-1 font-medium">{idea}</span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )
-            )}
-          </div>
-
-          <div className="space-y-4 pt-6 border-t">
-            <h3 className="font-semibold text-lg">{translations.brainstorm.analyzeOwnIdea}</h3>
-            <Textarea
-              placeholder={translations.brainstorm.ideaPlaceholder}
+          <Textarea
+              placeholder="e.g., 'A subscription box service for regional Indian sweets...'"
               value={userIdea}
               onChange={e => setUserIdea(e.target.value)}
               rows={3}
               className="text-base"
             />
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={handleAnalyzeIdea} disabled={!userIdea.trim()} size="lg">
-                <Send className="mr-2" /> {translations.brainstorm.getInsights}
-              </Button>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Button onClick={() => handleAnalyzeIdea(userIdea)} disabled={!userIdea.trim()} size="lg">
+                <Send className="mr-2" /> Get AI Insights
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/my-ideas">
+                <Lightbulb className="mr-2" />
+                My Saved Ideas
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
+
 
       <AlertDialog open={showLimitAlert} onOpenChange={setShowLimitAlert}>
         <AlertDialogContent>
