@@ -90,8 +90,8 @@ class CatalystService {
     }
 
     const responseData: any = await apiResponse.json();
-    // The response structure seems to have the content inside an "output" property
-    return responseData?.output;
+    // The response structure has the content inside a "response" property
+    return responseData?.response;
   }
 }
 
