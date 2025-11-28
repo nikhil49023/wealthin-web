@@ -45,6 +45,8 @@ const rechargeOptions = [
     { credits: 50, price: 50 },
     { credits: 100, price: 95 },
     { credits: 200, price: 180 },
+    { credits: 500, price: 425 },
+    { credits: 1000, price: 800 },
 ];
 
 export default function ProfilePage() {
@@ -440,80 +442,8 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
       )}
-
-      {/* Subscription Plans Section */}
-      <div className="space-y-4 pt-4">
-        <h2 className="text-2xl font-bold text-center">Subscription Plans</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-
-          {/* Individual Pro Plan */}
-          <Card className={cn("flex flex-col")}>
-            <CardHeader className="items-center text-center">
-              <div className="p-3 bg-primary/10 text-primary rounded-full mb-2">
-                  <Gem className="h-8 w-8" />
-              </div>
-              <CardTitle>Individual Pro</CardTitle>
-              <CardDescription>
-                Unlock powerful tools to build and grow your venture.
-              </CardDescription>
-              <p className="text-4xl font-bold pt-2">₹30 <span className="text-base font-normal text-muted-foreground">/ month</span></p>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-                <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 mt-1 flex-shrink-0"/>
-                        <span><span className="font-semibold text-foreground">DPR Generation:</span> Get 1 full DPR export per month to secure loans and funding.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 mt-1 flex-shrink-0"/>
-                        <span><span className="font-semibold text-foreground">Community Access:</span> Network with fellow entrepreneurs and mentors.</span>
-                    </li>
-                     <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 mt-1 flex-shrink-0"/>
-                        <span>Includes all free services like AI chat and idea analysis.</span>
-                    </li>
-                </ul>
-            </CardContent>
-            <CardContent>
-              <Button className="w-full" disabled>Choose Plan (Demo)</Button>
-            </CardContent>
-          </Card>
-          
-          {/* Enterprise Pro Plan */}
-          <Card className={cn("flex flex-col border-primary shadow-lg")}>
-            <CardHeader className="items-center text-center">
-              <div className="p-3 bg-primary/10 text-primary rounded-full mb-2">
-                  <Crown className="h-8 w-8" />
-              </div>
-              <CardTitle>Enterprise Pro</CardTitle>
-              <CardDescription>
-                Maximize your visibility and scale your business.
-              </CardDescription>
-              <p className="text-4xl font-bold pt-2">₹50-60 <span className="text-base font-normal text-muted-foreground">/ month</span></p>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-                 <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 mt-1 flex-shrink-0"/>
-                        <span><span className="font-semibold text-foreground">Prioritized Marketplace Listing:</span> Get your services featured at the top.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 mt-1 flex-shrink-0"/>
-                        <span><span className="font-semibold text-foreground">Enterprise Community:</span> Access to an exclusive network of established businesses.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-green-500 mt-1 flex-shrink-0"/>
-                        <span><span className="font-semibold text-foreground">DPR Generation:</span> Includes 1 DPR export per month.</span>
-                    </li>
-                </ul>
-            </CardContent>
-            <CardContent>
-              <Button className="w-full" disabled>Choose Plan (Demo)</Button>
-            </CardContent>
-          </Card>
-
-        </div>
-      </div>
     </div>
   );
 }
+
+    
