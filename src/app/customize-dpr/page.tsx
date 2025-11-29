@@ -35,7 +35,7 @@ function CustomizeDPRContent() {
   const [promoterName, setPromoterName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showCreditAlert, setShowCreditAlert] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const ideaTitle = searchParams.get('idea');
@@ -68,7 +68,7 @@ function CustomizeDPRContent() {
     }
   }, [searchParams, toast, user]);
 
-  const handleGenerateReport = async () => {
+  const handleNavigateToReport = async () => {
     if (!user || !userProfile || !analysis) return;
 
     if ((userProfile.credits ?? 0) < DPR_GENERATION_COST) {
@@ -76,7 +76,7 @@ function CustomizeDPRContent() {
         return;
     }
     
-    setIsGenerating(true);
+    setIsNavigating(true);
 
     // 1. Deduct credits first
     const userDocRef = doc(db, 'users', user.uid);
@@ -88,6 +88,8 @@ function CustomizeDPRContent() {
             title: 'Credits Deducted',
             description: `DPR generation started. ${DPR_GENERATION_COST} credits deducted.`
         });
+        // Navigate to the report page on success
+        router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title)}&name=${encodeURIComponent(promoterName)}`);
     } catch (e) {
         console.error("Failed to deduct credits:", e);
         const permissionError = new FirestorePermissionError({
@@ -97,42 +99,11 @@ function CustomizeDPRContent() {
         });
         errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not deduct credits.' });
-        setIsGenerating(false);
-        return;
-    }
-    
-    // 2. Call the new API to generate the HTML
-    try {
-        const response = await fetch('/api/generate-dpr-html', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idea: analysis, promoterName })
-        });
-
-        if (!response.ok) {
-            const errorResult = await response.json();
-            throw new Error(errorResult.message || "Failed to generate the report from the server.");
-        }
-
-        const reportHtml = await response.text();
-        const blob = new Blob([reportHtml], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        
-        // Open the generated HTML in a new tab
-        window.open(url, '_blank');
-        
-    } catch (err: any) {
-        setError(err.message);
-        toast({ variant: 'destructive', title: 'Generation Failed', description: err.message });
-         // Refund credits if generation fails after deduction
-        await setDoc(userDocRef, { credits: userProfile.credits }, { merge: true });
-        toast({ title: 'Credits Refunded', description: 'Your credits have been returned due to a generation error.' });
-    } finally {
-        setIsGenerating(false);
+        setIsNavigating(false);
     }
   };
   
-  if (error && !isGenerating) {
+  if (error) {
       return (
           <div className="text-center py-10">
               <p className="text-destructive font-semibold">An error occurred</p>
@@ -166,7 +137,7 @@ function CustomizeDPRContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={handleGenerateReport}
+                onClick={handleNavigateToReport}
             >
                 <Banknote className="h-12 w-12 text-primary" />
                 <h3 className="font-semibold text-lg">Bank Loan Application</h3>
@@ -174,7 +145,7 @@ function CustomizeDPRContent() {
             </Card>
              <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={handleGenerateReport}
+                onClick={handleNavigateToReport}
              >
                 <FileText className="h-12 w-12 text-primary" />
                 <h3 className="font-semibold text-lg">Legal & General Purpose</h3>
@@ -182,12 +153,12 @@ function CustomizeDPRContent() {
             </Card>
         </div>
         
-        {isGenerating && (
+        {isNavigating && (
              <Card className="text-center py-10">
                 <CardContent className="space-y-4">
                     <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Generating Your DPR...</h3>
-                    <p className="text-muted-foreground">The AI is building your report. This might take up to a minute.<br/>A new tab will open when it's ready.</p>
+                    <h3 className="text-xl font-semibold">Preparing Your Report...</h3>
+                    <p className="text-muted-foreground">Please wait while we redirect you.</p>
                 </CardContent>
             </Card>
         )}
