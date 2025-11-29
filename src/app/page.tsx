@@ -104,6 +104,7 @@ import { generateDashboardSummaryAction, generateFinBiteAction } from './actions
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AIAdvisorChat from '@/components/financify/ai-advisor-chat';
 
 const db = getFirestore(app);
 
@@ -354,16 +355,14 @@ export default function DashboardPage() {
       const cacheKey = getCacheKey();
 
       if (transactions.length === 0) {
-        if (summary?.suggestion !== translations.dashboard.defaultSuggestion) {
-            const defaultSummary = {
-              totalIncome: 0,
-              totalExpenses: 0,
-              savingsRate: 0,
-              suggestion: translations.dashboard.defaultSuggestion,
-            };
-            setSummary(defaultSummary);
-            if (cacheKey) localStorage.setItem(cacheKey, JSON.stringify(defaultSummary));
-        }
+        const defaultSummary = {
+          totalIncome: 0,
+          totalExpenses: 0,
+          savingsRate: 0,
+          suggestion: translations.dashboard.defaultSuggestion,
+        };
+        setSummary(defaultSummary);
+        if (cacheKey) localStorage.setItem(cacheKey, JSON.stringify(defaultSummary));
         setIsLoading(false);
         return;
       }
@@ -787,32 +786,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Suggestion Card */}
-      <Card>
+      <Card className="flex flex-col h-full min-h-[400px]">
         <CardHeader className="p-4 md:p-6">
-          <CardTitle>{translations.dashboard.suggestionsTitle}</CardTitle>
+          <CardTitle>AI Financial Advisor</CardTitle>
+          <CardDescription>Ask me anything about your finances.</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 md:p-6 pt-0">
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          ) : (
-            <Alert className="border-primary/30 bg-primary/5">
-              <div className="flex items-start gap-3">
-                <span className="pt-1">
-                  <Lightbulb className="w-4 h-4 text-primary" />
-                </span>
-                <div className="flex-1">
-                  <AlertDescription className="text-sm text-foreground">
-                    {summary?.suggestion}
-                  </AlertDescription>
-                </div>
-              </div>
-            </Alert>
-          )}
+        <CardContent className="flex-1 flex flex-col p-0">
+          <AIAdvisorChat initialMessage={summary?.suggestion} />
         </CardContent>
       </Card>
+
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Budgets Card */}
@@ -1195,3 +1178,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
