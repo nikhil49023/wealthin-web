@@ -32,9 +32,9 @@ export async function POST(req: Request) {
   try {
     const {idea, promoterName} = await req.json() as { idea: GenerateInvestmentIdeaAnalysisOutput, promoterName: string };
 
-    if (!idea || !promoterName) {
+    if (!idea) {
       return NextResponse.json(
-        {message: 'Idea analysis and promoter name are required'},
+        {message: 'Idea analysis is required'},
         {status: 400}
       );
     }
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     const generationPromises = dprChapters.map(chapter =>
       generateDprSection({
         idea,
-        promoterName,
+        promoterName: promoterName || '[Promoter Name]',
         section: chapter.key,
         basePrompt: chapter.prompt,
       })
@@ -69,13 +69,13 @@ export async function POST(req: Request) {
     let template = await fs.readFile(templatePath, 'utf-8');
 
     template = template.replace(/{{projectName}}/g, idea.title || 'Your Project');
-    template = template.replace(/{{promoterName}}/g, promoterName);
-    template = template.replace('{{executiveSummary}}', `<h2>1. Executive Summary</h2>${generatedContent.executiveSummary || ''}`);
-    template = template.replace('{{introduction}}', `<h2>2. Introduction & Background</h2>${generatedContent.introduction || ''}`);
-    template = template.replace('{{marketAnalysis}}', `<h2>3. Market Analysis</h2>${generatedContent.marketAnalysis || ''}`);
-    template = template.replace('{{technicalFeasibility}}', `<h2>4. Technical Feasibility</h2>${generatedContent.technicalFeasibility || ''}`);
+    template = template.replace(/{{promoterName}}/g, promoterName || '[Promoter Name]');
+    template = template.replace('{{executiveSummary}}', generatedContent.executiveSummary || '');
+    template = template.replace('{{introduction}}', generatedContent.introduction || '');
+    template = template.replace('{{marketAnalysis}}', generatedContent.marketAnalysis || '');
+    template = template.replace('{{technicalFeasibility}}', generatedContent.technicalFeasibility || '');
     template = template.replace('{{financials}}', generatedContent.financials || '');
-    template = template.replace('{{conclusion}}', `<h2>12. Conclusion</h2>${generatedContent.conclusion || ''}`);
+    template = template.replace('{{conclusion}}', generatedContent.conclusion || '');
 
     return new NextResponse(template, {
       headers: {
@@ -91,3 +91,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+    

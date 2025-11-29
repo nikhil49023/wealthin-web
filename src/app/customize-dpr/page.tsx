@@ -15,26 +15,16 @@ import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investme
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
-import { doc, setDoc, getFirestore } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
-const db = getFirestore(app);
-
-const DPR_GENERATION_COST = 0; 
 
 function CustomizeDPRContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   
   const [analysis, setAnalysis] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
   const [promoterName, setPromoterName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [showCreditAlert, setShowCreditAlert] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
@@ -58,21 +48,16 @@ function CustomizeDPRContent() {
       toast({ variant: 'destructive', description: 'No analysis data found.' });
     }
     
-    // Use a placeholder if the name is not available
+    // Use a placeholder if the name is not available, but don't block.
     setPromoterName(user?.displayName || "[Promoter Name Here]");
 
   }, [searchParams, toast, user]);
 
   const handleNavigateToReport = async () => {
     if (!analysis) return;
-
-    if ((userProfile?.credits ?? 0) < DPR_GENERATION_COST) {
-        setShowCreditAlert(true);
-        return;
-    }
     
     setIsNavigating(true);
-    // Navigate to the new editor page
+    // Navigate to the report page which will use the new template
     router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title)}&name=${encodeURIComponent(promoterName)}`);
   };
   
@@ -104,7 +89,7 @@ function CustomizeDPRContent() {
         <div className="text-center">
             <h1 className="text-3xl font-bold">Generate Your Detailed Project Report</h1>
             <p className="text-muted-foreground mt-2">
-            The AI will generate a complete, bank-ready DPR. You can then edit and refine it.
+            The AI will generate a complete, bank-ready DPR which you can then edit and refine.
             </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,25 +115,11 @@ function CustomizeDPRContent() {
              <Card className="text-center py-10">
                 <CardContent className="space-y-4">
                     <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Preparing Your Editor...</h3>
-                    <p className="text-muted-foreground">Please wait while we set up the report.</p>
+                    <h3 className="text-xl font-semibold">Preparing Your Report...</h3>
+                    <p className="text-muted-foreground">Please wait while we generate the document.</p>
                 </CardContent>
             </Card>
         )}
-
-        <AlertDialog open={showCreditAlert} onOpenChange={setShowCreditAlert}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Insufficient Credits</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        You do not have enough credits to generate a DPR. This action costs {DPR_GENERATION_COST} credits.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogAction onClick={() => setShowCreditAlert(false)}>OK</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
       </div>
     );
 }
