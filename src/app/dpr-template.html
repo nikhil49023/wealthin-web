@@ -1,0 +1,302 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Project Report - {{projectName}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:wght@300;400;700&display=swap');
+
+        :root {
+            --primary: #1e3a8a; /* Blue 900 */
+            --secondary: #64748b; /* Slate 500 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Merriweather', serif;
+        }
+
+        .chapter-title {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+        }
+
+        .num-col {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #e2e8f0;
+        }
+
+        /* Flow Chart Styles */
+        .process-step {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e3a8a;
+            position: relative;
+        }
+        
+        .arrow-down {
+            width: 0; 
+            height: 0; 
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #1e3a8a;
+            margin: 5px auto;
+        }
+
+        /* Print Specifics */
+        @media print {
+            @page {
+                size: A4;
+                margin: 20mm;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                background-color: white;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+
+            .avoid-break {
+                page-break-inside: avoid;
+            }
+
+            /* Ensure charts/colors print */
+            .bg-blue-900 { background-color: #1e3a8a !important; color: white !important; }
+            .bg-slate-100 { background-color: #f1f5f9 !important; }
+            .process-step { background-color: #eff6ff !important; border-color: #bfdbfe !important; }
+            
+            a {
+                text-decoration: none;
+                color: black;
+            }
+            
+            .shadow-lg, .shadow-md, .shadow-xl {
+                box-shadow: none !important;
+                border: 1px solid #ccc;
+            }
+            
+            .min-h-screen {
+                min-h-0 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Floating Action Button for Print (Screen Only) -->
+    <div class="fixed bottom-8 right-8 no-print z-50">
+        <button onclick="window.print()" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-4 px-6 rounded-full shadow-lg flex items-center gap-2 transition-all transform hover:scale-105">
+            <i data-lucide="printer"></i> Print / Save as PDF
+        </button>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="max-w-5xl mx-auto bg-white shadow-xl min-h-screen my-8 p-12 print:shadow-none print:m-0 print:p-0 print:w-full">
+
+        <!-- COVER PAGE -->
+        <section class="h-[90vh] flex flex-col justify-between text-center border-b-4 border-blue-900 pb-10 mb-10">
+            <div class="mt-20">
+                <div class="w-32 h-32 mx-auto bg-blue-900 text-white rounded-full flex items-center justify-center mb-6">
+                    <i data-lucide="package-check" size="64"></i>
+                </div>
+                <h1 class="text-5xl font-bold text-blue-900 mb-4">DETAILED PROJECT REPORT</h1>
+                <h2 class="text-2xl text-gray-600 font-light">{{projectName}}</h2>
+            </div>
+
+            <div class="my-10">
+                <p class="text-sm uppercase tracking-widest text-gray-500 mb-2">Submitted By</p>
+                <h3 class="text-3xl font-bold text-slate-800">{{promoterName}}</h3>
+            </div>
+
+            <div class="mb-10">
+                <p class="text-sm uppercase tracking-widest text-gray-500 mb-2">Submitted To</p>
+                <h3 class="text-2xl font-bold text-slate-800">The Bank / Financial Institution</h3>
+                <p class="mt-8 text-sm text-gray-400">Date: {{currentDate}}</p>
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- TABLE OF CONTENTS (can be dynamically generated if needed) -->
+        <section class="mb-16">
+            <h2 class="text-2xl font-bold text-blue-900 mb-6 border-b pb-2">Table of Contents</h2>
+            <ul class="space-y-3">
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>1. Executive Summary</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>2. Promoter Profile & Company Overview</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>3. Market Analysis & Strategy</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>4. Technical Details & Process Flow</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>5. Implementation Schedule</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>6. Cost of Project & Means of Finance</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>7. Working Capital Assessment</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>8. Projected Profitability Statement</span></li>
+                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>9. Projected Balance Sheet</span></li>
+            </ul>
+        </section>
+
+        <!-- CHAPTER 1: EXECUTIVE SUMMARY -->
+        <section id="executive" class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">1. Executive Summary</h2>
+            <div class="text-justify text-gray-700 prose max-w-none">
+                {{executiveSummary}}
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- CHAPTER 2: PROMOTER PROFILE -->
+        <section id="company" class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">2. Promoter Profile & Company Overview</h2>
+            <div class="text-justify text-gray-700 prose max-w-none">
+                {{promoterProfile}}
+            </div>
+        </section>
+        
+        <!-- CHAPTER 3: MARKET ANALYSIS -->
+        <section class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">3. Market Analysis & Strategy</h2>
+             <div class="text-justify text-gray-700 prose max-w-none">
+                {{marketAnalysis}}
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- CHAPTER 4: TECHNICAL DETAILS -->
+        <section id="technical" class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">4. Technical Details & Process Flow</h2>
+            <div class="text-justify text-gray-700 prose max-w-none">
+                {{technicalDetails}}
+            </div>
+        </section>
+
+        <!-- CHAPTER 5: IMPLEMENTATION SCHEDULE -->
+        <section class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">5. Implementation Schedule</h2>
+             <div class="text-justify text-gray-700 prose max-w-none">
+                {{implementationSchedule}}
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- CHAPTER 6: COST OF PROJECT -->
+        <section id="financials" class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">6. Cost of Project & Means of Finance</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="avoid-break">
+                    <h3 class="text-lg font-bold text-center bg-gray-200 p-2 border border-gray-300">Cost of Project</h3>
+                    {{projectCostTable}}
+                </div>
+                <div class="avoid-break">
+                    <h3 class="text-lg font-bold text-center bg-gray-200 p-2 border border-gray-300">Means of Finance</h3>
+                    {{meansOfFinanceTable}}
+                </div>
+            </div>
+        </section>
+
+        <!-- CHAPTER 7: WORKING CAPITAL -->
+        <section class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">7. Working Capital Assessment</h2>
+            <div class="avoid-break">
+                {{workingCapitalTable}}
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- CHAPTER 8: PROFITABILITY -->
+        <section class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">8. Projected Profitability Statement</h2>
+            <div class="overflow-x-auto avoid-break">
+                {{profitabilityTable}}
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- CHAPTER 9: BALANCE SHEET -->
+        <section class="mb-12">
+            <h2 class="chapter-title text-2xl font-bold">9. Projected Balance Sheet</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                <div class="avoid-break">
+                    <h4 class="font-bold text-center bg-gray-100 p-2 border mb-0">Liabilities</h4>
+                    {{liabilitiesTable}}
+                </div>
+                <div class="avoid-break">
+                    <h4 class="font-bold text-center bg-gray-100 p-2 border mb-0">Assets</h4>
+                    {{assetsTable}}
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-12 pt-6 border-t text-center text-xs text-gray-400">
+            <p>Generated by WealthIn AI | {{projectName}} | Confidential</p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+        // Set current date
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const dateElement = document.querySelector('body');
+            const today = new Date().toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+            dateElement.innerHTML = dateElement.innerHTML.replace(/{{currentDate}}/g, today);
+        });
+    </script>
+</body>
+</html>
