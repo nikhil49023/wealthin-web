@@ -15,6 +15,9 @@ import {
   GraduationCap,
   ArrowRight,
   Sparkles,
+  Presentation,
+  DollarSign,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -104,6 +107,34 @@ const curatedIdeas = [
         idea: "Eco-Friendly Packaging Production"
     }
 ];
+
+const courses = [
+    { 
+        title: "Financial Literacy for Entrepreneurs", 
+        description: "Master budgeting, cash flow, and financial planning for your business.", 
+        icon: DollarSign,
+        href: "#"
+    },
+    { 
+        title: "Digital Marketing Fundamentals", 
+        description: "Learn how to market your product or service online effectively.", 
+        icon: Presentation,
+        href: "#" 
+    },
+    { 
+        title: "Business Plan Development", 
+        description: "A step-by-step guide to creating a bank-ready business plan.", 
+        icon: ClipboardCheck,
+        href: "#" 
+    },
+    { 
+        title: "Sales and Customer Acquisition", 
+        description: "Strategies to find your first customers and grow your revenue.", 
+        icon: TrendingUp,
+        href: "#"
+    },
+];
+
 
 const IDEA_ANALYSIS_COST = 2;
 
@@ -246,6 +277,32 @@ export default function BrainstormPage() {
           <CarouselNext className="absolute right-[-10px] sm:right-[-20px]" />
         </Carousel>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/>Recommended Courses</CardTitle>
+          <CardDescription>Upskill yourself with these courses tailored for entrepreneurs.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {courses.map((item) => (
+              <Link key={item.title} href={item.href}>
+                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
+                    <CardHeader>
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg">
+                                <item.icon className="h-6 w-6 text-primary" />
+                            </div>
+                            <CardTitle className="text-lg">{item.title}</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </CardContent>
+                </Card>
+              </Link>
+          ))}
+        </CardContent>
+      </Card>
 
        <Card>
         <CardHeader>
