@@ -68,8 +68,12 @@ export async function POST(req: Request) {
     const templatePath = path.join(process.cwd(), 'src', 'app', 'dpr-template.html');
     let template = await fs.readFile(templatePath, 'utf-8');
 
+    // Create a dynamic storage key based on the project title
+    const storageKey = `dpr-content-${idea.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+
     template = template.replace(/{{projectName}}/g, idea.title || 'Your Project');
     template = template.replace(/{{promoterName}}/g, promoterName || '[Promoter Name]');
+    template = template.replace('{{storageKey}}', storageKey);
     template = template.replace('{{executiveSummary}}', generatedContent.executiveSummary || '');
     template = template.replace('{{introduction}}', generatedContent.introduction || '');
     template = template.replace('{{marketAnalysis}}', generatedContent.marketAnalysis || '');
@@ -89,7 +93,4 @@ export async function POST(req: Request) {
       {message: `Failed to generate DPR HTML: ${error.message}`},
       {status: 500}
     );
-  }
-}
-
-    
+  
