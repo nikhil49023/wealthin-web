@@ -23,7 +23,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const db = getFirestore(app);
 
-const DPR_GENERATION_COST = 0; // Temporarily free
+const DPR_GENERATION_COST = 0; 
 
 function CustomizeDPRContent() {
   const router = useRouter();
@@ -58,23 +58,21 @@ function CustomizeDPRContent() {
       toast({ variant: 'destructive', description: 'No analysis data found.' });
     }
     
-    if (user?.displayName) {
-      setPromoterName(user.displayName);
-    } else {
-      setError('Could not identify promoter name.');
-    }
+    // Use a placeholder if the name is not available
+    setPromoterName(user?.displayName || "[Promoter Name Here]");
+
   }, [searchParams, toast, user]);
 
   const handleNavigateToReport = async () => {
-    if (!user || !userProfile || !analysis) return;
+    if (!analysis) return;
 
-    // Credit check disabled for now
-    // if ((userProfile.credits ?? 0) < DPR_GENERATION_COST) {
-    //     setShowCreditAlert(true);
-    //     return;
-    // }
+    if ((userProfile?.credits ?? 0) < DPR_GENERATION_COST) {
+        setShowCreditAlert(true);
+        return;
+    }
     
     setIsNavigating(true);
+    // Navigate to the new editor page
     router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title)}&name=${encodeURIComponent(promoterName)}`);
   };
   
@@ -98,15 +96,15 @@ function CustomizeDPRContent() {
   return (
       <div className="max-w-2xl mx-auto space-y-8">
          <Button variant="ghost" asChild className="-ml-4">
-          <Link href="/brainstorm">
+          <Link href="/my-ideas">
             <ArrowLeft className="mr-2" />
-            Back to Brainstorm
+            Back to My Ideas
           </Link>
         </Button>
         <div className="text-center">
             <h1 className="text-3xl font-bold">Generate Your Detailed Project Report</h1>
             <p className="text-muted-foreground mt-2">
-            The AI will generate a complete, bank-ready DPR based on your business idea.
+            The AI will generate a complete, bank-ready DPR. You can then edit and refine it.
             </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -132,8 +130,8 @@ function CustomizeDPRContent() {
              <Card className="text-center py-10">
                 <CardContent className="space-y-4">
                     <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Preparing Your Report...</h3>
-                    <p className="text-muted-foreground">Please wait while we redirect you.</p>
+                    <h3 className="text-xl font-semibold">Preparing Your Editor...</h3>
+                    <p className="text-muted-foreground">Please wait while we set up the report.</p>
                 </CardContent>
             </Card>
         )}
@@ -162,3 +160,5 @@ export default function CustomizeDPRPage() {
         </Suspense>
     )
 }
+
+    

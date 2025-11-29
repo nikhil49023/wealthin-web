@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -183,3 +184,5 @@ export function FinancialProjectionsBarChart({
     </ResponsiveContainer>
   );
 }
+
+    

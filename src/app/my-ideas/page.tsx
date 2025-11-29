@@ -67,9 +67,9 @@ export default function MyIdeasPage() {
     if (!idea || !user) return;
     localStorage.setItem('dprAnalysis', JSON.stringify(idea));
     router.push(
-      `/customize-dpr?idea=${encodeURIComponent(
+      `/dpr-report?idea=${encodeURIComponent(
         idea.title
-      )}&name=${encodeURIComponent(user?.displayName || 'Entrepreneur')}`
+      )}&name=${encodeURIComponent(user?.displayName || '[Promoter Name Here]')}`
     );
   };
   
@@ -157,3 +157,5 @@ export default function MyIdeasPage() {
     </div>
   );
 }
+
+    
