@@ -4,12 +4,25 @@
 import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, Printer, ArrowLeft } from 'lucide-react';
+import { Loader2, Printer, ArrowLeft, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+
+const dprSections = [
+    { key: 'executiveSummary', title: 'Executive Summary' },
+    { key: 'introduction', title: 'Introduction & Background'},
+    { key: 'marketAnalysis', title: 'Market Analysis'},
+    { key: 'technicalFeasibility', title: 'Technical Feasibility' },
+    { key: 'financials', title: 'Financials'},
+    { key: 'conclusion', title: 'Conclusion' },
+];
 
 function DPRReportContent() {
   const router = useRouter();
@@ -22,6 +35,12 @@ function DPRReportContent() {
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // State for AI Toolkit
+  const [isToolkitOpen, setIsToolkitOpen] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [sectionToEdit, setSectionToEdit] = useState<string>('');
+  const [refinementPrompt, setRefinementPrompt] = useState('');
 
 
   useEffect(() => {
@@ -69,6 +88,57 @@ function DPRReportContent() {
         setIsGenerating(false);
     }
   };
+
+  const handleRefineSection = async () => {
+    if (!sectionToEdit || !refinementPrompt || !iframeRef.current?.contentWindow) {
+      toast({ variant: 'destructive', description: 'Please select a section and enter a prompt.' });
+      return;
+    }
+    setIsRefining(true);
+
+    try {
+        const doc = iframeRef.current.contentWindow.document;
+        const sectionElement = doc.getElementById(sectionToEdit);
+        if (!sectionElement) {
+            throw new Error(`Could not find section "${sectionToEdit}" in the document.`);
+        }
+        const existingContent = sectionElement.innerHTML;
+        
+        const response = await fetch('/api/refine-dpr-section', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                section: sectionToEdit,
+                existingContent,
+                refinementPrompt,
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || 'Failed to refine content.');
+        }
+        
+        const result = await response.json();
+        
+        // Inject refined content back into the iframe
+        sectionElement.innerHTML = result.content;
+
+        // Also save the new content to localStorage inside the iframe
+        iframeRef.current.contentWindow.postMessage({
+            type: 'saveContent'
+        }, '*');
+
+        toast({ title: 'Success', description: `Section "${dprSections.find(s => s.key === sectionToEdit)?.title}" has been refined.` });
+        setIsToolkitOpen(false);
+        setRefinementPrompt('');
+        setSectionToEdit('');
+    } catch(e: any) {
+        toast({ variant: 'destructive', title: 'Refinement Failed', description: e.message });
+    } finally {
+        setIsRefining(false);
+    }
+  };
   
   const handlePrint = () => {
     iframeRef.current?.contentWindow?.print();
@@ -85,6 +155,55 @@ function DPRReportContent() {
             <Button variant="ghost" asChild>
                 <Link href="/my-ideas"><ArrowLeft className="mr-2 h-4 w-4"/> Back to My Ideas</Link>
             </Button>
+            <Dialog open={isToolkitOpen} onOpenChange={setIsToolkitOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" disabled={isGenerating}>
+                        <Wand2 className="mr-2 h-4 w-4"/> AI Toolkit
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>AI Section Refinement</DialogTitle>
+                        <DialogDescription>
+                            Select a section and provide a prompt to have the AI rewrite or improve it.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="section-select">Section to Edit</Label>
+                            <Select value={sectionToEdit} onValueChange={setSectionToEdit}>
+                                <SelectTrigger id="section-select">
+                                    <SelectValue placeholder="Select a section..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {dprSections.map(s => (
+                                        <SelectItem key={s.key} value={s.key}>{s.title}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="refinement-prompt">Your Instruction</Label>
+                            <Textarea 
+                                id="refinement-prompt"
+                                value={refinementPrompt}
+                                onChange={(e) => setRefinementPrompt(e.target.value)}
+                                placeholder="e.g., 'Make this section more formal for a bank loan application.' or 'Expand on the marketing strategy.'"
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="ghost" disabled={isRefining}>Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleRefineSection} disabled={isRefining}>
+                            {isRefining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Refine with AI
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <Button onClick={handlePrint} disabled={isGenerating}>
                 <Printer className="mr-2 h-4 w-4"/> Print / Save as PDF
             </Button>
@@ -127,5 +246,3 @@ export default function DPRReportPage() {
         </Suspense>
     )
 }
-
-    
