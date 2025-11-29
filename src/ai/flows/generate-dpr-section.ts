@@ -114,16 +114,24 @@ Now, generate the content for the "${section}" section.
     const cleanedText = cleanAiResponse(rawText, isJsonExpected);
 
     if (isJsonExpected) {
-      const parsed = JSON.parse(cleanedText);
-      return { content: parsed };
+      // For financialProjections, ensure parsing succeeds before returning
+      try {
+        const parsed = JSON.parse(cleanedText);
+        return { content: parsed };
+      } catch (jsonError: any) {
+        console.error(`JSON Parsing failed for section "${section}". Raw text:`, cleanedText);
+        throw new Error(`The AI returned malformed JSON for the ${section} section.`);
+      }
     } else {
       if (!cleanedText) {
-        throw new Error("The AI returned an empty response for this section.");
+        // Handle cases where the AI returns an empty but valid response
+        console.warn(`AI returned empty content for section "${section}".`);
+        return { content: '<p>No content was generated for this section.</p>' };
       }
       return { content: cleanedText };
     }
   } catch (e: any) {
-    console.error(`Failed to parse AI response for section "${section}":`, e.message);
+    console.error(`Failed to generate or parse AI response for section "${section}":`, e.message);
     throw new Error(`The AI returned an invalid format for the ${section} section.`);
   }
 }
