@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             {
                                 amount: 20,
                                 description: 'Welcome Bonus!',
-                                date: serverTimestamp()
+                                date: new Date()
                             }
                         ]
                     };
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             creditHistory: [{
                                 amount: 20,
                                 description: 'Welcome Bonus!',
-                                date: serverTimestamp()
+                                date: new Date()
                             }],
                             completedGoals: [],
                         };

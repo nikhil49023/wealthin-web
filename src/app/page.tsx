@@ -328,7 +328,7 @@ export default function DashboardPage() {
         const newCreditTx: CreditTransaction = {
             amount: amount,
             description: description,
-            date: serverTimestamp()
+            date: new Date()
         };
 
         try {
@@ -421,7 +421,7 @@ export default function DashboardPage() {
     };
 
     fetchSummaryAndCheckAwards();
-  }, [transactions, user, userProfile, loadingAuth, translations, getCacheKey, toast, awardCredits, savingsGoals]);
+  }, [transactions, user, userProfile, loadingAuth, getCacheKey, translations.dashboard.defaultSuggestion, toast, awardCredits, savingsGoals]);
 
   // Effect to create default emergency fund
   useEffect(() => {
