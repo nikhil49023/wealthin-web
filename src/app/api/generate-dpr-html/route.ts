@@ -48,11 +48,21 @@ export async function POST(req: Request) {
       })
     );
 
-    const results = await Promise.all(generationPromises);
+    const results = await Promise.allSettled(generationPromises);
 
     const generatedContent: {[key: string]: any} = {};
     results.forEach((result, index) => {
-        generatedContent[dprChapters[index].key] = result.content;
+        const chapter = dprChapters[index];
+        if (result.status === 'fulfilled') {
+            generatedContent[chapter.key] = result.value.content;
+        } else {
+            console.error(`Failed to generate section "${chapter.key}":`, result.reason);
+            generatedContent[chapter.key] = `<div class="p-4 border-l-4 border-destructive bg-destructive/10 text-destructive-foreground">
+                <h4 class="font-bold">AI Generation Failed</h4>
+                <p class="text-sm">The AI could not generate this section. This can happen if the business idea is too generic.</p>
+                <p class="text-sm mt-2"><b>Suggestion:</b> Use the AI Toolkit to try again with a more detailed prompt. For example: "Based on a small-scale organic farm, generate the ${chapter.title}."</p>
+            </div>`;
+        }
     });
 
     const templatePath = path.join(process.cwd(), 'src', 'app', 'dpr-template.html');
