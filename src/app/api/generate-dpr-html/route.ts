@@ -19,15 +19,15 @@ The JSON object must contain these top-level keys: "costOfProject", "meansOfFina
 
 Populate each key with an array of objects containing realistic financial data based on the business profile. Follow this exact schema:
 {
-  "costOfProject": [{ "particular": "(string)", "amount": "(number)" }],
+  "costOfProject": [{ "particulars": "(string)", "amount": "(number)" }],
   "meansOfFinance": [{ "source": "(string)", "amount": "(number)" }],
-  "manpower": [{ "category": "(string)", "no": "(number)", "salary": "(number)", "annualCost": "(number)" }],
-  "workingCapital": [{ "particular": "(string)", "period": "(string)", "total": "(number)", "margin": "(number)", "bankFinance": "(number)" }],
-  "repaymentSchedule": [{ "year": "(string)", "opening": "(number)", "repayment": "(number)", "interest": "(number)", "closing": "(number)" }],
-  "profitability": [{ "particular": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)", "year4": "(number)", "year5": "(number)" }],
+  "manpower": [{ "category": "(string)", "no": "(number)", "salarymo": "(number)", "annualcost": "(number)" }],
+  "workingCapital": [{ "particulars": "(string)", "holdingperiod": "(string)", "year1level": "(number)", "margin25": "(number)", "bankfinance": "(number)" }],
+  "repaymentSchedule": [{ "year": "(string)", "openingbal": "(number)", "repayment": "(number)", "interest": "(number)", "closingbal": "(number)" }],
+  "profitability": [{ "particulars": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)", "year4": "(number)", "year5": "(number)" }],
   "balanceSheet": {
-      "liabilities": [{ "particular": "(string)", "year1": "(number)", "year2": "number", "year3": "number" }],
-      "assets": [{ "particular": "(string)", "year1": "(number)", "year2": "number", "year3": "number" }]
+      "liabilities": [{ "particulars": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)" }],
+      "assets": [{ "particulars": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)" }]
   },
   "financialRatios": [{ "ratio": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)", "benchmark": "(string)" }]
 }
@@ -48,7 +48,7 @@ function generateHtmlTable(headers: string[], data: any[], numCols: string[] = [
         table += '<tr>';
         headers.forEach(header => {
             const key = header.toLowerCase().replace(/ /g, '').replace(/[^\w\s]/gi, '');
-            let value = row[key] ?? row[header] ?? '';
+            let value = row[key] ?? row[header.toLowerCase()] ?? '';
             if(typeof value === 'number') {
                 value = value.toLocaleString('en-IN');
             }
@@ -61,7 +61,7 @@ function generateHtmlTable(headers: string[], data: any[], numCols: string[] = [
         table += '<tr class="total">';
         headers.forEach(header => {
              const key = header.toLowerCase().replace(/ /g, '').replace(/[^\w\s]/gi, '');
-             let value = totalRow[key] ?? totalRow[header] ?? '';
+             let value = totalRow[key] ?? totalRow[header.toLowerCase()] ?? '';
              if(typeof value === 'number') {
                 value = value.toLocaleString('en-IN');
             }
@@ -114,16 +114,16 @@ export async function POST(req: Request) {
 
     const financials = generatedContent.financials;
     if (financials && typeof financials === 'object') {
-        const costTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.costOfProject, ['Amount ($)'], financials.costOfProject.find((r:any) => r.particular === 'Total'));
+        const costTable = generateHtmlTable(['Particulars', 'Amount'], financials.costOfProject, ['Amount'], financials.costOfProject.find((r:any) => r.particulars.toLowerCase() === 'total'));
         template = template.replace('{{costOfProjectTable}}', costTable);
         
-        const financeTable = generateHtmlTable(['Source', 'Amount ($)'], financials.meansOfFinance, ['Amount ($)'], financials.meansOfFinance.find((r:any) => r.source === 'Total'));
+        const financeTable = generateHtmlTable(['Source', 'Amount'], financials.meansOfFinance, ['Amount'], financials.meansOfFinance.find((r:any) => r.source.toLowerCase() === 'total'));
         template = template.replace('{{meansOfFinanceTable}}', financeTable);
 
-        const manpowerTable = generateHtmlTable(['Category', 'No.', 'Salary/Mo ($)', 'Annual Cost ($)'], financials.manpower, ['No.', 'Salary/Mo ($)', 'Annual Cost ($)'], financials.manpower.find((r:any) => r.category === 'Total Salaries'));
+        const manpowerTable = generateHtmlTable(['Category', 'No.', 'Salary/Mo', 'Annual Cost'], financials.manpower, ['No.', 'Salary/Mo', 'Annual Cost'], financials.manpower.find((r:any) => r.category.toLowerCase() === 'total salaries'));
         template = template.replace('{{manpowerTable}}', manpowerTable);
 
-        const capitalTable = generateHtmlTable(['Particulars', 'Holding Period', 'Year 1 Level ($)', 'Margin (25%)', 'Bank Finance'], financials.workingCapital, ['Year 1 Level ($)', 'Margin (25%)', 'Bank Finance']);
+        const capitalTable = generateHtmlTable(['Particulars', 'Holding Period', 'Year 1 Level', 'Margin (25%)', 'Bank Finance'], financials.workingCapital, ['Year 1 Level', 'Margin (25%)', 'Bank Finance']);
         template = template.replace('{{workingCapitalTable}}', capitalTable);
         
         const repaymentTable = generateHtmlTable(['Year', 'Opening Bal', 'Repayment', 'Interest', 'Closing Bal'], financials.repaymentSchedule, ['Opening Bal', 'Repayment', 'Interest', 'Closing Bal']);
@@ -143,7 +143,7 @@ export async function POST(req: Request) {
         const ratiosTable = generateHtmlTable(['Ratio', 'Year 1', 'Year 2', 'Year 3', 'Benchmark'], financials.financialRatios, ['Year 1', 'Year 2', 'Year 3']);
         template = template.replace('{{financialRatiosTable}}', ratiosTable);
         
-        const profitChartData = JSON.stringify(financials.profitability.filter((d: any) => d.particular === 'Total Income' || d.particular === 'Net Profit (PAT)'));
+        const profitChartData = JSON.stringify(financials.profitability.filter((d: any) => d.particulars === 'Total Income' || d.particulars === 'Net Profit (PAT)'));
         template = template.replace('{{profitChartData}}', profitChartData);
 
         const dscrChartData = JSON.stringify(financials.financialRatios.find((r: any) => r.ratio === 'DSCR'));
