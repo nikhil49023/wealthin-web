@@ -16,32 +16,10 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-// Helper to generate an HTML table from JSON data
-function generateHtmlTable(headers: string[], data: any[]): string {
-    if (!data || data.length === 0) return '<p>No data available.</p>';
-    let table = '<table class="w-full text-sm text-left"><thead class="bg-gray-50 text-gray-500 font-medium"><tr>';
-    headers.forEach(h => table += `<th class="px-6 py-3">${h}</th>`);
-    table += '</tr></thead><tbody class="divide-y divide-gray-50">';
-    data.forEach(row => {
-        table += '<tr>';
-        Object.values(row).forEach((val: any, index) => {
-            const isNum = typeof val === 'number';
-            const cellClass = `px-6 py-4 ${isNum ? 'num-cell' : ''}`;
-            let cellValue = isNum ? formatCurrency(val) : val;
-            if (headers[index].toLowerCase() === 'status') {
-                cellValue = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">${val}</span>`;
-            }
-             table += `<td class="${cellClass}">${cellValue}</td>`;
-        });
-        table += '</tr>';
-    });
-    table += '</tbody></table>';
-    return table;
-}
-
 export async function POST(req: Request) {
   try {
-    const { transactions } = await req.json();
+    const { transactions, budgets, savingsGoals } = await req.json();
+
     if (!transactions) {
       return NextResponse.json(
         { message: 'Transactions are required' },
@@ -50,21 +28,47 @@ export async function POST(req: Request) {
     }
     
     // 1. Get structured data from AI
-    const result = await generateBudgetReport({ transactions });
+    const result = await generateBudgetReport({ transactions, budgets, savingsGoals });
 
     // 2. Read the HTML template
     const templatePath = path.join(process.cwd(), 'src', 'app', 'budget-report-template.html');
     let template = await fs.readFile(templatePath, 'utf-8');
 
     // 3. Inject data into template placeholders
-    template = template.replace('{{aiSummary}}', result.summary);
     template = template.replace('{{totalIncome}}', formatCurrency(result.overallBreakdown.totalIncome));
     template = template.replace('{{totalExpenses}}', formatCurrency(result.overallBreakdown.totalExpenses));
     template = template.replace('{{savings}}', formatCurrency(result.overallBreakdown.savings));
     template = template.replace('{{savingsRate}}', `${result.overallBreakdown.savingsRate}%`);
     
-    const expenseTableHtml = generateHtmlTable(['Category', 'Amount'], result.expenseBreakdown);
-    template = template.replace('{{expenseTable}}', expenseTableHtml);
+    // Inject AI Content
+    template = template.replace('{{aiSummary}}', result.summary);
+    template = template.replace('{{aiSuggestions}}', result.suggestions.map(s => `<li>${s}</li>`).join(''));
+    
+    // Inject Chart Data
+    template = template.replace('{{expenseChartData}}', JSON.stringify(result.expenseBreakdown));
+
+    // Inject Savings Goals Status
+    const savingsGoalRows = result.savingsGoalStatus.map(goal => `
+        <tr>
+            <td class="px-6 py-4">${goal.name}</td>
+            <td class="px-6 py-4 num-cell">${formatCurrency(goal.targetAmount)}</td>
+            <td class="px-6 py-4 num-cell">${formatCurrency(goal.fundedAmount)}</td>
+            <td class="px-6 py-4"><span class="bg-${goal.status === 'Achieved' ? 'green' : 'yellow'}-100 text-${goal.status === 'Achieved' ? 'green' : 'yellow'}-700 px-3 py-1 rounded-full text-xs font-bold">${goal.status}</span></td>
+        </tr>
+    `).join('');
+    template = template.replace('{{savingsGoalRows}}', savingsGoalRows);
+
+    // Inject Budget Status
+    const budgetRows = result.budgetStatus.map(budget => `
+        <tr>
+            <td class="px-6 py-4">${budget.name}</td>
+            <td class="px-6 py-4 num-cell">${formatCurrency(budget.limit)}</td>
+            <td class="px-6 py-4 num-cell">${formatCurrency(budget.spent)}</td>
+            <td class="px-6 py-4"><span class="bg-${budget.status === 'Within Limit' ? 'green' : 'red'}-100 text-${budget.status === 'Within Limit' ? 'green' : 'red'}-700 px-3 py-1 rounded-full text-xs font-bold">${budget.status}</span></td>
+        </tr>
+    `).join('');
+    template = template.replace('{{budgetRows}}', budgetRows);
+
 
     // 4. Return the final HTML
     return new NextResponse(template, {

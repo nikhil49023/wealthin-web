@@ -23,9 +23,16 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const db = getFirestore(app);
 
+// Simplified types for this component
+type Budget = { id: string; name: string; amount: number };
+type SavingsGoal = { id: string; name: string; targetAmount: number };
+
 export default function BudgetReportPage() {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
@@ -36,23 +43,41 @@ export default function BudgetReportPage() {
 
   useEffect(() => {
     if (user) {
+      const unsubscribes: (() => void)[] = [];
       setIsLoading(true);
-      const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-      const unsubscribe = onSnapshot(transactionsRef, (snapshot) => {
-          const fetchedTransactions = snapshot.docs.map(doc => doc.data()) as ExtractedTransaction[];
-          setTransactions(fetchedTransactions);
-          setIsLoading(false);
-      },
-      (err) => {
-        console.error("Budget report transactions snapshot error", err);
-        const permissionError = new FirestorePermissionError({
-            path: transactionsRef.path,
-            operation: 'list'
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
+
+      const tRef = collection(db, 'users', user.uid, 'transactions');
+      unsubscribes.push(onSnapshot(tRef, (snapshot) => {
+          setTransactions(snapshot.docs.map(doc => doc.data()) as ExtractedTransaction[]);
+      }, (err) => {
+        console.error("Transactions snapshot error:", err);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: tRef.path, operation: 'list' }));
+      }));
+
+      const bRef = collection(db, 'users', user.uid, 'budgets');
+      unsubscribes.push(onSnapshot(bRef, (snapshot) => {
+          setBudgets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Budget[]);
+      }, (err) => {
+        console.error("Budgets snapshot error:", err);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: bRef.path, operation: 'list' }));
+      }));
+      
+      const gRef = collection(db, 'users', user.uid, 'savingsGoals');
+      unsubscribes.push(onSnapshot(gRef, (snapshot) => {
+          setSavingsGoals(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingsGoal[]);
+      }, (err) => {
+        console.error("Savings goals snapshot error:", err);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: gRef.path, operation: 'list' }));
+      }));
+
+      // Combined loading state
+      Promise.all([
+          new Promise(res => onSnapshot(tRef, res)),
+          new Promise(res => onSnapshot(bRef, res)),
+          new Promise(res => onSnapshot(gRef, res)),
+      ]).then(() => setIsLoading(false)).catch(() => setIsLoading(false));
+
+      return () => unsubscribes.forEach(unsub => unsub());
     } else if (!user && !isLoading) {
       router.push('/');
     }
@@ -80,7 +105,7 @@ export default function BudgetReportPage() {
         const response = await fetch('/api/budget-report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ transactions })
+            body: JSON.stringify({ transactions, budgets, savingsGoals })
         });
         
         if (!response.ok) {
@@ -115,7 +140,7 @@ export default function BudgetReportPage() {
       return (
         <div className="flex flex-col justify-center items-center h-full text-center">
             <Loader2 className="h-8 w-8 animate-spin mb-4" />
-            <h2 className="text-xl font-semibold">Loading Transaction Data...</h2>
+            <h2 className="text-xl font-semibold">Loading Financial Data...</h2>
         </div>
       )
   }
@@ -187,7 +212,7 @@ export default function BudgetReportPage() {
             <iframe
               ref={iframeRef[1]}
               srcDoc={reportHtml}
-              className="w-full h-[600px] border rounded-md"
+              className="w-full h-[800px] border rounded-md"
               title="Budget Report"
             />
           </CardContent>
