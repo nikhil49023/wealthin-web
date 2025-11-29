@@ -38,6 +38,9 @@ Based on the transaction history and the user's query, provide a helpful answer.
 
     return { answer: answer?.trim() || 'I apologize, but I could not generate financial advice at this moment. Please try again or rephrase your question.' };
   } catch (e: any) {
+    if (e.message.includes('Access Denied')) {
+        return { answer: 'The AI Advisor is temporarily unavailable due to a configuration issue. Please contact support.'};
+    }
     console.error('Failed to get response from AI service:', e);
     throw new Error(`An error occurred while processing the AI response: ${e.message}`);
   }

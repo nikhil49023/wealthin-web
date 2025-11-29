@@ -72,13 +72,24 @@ Transaction List (sample):
 ${transactionsSample}
 `;
 
-  const suggestion = await catalystService.generateText(userPrompt, systemPrompt);
-
-  // 3. Return combined result
-  return {
-    totalIncome,
-    totalExpenses,
-    savingsRate,
-    suggestion: suggestion || 'Review your spending to find potential savings opportunities.',
-  };
+  try {
+    const suggestion = await catalystService.generateText(userPrompt, systemPrompt);
+    // 3. Return combined result
+    return {
+      totalIncome,
+      totalExpenses,
+      savingsRate,
+      suggestion: suggestion || 'Review your spending to find potential savings opportunities.',
+    };
+  } catch (e: any) {
+    if (e.message.includes('Access Denied')) {
+       return {
+        totalIncome,
+        totalExpenses,
+        savingsRate,
+        suggestion: 'AI features are temporarily unavailable due to a configuration issue. Please contact support.',
+      };
+    }
+    throw e; // Re-throw other errors
+  }
 }
