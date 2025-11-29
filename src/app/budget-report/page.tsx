@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileDown, ArrowLeft, FilePieChart } from 'lucide-react';
+import { Loader2, ArrowLeft, FilePieChart } from 'lucide-react';
 import type { GenerateBudgetReportOutput } from '@/ai/schemas/budget-report';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +34,6 @@ export default function BudgetReportPage() {
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -63,15 +62,6 @@ export default function BudgetReportPage() {
     }
   }, [user, isLoading, router]);
 
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isGenerating && progress < 90) {
-      timer = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 90));
-      }, 500);
-    }
-    return () => clearInterval(timer);
-  }, [isGenerating, progress]);
 
   const generateReportHtml = useCallback(async (reportData: GenerateBudgetReportOutput) => {
     const response = await fetch('/budget-report-template.html');
@@ -116,7 +106,6 @@ export default function BudgetReportPage() {
     }
 
     setIsGenerating(true);
-    setProgress(5);
     setError(null);
     
     try {
@@ -128,8 +117,7 @@ export default function BudgetReportPage() {
 
         const data = result.data;
         const finalHtml = await generateReportHtml(data);
-        setProgress(100);
-
+        
         const reportWindow = window.open();
         if (reportWindow) {
             reportWindow.document.write(finalHtml);
@@ -188,61 +176,37 @@ export default function BudgetReportPage() {
         </Button>
       </div>
 
-       <div className="flex gap-2">
-         <Button onClick={handleGenerateReport} disabled={isGenerating || transactions.length === 0}>
-          {isGenerating ? <Loader2 className="mr-2 animate-spin" /> : null}
-          {isGenerating ? 'Generating...' : 'Generate & View Report'}
-        </Button>
-      </div>
-
-      {error && !isGenerating && (
-        <Card className="text-center py-10 bg-destructive/10 border-destructive">
-          <CardHeader className="p-4 md:p-6">
-            <CardTitle>Error Generating Report</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0">
-            <p className="text-destructive">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {isGenerating && (
-         <Card>
-            <CardHeader className="p-4 md:p-6">
-                <CardTitle>Generating Your Report...</CardTitle>
-                <CardDescription>The AI is analyzing your transactions. This might take a moment.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-4 md:p-6 pt-0 space-y-4">
-                 <Progress value={progress} className="w-full" />
-                 <p className="text-center text-sm text-muted-foreground">{Math.round(progress)}% Complete</p>
-                 <div className="space-y-2 pt-4">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                </div>
-            </CardContent>
-         </Card>
-      )}
-      
-      {!isGenerating && transactions.length === 0 && (
-         <Card className="text-center py-10 md:py-20">
-             <CardContent className="p-4 md:p-6 pt-0">
+       <Card className="text-center py-10 md:py-20">
+         <CardContent className="space-y-4">
+           {isGenerating ? (
+             <>
+               <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
+               <h3 className="text-xl font-semibold">Generating Your Report...</h3>
+               <p className="text-muted-foreground">The AI is analyzing your transactions. This might take a moment.</p>
+             </>
+           ) : transactions.length > 0 ? (
+             <>
+               <FilePieChart className="h-16 w-16 mx-auto text-muted-foreground mb-4"/>
+               <h3 className="text-xl font-semibold">Ready to Analyze Your Budget?</h3>
+               <p className="text-muted-foreground mt-2 max-w-md mx-auto">Click the button below to generate a detailed, printable report of your spending habits that will open in a new tab.</p>
+                <Button onClick={handleGenerateReport} className="mt-4">
+                  Generate & View Report
+                </Button>
+             </>
+           ) : (
+             <>
                 <h3 className="text-xl font-semibold">No Transaction Data</h3>
                 <p className="text-muted-foreground mt-2">Please add some transactions before generating a report.</p>
                 <Button asChild className="mt-4"><Link href="/funds">Add Transactions</Link></Button>
-             </CardContent>
-         </Card>
-      )}
-
-      {!isGenerating && transactions.length > 0 && (
-         <Card className="text-center py-10 md:py-20">
-             <CardContent className="p-4 md:p-6 pt-0">
-                 <FilePieChart className="h-16 w-16 mx-auto text-muted-foreground mb-4"/>
-                <h3 className="text-xl font-semibold">Ready to Analyze Your Budget?</h3>
-                <p className="text-muted-foreground mt-2">Click "Generate Report" to open a new tab with a detailed, printable breakdown of your spending.</p>
-             </CardContent>
-         </Card>
-      )}
+             </>
+           )}
+           {error && !isGenerating && (
+                <div className="mt-4 text-destructive">
+                    <p>Error: {error}</p>
+                </div>
+            )}
+         </CardContent>
+       </Card>
     </div>
   );
 }
