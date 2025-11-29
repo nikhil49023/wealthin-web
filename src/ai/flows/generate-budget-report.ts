@@ -34,7 +34,7 @@ Group similar expenses into logical categories (e.g., "Food & Dining", "Transpor
 
 Your response must be a JSON object that conforms exactly to this schema:
 {
-  "summary": "(string) A 2-3 paragraph professional summary and analysis of the spending habits, highlighting key trends and providing actionable advice.",
+  "summary": "(string) An AI-generated summary and analysis of spending habits, formatted as an HTML unordered list (<ul><li>...</li></ul>). Each list item should highlight a key trend or provide an actionable piece of advice.",
   "expenseBreakdown": [
     { "name": "(string) CategoryName", "value": "(number) 1234.56" },
     ...
