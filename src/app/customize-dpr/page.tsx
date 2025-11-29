@@ -13,7 +13,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
 import { doc, setDoc, getFirestore } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
