@@ -109,7 +109,7 @@ Now, generate the content for the "${section}" section.
 
   try {
     const rawText = await catalystService.generateText(finalPrompt, systemPrompt);
-    const isJsonExpected = section === 'financialProjections' || (typeof existingContent === 'object' && refinementPrompt);
+    const isJsonExpected = section === 'financials';
     
     const cleanedText = cleanAiResponse(rawText, isJsonExpected);
 

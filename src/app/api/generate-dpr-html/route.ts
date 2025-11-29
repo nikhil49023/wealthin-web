@@ -25,10 +25,10 @@ function generateHtmlTable(headers: string[], data: any[], numCols: string[] = [
   data.forEach(row => {
     table += '<tr>';
     headers.forEach(header => {
-      const key = header.toLowerCase().replace(/ /g, '');
+      const key = header.toLowerCase().replace(/ /g, '').replace('($)','').replace('.','');
       const value = row[key] ?? row[header] ?? '';
       const isNum = numCols.includes(header);
-      table += `<td class="${isNum ? 'num-col' : ''}">${typeof value === 'number' ? value.toLocaleString('en-IN') : value}</td>`;
+      table += `<td class="${isNum ? 'num' : ''}">${typeof value === 'number' ? value.toLocaleString('en-IN') : value}</td>`;
     });
     table += '</tr>';
   });
@@ -61,12 +61,7 @@ export async function POST(req: Request) {
 
     const generatedContent: {[key: string]: any} = {};
     results.forEach((result, index) => {
-      if (result.success) {
-        generatedContent[dprChapters[index].key] = result.data.content;
-      } else {
-        // Fallback for failed section
-        generatedContent[dprChapters[index].key] = `<p>Error generating this section.</p>`;
-      }
+        generatedContent[dprChapters[index].key] = result.content;
     });
 
     // 2. Read the HTML template
@@ -85,23 +80,28 @@ export async function POST(req: Request) {
     // Handle financial data injection
     const financials = generatedContent.financials;
     if (financials && typeof financials === 'object') {
-        const projectCostTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.projectCost, ['Amount ($)']);
+        const projectCostTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.projectCost || [], ['Amount ($)']);
         template = template.replace('{{projectCostTable}}', projectCostTable);
 
-        const meansOfFinanceTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.meansOfFinance, ['Amount ($)']);
+        const meansOfFinanceTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.meansOfFinance || [], ['Amount ($)']);
         template = template.replace('{{meansOfFinanceTable}}', meansOfFinanceTable);
         
-        const workingCapitalTable = generateHtmlTable(['Component', 'Period', 'Total Reqd. ($)', 'Margin (25%)', 'Bank Finance'], financials.workingCapital, ['Total Reqd. ($)', 'Margin (25%)', 'Bank Finance']);
+        const workingCapitalTable = generateHtmlTable(['Component', 'Period', 'Total Reqd. ($)', 'Margin (25%)', 'Bank Finance'], financials.workingCapital || [], ['Total Reqd. ($)', 'Margin (25%)', 'Bank Finance']);
         template = template.replace('{{workingCapitalTable}}', workingCapitalTable);
         
-        const profitabilityTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'], financials.profitability, ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5']);
+        const profitabilityTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'], financials.profitability || [], ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5']);
         template = template.replace('{{profitabilityTable}}', profitabilityTable);
 
-        const liabilitiesTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2'], financials.balanceSheet.liabilities, ['Year 1', 'Year 2']);
-        template = template.replace('{{liabilitiesTable}}', liabilitiesTable);
-        
-        const assetsTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2'], financials.balanceSheet.assets, ['Year 1', 'Year 2']);
-        template = template.replace('{{assetsTable}}', assetsTable);
+        if (financials.balanceSheet) {
+            const liabilitiesTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2'], financials.balanceSheet.liabilities || [], ['Year 1', 'Year 2']);
+            template = template.replace('{{liabilitiesTable}}', liabilitiesTable);
+            
+            const assetsTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2'], financials.balanceSheet.assets || [], ['Year 1', 'Year 2']);
+            template = template.replace('{{assetsTable}}', assetsTable);
+        } else {
+             template = template.replace('{{liabilitiesTable}}', '<table><tr><td>Not generated</td></tr></table>');
+             template = template.replace('{{assetsTable}}', '<table><tr><td>Not generated</td></tr></table>');
+        }
 
     } else {
         // Fallback if financials fail
