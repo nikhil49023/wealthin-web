@@ -18,16 +18,15 @@ export const ExtractedTransactionSchema = z.object({
     .describe('The type of transaction (income or expense).'),
   amount: z
     .string()
-    .describe('The transaction amount, formatted as a string with currency (e.g., \'INR 1,234.56\').'),
+    .describe("The transaction amount, formatted as a string with currency (e.g., 'INR 1,234.56')."),
   invoiceUrl: z.string().optional().describe("The URL of the attached invoice file in Firebase Storage."),
 });
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
 
 export const ExtractTransactionsInputSchema = z.object({
-  documentDataUri: z
-    .string()
+  documentDataUri: z.union([z.string(), z.array(z.string())])
     .describe(
-      "A document (like a bank statement) containing transactions, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A document (like a bank statement) containing transactions, as a single data URI or an array of data URIs for multi-page documents. Each URI must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type ExtractTransactionsInput = z.infer<

@@ -50,28 +50,48 @@ export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
 
-  let base64Image: string;
+  let base64Images: string[];
   try {
-      base64Image = input.documentDataUri.split(',')[1];
-      if (!base64Image) {
+      // The input might be a single image URI or an array of them.
+      const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
+      base64Images = uris.map(uri => {
+          const parts = uri.split(',');
+          if (parts.length !== 2) {
+              throw new Error("Invalid data URI format encountered.");
+          }
+          return parts[1];
+      });
+
+      if (base64Images.some(img => !img)) {
         throw new Error("Invalid data URI format provided.");
       }
   } catch (e) {
-      console.error("Failed to decode data URI:", e);
-      throw new Error("Could not extract image data from the provided file.");
+      console.error("Failed to decode data URI(s):", e);
+      throw new Error("Could not extract image data from the provided file(s).");
   }
   
-  // --- Step 1: Use the Vision Model to extract raw text from the image ---
+  // --- Step 1: Use the Vision Model to extract raw text from each page image ---
   const visionPrompt = "Extract all text content from the provided document image. Focus on transaction details like dates, descriptions, and amounts. Do not format the output, just provide the raw text.";
+  
+  const textExtractionPromises = base64Images.map((base64Image, index) => 
+      catalystService.generateTextFromImage(visionPrompt, [base64Image])
+        .catch(err => {
+            console.error(`Failed to extract text from page ${index + 1}:`, err);
+            return `[Error processing page ${index + 1}]`; // Return error placeholder
+        })
+  );
 
-  const rawExtractedText = await catalystService.generateTextFromImage(visionPrompt, [base64Image]);
-  if (!rawExtractedText || rawExtractedText.trim() === '') {
+  const rawTexts = await Promise.all(textExtractionPromises);
+  const combinedRawText = rawTexts.join('\n\n--- Page Break ---\n\n');
+
+  if (!combinedRawText || combinedRawText.trim() === '') {
       throw new Error("The vision model did not return any text from the document.");
   }
 
 
   // --- Step 2: Use the Language Model to structure the raw text into JSON ---
   const structuringSystemPrompt = `You are a data processing expert. Your only job is to convert the user's raw text into a valid JSON object.
+The user has provided text from a multi-page financial document, with page breaks indicated by '--- Page Break ---'.
 Your response MUST be ONLY the JSON object and nothing else. Do not add any explanation or markdown formatting.
 The JSON object must conform to this exact schema:
 {
@@ -89,7 +109,7 @@ The JSON object must conform to this exact schema:
 Here is the raw text extracted from a financial document. Convert it into a valid JSON object as per the schema.
 
 --- RAW TEXT ---
-${rawExtractedText}
+${combinedRawText}
 --- END RAW TEXT ---
 
 Generate the JSON object now.
