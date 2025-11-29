@@ -4,45 +4,230 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank-Ready Detailed Project Report</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for Financial Graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <!-- Cropper.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap');
-        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: #334155; }
-        .a4-page { background: white; width: 210mm; min-height: 297mm; margin: 3rem auto; padding: 20mm; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); outline: none; }
-        .a4-page h1, .a4-page h2, .a4-page h3, .a4-page h4 { font-family: 'Merriweather', serif; color: #0f172a; }
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            color: #334155;
+        }
+
+        /* The Paper Sheet */
+        .a4-page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 3rem auto;
+            padding: 20mm;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            outline: none;
+            counter-reset: page;
+        }
+
+        /* Editor Typography */
+        .a4-page h1, .a4-page h2, .a4-page h3, .a4-page h4 {
+            font-family: 'Merriweather', serif;
+            color: #0f172a;
+        }
         .a4-page h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.2; text-align: center; }
-        .a4-page h2 { font-size: 1.4rem; font-weight: 700; border-bottom: 2px solid #0f172a; padding-bottom: 0.5rem; margin-top: 2.5rem; margin-bottom: 1.2rem; color: #0f172a; page-break-after: avoid; }
+        .a4-page h2 { 
+            font-size: 1.4rem; 
+            font-weight: 700; 
+            border-bottom: 2px solid #0f172a; 
+            padding-bottom: 0.5rem; 
+            margin-top: 2.5rem; 
+            margin-bottom: 1.2rem; 
+            color: #0f172a; 
+            page-break-after: avoid;
+        }
         .a4-page h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #334155; }
         .a4-page p { margin-bottom: 1rem; line-height: 1.6; text-align: justify; font-size: 0.95rem; color: #334155; }
         .a4-page ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; font-size: 0.95rem; }
         .a4-page ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; font-size: 0.95rem; }
-        .a4-page table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.8rem; border: 1px solid #cbd5e1; page-break-inside: avoid; }
+        
+        /* Banking Tables */
+        .a4-page table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 1.5rem; 
+            font-size: 0.8rem; 
+            border: 1px solid #cbd5e1;
+            page-break-inside: avoid;
+        }
         .a4-page th, .a4-page td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
         .a4-page th { background-color: #f8fafc; font-weight: 700; color: #0f172a; text-transform: uppercase; font-size: 0.7rem; }
         .a4-page td.num { text-align: right; font-family: 'Inter', monospace; }
         .a4-page tr.total { font-weight: 700; background-color: #e2e8f0; }
         .a4-page tr.sub-total { font-weight: 600; background-color: #f1f5f9; }
-        .toolbar-btn { padding: 8px; border-radius: 6px; color: #64748b; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+
+        /* Modern Toolbar */
+        .toolbar-btn {
+            padding: 8px;
+            border-radius: 6px;
+            color: #64748b;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         .toolbar-btn:hover { background-color: #f1f5f9; color: #0f172a; }
         .toolbar-divider { width: 1px; height: 24px; background-color: #e2e8f0; margin: 0 8px; }
+
+        /* Non-editable blocks */
         .widget-block { user-select: none; page-break-inside: avoid; }
+        
+        /* Image Upload Styles & Resizing */
+        .image-placeholder:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            color: #1d4ed8;
+        }
+        .uploaded-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            pointer-events: none; /* Let clicks pass to container */
+        }
+        .resizable-wrapper {
+            position: relative;
+            display: inline-block; /* Allows width resizing */
+            width: 100%; /* Default width */
+            max-width: 100%;
+            margin: 1.5rem auto;
+            border: 1px solid transparent; /* Placeholder to prevent jump on hover */
+        }
+        .resizable-wrapper:hover {
+            border: 1px dashed #94a3b8;
+        }
+        .resize-handle {
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            cursor: se-resize;
+            display: none; /* Hidden by default */
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .resizable-wrapper:hover .resize-handle {
+            display: flex;
+        }
+
+        /* Print Styling */
         @media print {
             body { background: white; margin: 0; }
             .no-print { display: none !important; }
             .a4-page { margin: 0; box-shadow: none; width: 100%; padding: 0; }
             @page { size: A4; margin: 20mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .resize-handle { display: none !important; }
+            .resizable-wrapper { border: none !important; }
         }
     </style>
 </head>
 <body>
-    <div id="document-page" class="a4-page" contenteditable="false" spellcheck="false">
+
+    <!-- HIDDEN FILE INPUT FOR IMAGE UPLOAD -->
+    <input type="file" id="globalImageInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+
+    <!-- CROPPER MODAL -->
+    <div id="cropperModal" class="fixed inset-0 bg-slate-900/80 z-[100] hidden flex items-center justify-center backdrop-blur-sm no-print">
+        <div class="bg-white rounded-xl shadow-2xl w-[90%] max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="crop" size="20" class="text-blue-600"></i> Edit Image
+                </h3>
+                <button onclick="closeCropper()" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i data-lucide="x" size="24"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 bg-slate-900 p-4 overflow-auto flex items-center justify-center min-h-[400px]">
+                <img id="cropperImage" src="" alt="To Crop" class="max-w-full max-h-[60vh] block">
+            </div>
+
+            <div class="p-4 border-t border-gray-100 bg-white flex flex-col sm:flex-row justify-between gap-4 items-center">
+                <div class="flex gap-2">
+                    <button onclick="rotateImage(-90)" class="px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-2">
+                        <i data-lucide="rotate-ccw" size="16"></i> Rotate Left
+                    </button>
+                    <button onclick="rotateImage(90)" class="px-3 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-2">
+                        <i data-lucide="rotate-cw" size="16"></i> Rotate Right
+                    </button>
+                    <button onclick="resetCrop()" class="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg">
+                        Reset
+                    </button>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="closeCropper()" class="flex-1 sm:flex-none px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 rounded-lg">Cancel</button>
+                    <button onclick="applyCrop()" class="flex-1 sm:flex-none px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg flex items-center justify-center gap-2">
+                        <i data-lucide="check" size="16"></i> Apply & Insert
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200 py-3 px-6 no-print flex justify-between items-center shadow-sm">
+        <div class="flex items-center">
+            <div class="flex items-center gap-3 mr-6 border-r border-gray-200 pr-6">
+                <div class="bg-slate-900 text-white p-2 rounded-lg">
+                    <i data-lucide="file-spreadsheet" size="20"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-sm">DPR Editor</h1>
+                    <p class="text-[10px] text-slate-500 font-medium">BANK FORMAT</p>
+                </div>
+            </div>
+            <div class="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-1">
+                <button onclick="formatDoc('bold')" class="toolbar-btn"><i data-lucide="bold" size="16"></i></button>
+                <button onclick="formatDoc('italic')" class="toolbar-btn"><i data-lucide="italic" size="16"></i></button>
+                <button onclick="formatDoc('underline')" class="toolbar-btn"><i data-lucide="underline" size="16"></i></button>
+                <div class="toolbar-divider"></div>
+                <button onclick="formatDoc('formatBlock', 'H2')" class="toolbar-btn font-bold text-xs w-8">H2</button>
+                <button onclick="formatDoc('formatBlock', 'H3')" class="toolbar-btn font-bold text-xs w-8">H3</button>
+                <div class="toolbar-divider"></div>
+                <button onclick="updateChartsFromTable()" class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded transition-colors ml-2">
+                    <i data-lucide="refresh-cw" size="12"></i> Refresh Charts
+                </button>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="resetTemplate()" class="flex items-center gap-2 px-4 py-2 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                <i data-lucide="rotate-ccw" size="14"></i> Reset
+            </button>
+            <button onclick="window.print()" class="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-md transition-all hover:scale-105">
+                <i data-lucide="printer" size="14"></i> Print / PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- DOCUMENT PAGE -->
+    <div id="document-page" class="a4-page" contenteditable="true" spellcheck="false">
+        
+        <!-- COVER PAGE -->
         <div style="text-align: center; margin-bottom: 6rem; margin-top: 4rem;">
             <div style="width: 100px; height: 100px; background: #0f172a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem auto;">
-                <i data-lucide="building-2" size="48"></i>
+                <i data-lucide="wallet" size="48"></i>
             </div>
             <h1 style="font-size: 2.5rem; color: #0f172a; text-transform: uppercase; letter-spacing: 2px;">Project Report</h1>
             <p style="font-size: 1.2rem; color: #64748b; margin-top: 1rem;">{{projectName}}</p>
@@ -53,103 +238,299 @@
             <p style="margin-top: 4rem; font-size: 0.9rem; color: #94a3b8;">Generated by WealthIn | BANK LOAN PROPOSAL</p>
         </div>
 
-        <h2>1. Executive Summary</h2>
-        <div class="prose">{{executiveSummary}}</div>
+        {{executiveSummary}}
+        {{introduction}}
+        {{marketAnalysis}}
+        {{technicalFeasibility}}
+        {{financials}}
+        {{conclusion}}
 
-        <h2>2. Introduction & Background</h2>
-        <div class="prose">{{introduction}}</div>
-
-        <h2>3. Market Analysis</h2>
-        <div class="prose">{{marketAnalysis}}</div>
-
-        <h2>4. Technical Feasibility</h2>
-        <div class="prose">{{technicalFeasibility}}</div>
-
-        <h2>5. Cost of Project & Means of Finance</h2>
-        <div style="display: flex; gap: 20px; flex-direction: column;">
-            <div><h3>5.1 Cost of Project</h3>{{costOfProjectTable}}</div>
-            <div><h3>5.2 Means of Finance</h3>{{meansOfFinanceTable}}</div>
-        </div>
-
-        <h2>6. Operating Expenses Assessment</h2>
-        <h3>6.1 Manpower Requirement</h3>
-        {{manpowerTable}}
-
-        <h2>7. Working Capital Assessment</h2>
-        <p>Assessment of limit based on the Operating Cycle Method (Turnover Method).</p>
-        {{workingCapitalTable}}
-
-        <h2>8. Term Loan Repayment Schedule</h2>
-        {{repaymentScheduleTable}}
-
-        <h2>9. Projected Profitability</h2>
-        <div contenteditable="false" class="widget-block my-6 p-6 bg-white border border-slate-200 rounded-lg shadow-sm text-center">
-            <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Revenue vs Net Profit Trend</h4>
-            <div class="relative h-[250px] w-full"><canvas id="profitChart"></canvas></div>
-        </div>
-        {{profitabilityTable}}
-
-        <h2>10. Projected Balance Sheet</h2>
-        <div style="display: flex; gap: 20px; flex-direction: column;">
-            <div><h3>Liabilities</h3>{{liabilitiesTable}}</div>
-            <div><h3>Assets</h3>{{assetsTable}}</div>
-        </div>
-        
-        <h2>11. Financial Ratios</h2>
-        <div contenteditable="false" class="widget-block my-6 p-6 bg-white border border-slate-200 rounded-lg shadow-sm text-center">
-            <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Debt Service Coverage Ratio (DSCR)</h4>
-            <div class="relative h-[250px] w-full"><canvas id="dscrChart"></canvas></div>
-            <p class="text-xs text-slate-400 mt-2">Benchmark: > 1.5</p>
-        </div>
-        {{financialRatiosTable}}
-        
-        <h2>12. Conclusion</h2>
-        <div class="prose">{{conclusion}}</div>
     </div>
+
+    <!-- JS Logic -->
     <script>
         lucide.createIcons();
-        function initCharts() {
-            try {
-                const profitChartData = JSON.parse('{{profitChartData}}'.replace(/&quot;/g,'"'));
-                const dscrChartData = JSON.parse('{{dscrChartData}}'.replace(/&quot;/g,'"'));
-                
-                const ctxProfit = document.getElementById('profitChart');
-                if(ctxProfit && profitChartData) {
-                    const revenueData = profitChartData.find(d => d.particular === 'Total Income');
-                    const profitData = profitChartData.find(d => d.particular === 'Net Profit (PAT)');
-                    if (revenueData && profitData) {
-                        new Chart(ctxProfit, {
-                            type: 'line',
-                            data: {
-                                labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
-                                datasets: [
-                                    { label: 'Revenue', data: [revenueData.year1, revenueData.year2, revenueData.year3, revenueData.year4, revenueData.year5], borderColor: '#0f172a', tension: 0.3, yAxisID: 'y' },
-                                    { label: 'Net Profit', data: [profitData.year1, profitData.year2, profitData.year3, profitData.year4, profitData.year5], borderColor: '#10b981', borderDash: [5, 5], tension: 0.3, yAxisID: 'y' }
-                                ]
-                            },
-                            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { title: {display: true, text: 'Amount ($)'} } } }
-                        });
-                    }
-                }
 
-                const ctxDscr = document.getElementById('dscrChart');
-                if(ctxDscr && dscrChartData) {
-                    new Chart(ctxDscr, {
-                        type: 'bar',
-                        data: {
-                            labels: ['Year 1', 'Year 2', 'Year 3'],
-                            datasets: [{ label: 'DSCR Value', data: [dscrChartData.year1, dscrChartData.year2, dscrChartData.year3], backgroundColor: ['#94a3b8', '#64748b', '#0f172a'], borderRadius: 6 }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } } } }
-                    });
-                }
-            } catch (e) {
-                console.error("Error initializing charts:", e);
+        // --- EDITOR LOGIC ---
+        const docPage = document.getElementById('document-page');
+        const STORAGE_KEY = 'dpr_bank_ready_content';
+        let profitChartInstance = null;
+        let dscrChartInstance = null;
+        let currentImageTarget = null;
+        let cropper = null;
+
+        function formatDoc(cmd, value = null) {
+            document.execCommand(cmd, false, value);
+            docPage.focus();
+        }
+
+        function resetTemplate() {
+            if(confirm("Resetting will clear your edits. Continue?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload(); 
             }
         }
-        window.addEventListener('load', () => {
+
+        // --- RESIZE LOGIC ---
+        let resizingElement = null;
+        let startX, startY, startWidth;
+
+        function initResize(e, wrapper) {
+            e.preventDefault();
+            e.stopPropagation(); // prevent editor interaction
+            resizingElement = wrapper;
+            startX = e.clientX;
+            startWidth = resizingElement.offsetWidth;
+            
+            window.addEventListener('mousemove', doResize);
+            window.addEventListener('mouseup', stopResize);
+        }
+
+        function doResize(e) {
+            if (!resizingElement) return;
+            const widthDiff = e.clientX - startX;
+            let newWidth = startWidth + widthDiff;
+            // Min width 100px, Max width 100% of parent
+            const parentWidth = resizingElement.parentElement.offsetWidth;
+            if (newWidth < 100) newWidth = 100;
+            if (newWidth > parentWidth) newWidth = parentWidth;
+            
+            resizingElement.style.width = newWidth + 'px';
+        }
+
+        function stopResize() {
+            resizingElement = null;
+            window.removeEventListener('mousemove', doResize);
+            window.removeEventListener('mouseup', stopResize);
+            // Save state
+            localStorage.setItem(STORAGE_KEY, docPage.innerHTML);
+        }
+
+
+        // --- IMAGE UPLOAD & CROPPER LOGIC ---
+        function triggerImageUpload(element) {
+            // Check if this is already a populated wrapper or a raw placeholder
+            if (element.classList.contains('resizable-wrapper')) {
+                // It's an existing image, user might want to replace it
+                // We track the container to replace the IMG inside
+                currentImageTarget = element;
+            } else {
+                currentImageTarget = element; // It's the placeholder div
+            }
+            document.getElementById('globalImageInput').click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Open Cropper Modal
+                const cropperModal = document.getElementById('cropperModal');
+                const cropperImage = document.getElementById('cropperImage');
+                
+                cropperImage.src = e.target.result;
+                cropperModal.classList.remove('hidden');
+
+                // Initialize Cropper.js
+                if (cropper) { cropper.destroy(); }
+                cropper = new Cropper(cropperImage, {
+                    viewMode: 1,
+                    autoCropArea: 1,
+                });
+            };
+            reader.readAsDataURL(file);
+            event.target.value = ''; // Reset
+        }
+
+        function rotateImage(deg) {
+            if (cropper) cropper.rotate(deg);
+        }
+
+        function resetCrop() {
+            if (cropper) cropper.reset();
+        }
+
+        function closeCropper() {
+            document.getElementById('cropperModal').classList.add('hidden');
+            if (cropper) { cropper.destroy(); cropper = null; }
+        }
+
+        function applyCrop() {
+            if (!cropper) return;
+            
+            const canvas = cropper.getCroppedCanvas();
+            const croppedDataUrl = canvas.toDataURL('image/jpeg');
+
+            // Construct the Resizable HTML Structure
+            const resizableHTML = `
+                <div class="resizable-wrapper widget-block group" style="width: 100%;" contenteditable="false">
+                    <img src="${croppedDataUrl}" class="uploaded-image cursor-pointer" onclick="triggerImageUpload(this.parentElement)">
+                    <div class="resize-handle" onmousedown="initResize(event, this.parentNode)">
+                        <i data-lucide="move-diagonal-2" size="14"></i>
+                    </div>
+                </div>
+            `;
+
+            // Replace content
+            if (currentImageTarget.classList.contains('resizable-wrapper')) {
+                // Replacing existing image -> Update the SRC only to keep size/position if we wanted, 
+                // OR replace entire wrapper. Let's replace wrapper to be safe.
+                currentImageTarget.outerHTML = resizableHTML;
+            } else {
+                // Replacing Placeholder
+                currentImageTarget.outerHTML = resizableHTML;
+            }
+
+            // Save & Close
+            localStorage.setItem(STORAGE_KEY, docPage.innerHTML);
+            closeCropper();
+            
+            // Re-init lucide icons for the new handle
             lucide.createIcons();
-            initCharts();
+        }
+
+
+        // --- DYNAMIC CHART PARSING & RENDERING ---
+        
+        function parseTableData(tableId, searchRowLabel) {
+            const table = document.getElementById(tableId);
+            if (!table) return [];
+            
+            let rowData = [];
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const firstCellText = row.cells[0].innerText.toLowerCase();
+                // Simple string matching
+                if (firstCellText.includes(searchRowLabel.toLowerCase())) {
+                    // Start from index 1 (skip label), go up to end or max 5 years
+                    for (let i = 1; i < row.cells.length; i++) {
+                        // Remove commas, $, spaces
+                        let val = row.cells[i].innerText.replace(/[^0-9.-]+/g, "");
+                        if (val) rowData.push(parseFloat(val));
+                    }
+                }
+            });
+            return rowData;
+        }
+
+        function updateChartsFromTable() {
+            // 1. Scrape Data
+            const revenueData = parseTableData('profitTable', 'Total Income');
+            const profitData = parseTableData('profitTable', 'Net Profit');
+            const dscrData = parseTableData('ratioTable', 'DSCR');
+            
+            // Limit to what we have columns for, max 5 years
+            const years = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'].slice(0, revenueData.length);
+            const dscrYears = ['Year 1', 'Year 2', 'Year 3'].slice(0, dscrData.length);
+
+            // 2. Update Profit Chart
+            if (profitChartInstance) {
+                profitChartInstance.data.labels = years;
+                profitChartInstance.data.datasets[0].data = revenueData;
+                profitChartInstance.data.datasets[1].data = profitData;
+                profitChartInstance.update();
+            }
+
+            // 3. Update DSCR Chart
+            if (dscrChartInstance) {
+                dscrChartInstance.data.labels = dscrYears;
+                dscrChartInstance.data.datasets[0].data = dscrData;
+                dscrChartInstance.update();
+            }
+            
+            // Save state
+            localStorage.setItem(STORAGE_KEY, docPage.innerHTML);
+        }
+
+        function initCharts() {
+            // Initial Data Load (Default or Parsed)
+            let revenueData = parseTableData('profitTable', 'Total Income');
+            if (revenueData.length === 0) revenueData = [2100000, 2550000, 3100000, 3400000, 3700000]; // Fallback
+
+            let profitData = parseTableData('profitTable', 'Net Profit');
+            if (profitData.length === 0) profitData = [125025, 282750, 468075, 590437, 710175]; // Fallback
+
+            let dscrData = parseTableData('ratioTable', 'DSCR');
+            if (dscrData.length === 0) dscrData = [1.94, 2.08, 2.55]; // Fallback
+
+            // 1. Profit Chart
+            const ctxProfit = document.getElementById('profitChart');
+            if(ctxProfit) {
+                profitChartInstance = new Chart(ctxProfit, {
+                    type: 'line',
+                    data: {
+                        labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+                        datasets: [
+                            {
+                                label: 'Revenue',
+                                data: revenueData,
+                                borderColor: '#0f172a',
+                                tension: 0.3,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Net Profit',
+                                data: profitData,
+                                borderColor: '#10b981',
+                                borderDash: [5, 5],
+                                tension: 0.3,
+                                yAxisID: 'y'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        scales: { y: { title: {display: true, text: 'Amount ($)'} } }
+                    }
+                });
+            }
+
+            // 2. DSCR Chart
+            const ctxDscr = document.getElementById('dscrChart');
+            if(ctxDscr) {
+                dscrChartInstance = new Chart(ctxDscr, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Year 1', 'Year 2', 'Year 3'],
+                        datasets: [{
+                            label: 'DSCR Value',
+                            data: dscrData,
+                            backgroundColor: ['#94a3b8', '#64748b', '#0f172a'],
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { 
+                                beginAtZero: true,
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- INIT ---
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) docPage.innerHTML = saved;
+            lucide.createIcons();
+            
+            // Wait slightly for DOM to settle before rendering canvas
+            setTimeout(initCharts, 200);
+        });
+
+        docPage.addEventListener('input', () => {
+            localStorage.setItem(STORAGE_KEY, docPage.innerHTML);
         });
     </script>
 </body>
