@@ -91,7 +91,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
         setMessages([welcomeMessage]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [translations, initialMessage]);
+  }, []);
 
   const scrollToBottom = () => {
     bottomOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -176,7 +176,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
                 }`}
               >
                 {message.sender === 'user' ? <p>{message.text}</p> : <FormattedText text={message.text} />}
-                {message.sender === 'ai' && index > 0 && (
+                 {message.sender === 'ai' && index > 0 && (
                   <Badge variant="outline" className="mt-3 border-blue-200 bg-blue-50 text-blue-800 text-xs">
                     Powered by WealthIn AI
                   </Badge>
