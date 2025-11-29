@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/context/auth-provider';
 import {
   Card,
@@ -14,11 +14,12 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, FilePieChart } from 'lucide-react';
 import type { GenerateBudgetReportOutput } from '@/ai/schemas/budget-report';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
+import { FormattedText } from '@/components/wealthin/formatted-text';
+import { ProjectCostPieChart } from '@/components/wealthin/dpr-charts';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Progress } from '@/components/ui/progress';
 import { useRouter } from 'next/navigation';
-import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { generateBudgetReportAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -34,6 +35,7 @@ export default function BudgetReportPage() {
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [reportData, setReportData] = useState<GenerateBudgetReportOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -47,8 +49,8 @@ export default function BudgetReportPage() {
           setTransactions(fetchedTransactions);
           setIsLoading(false);
       },
-      (error) => {
-        console.error("Budget report transactions snapshot error", error);
+      (err) => {
+        console.error("Budget report transactions snapshot error", err);
         const permissionError = new FirestorePermissionError({
             path: transactionsRef.path,
             operation: 'list'
@@ -62,34 +64,6 @@ export default function BudgetReportPage() {
     }
   }, [user, isLoading, router]);
 
-
-  const generateReportHtml = useCallback(async (reportData: GenerateBudgetReportOutput) => {
-    const response = await fetch('/budget-report-template.html');
-    let template = await response.text();
-    
-    const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
-
-    template = template.replace(/{{userName}}/g, user?.displayName || 'Valued User');
-    template = template.replace(/{{currentDate}}/g, new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
-    template = template.replace(/{{totalIncome}}/g, formatCurrency(reportData.overallBreakdown.totalIncome));
-    template = template.replace(/{{totalExpenses}}/g, formatCurrency(reportData.overallBreakdown.totalExpenses));
-    template = template.replace(/{{savings}}/g, formatCurrency(reportData.overallBreakdown.savings));
-    template = template.replace(/{{savingsRate}}/g, String(reportData.overallBreakdown.savingsRate));
-    template = template.replace(/{{aiSummary}}/g, reportData.summary);
-
-    const expenseRowsHtml = reportData.expenseBreakdown
-        .map(item => `
-            <tr>
-                <td class="px-6 py-4 font-medium text-gray-700">${item.name}</td>
-                <td class="px-6 py-4 num-cell font-bold text-gray-800">${formatCurrency(item.value)}</td>
-            </tr>
-        `)
-        .join('');
-    template = template.replace('{{expenseRows}}', expenseRowsHtml);
-    
-    return template;
-
-  }, [user]);
 
   const handleGenerateReport = async () => {
     if (transactions.length === 0) {
@@ -106,6 +80,7 @@ export default function BudgetReportPage() {
     }
 
     setIsGenerating(true);
+    setReportData(null);
     setError(null);
     
     try {
@@ -114,26 +89,19 @@ export default function BudgetReportPage() {
         if (!result.success) {
             throw new Error(result.error || 'Failed to generate report.');
         }
-
-        const data = result.data;
-        const finalHtml = await generateReportHtml(data);
         
-        const reportWindow = window.open();
-        if (reportWindow) {
-            reportWindow.document.write(finalHtml);
-            reportWindow.document.close();
-        } else {
-            throw new Error("Could not open new tab. Please disable your pop-up blocker.");
-        }
+        setReportData(result.data);
 
         // Award credits for generating a report
-        const userDocRef = doc(db, 'users', user.uid);
-        const newCredits = (userProfile.credits ?? 0) + BUDGET_REPORT_REWARD;
-        await setDoc(userDocRef, { credits: newCredits }, { merge: true });
-        toast({
-            title: 'Credits Earned!',
-            description: `You've earned ${BUDGET_REPORT_REWARD} credits for generating a report. New balance: ${newCredits}`,
-        });
+        if ((userProfile.credits ?? 0) >= 0) { // Check ensures credits logic only runs for valid users
+            const userDocRef = doc(db, 'users', user.uid);
+            const newCredits = (userProfile.credits ?? 0) + BUDGET_REPORT_REWARD;
+            await updateDoc(userDocRef, { credits: newCredits });
+            toast({
+                title: 'Credits Earned!',
+                description: `You've earned ${BUDGET_REPORT_REWARD} credits for generating a report. New balance: ${newCredits}`,
+            });
+        }
 
     } catch (e: any) {
         setError(e.message);
@@ -146,6 +114,13 @@ export default function BudgetReportPage() {
         setIsGenerating(false);
     }
   };
+
+  const chartData = useMemo(() => {
+    return reportData?.expenseBreakdown.map(item => ({
+      name: item.name,
+      value: item.value,
+    })) || [];
+  }, [reportData]);
   
   if (isLoading) {
       return (
@@ -169,28 +144,22 @@ export default function BudgetReportPage() {
           </p>
         </div>
          <Button variant="ghost" asChild className="-ml-4">
-          <Link href="/dashboard">
+          <Link href="/">
             <ArrowLeft className="mr-2" />
             Back to Dashboard
           </Link>
         </Button>
       </div>
 
-       <Card className="text-center py-10 md:py-20">
+       <Card className="text-center py-10 md:py-16">
          <CardContent className="space-y-4">
-           {isGenerating ? (
-             <>
-               <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-               <h3 className="text-xl font-semibold">Generating Your Report...</h3>
-               <p className="text-muted-foreground">The AI is analyzing your transactions. This might take a moment.</p>
-             </>
-           ) : transactions.length > 0 ? (
+           {transactions.length > 0 ? (
              <>
                <FilePieChart className="h-16 w-16 mx-auto text-muted-foreground mb-4"/>
                <h3 className="text-xl font-semibold">Ready to Analyze Your Budget?</h3>
-               <p className="text-muted-foreground mt-2 max-w-md mx-auto">Click the button below to generate a detailed, printable report of your spending habits that will open in a new tab.</p>
-                <Button onClick={handleGenerateReport} className="mt-4">
-                  Generate & View Report
+               <p className="text-muted-foreground mt-2 max-w-md mx-auto">Click the button below to generate a report of your spending habits using AI.</p>
+                <Button onClick={handleGenerateReport} disabled={isGenerating} className="mt-4">
+                  {isGenerating ? <><Loader2 className="mr-2 animate-spin"/> Generating...</> : 'Generate Report'}
                 </Button>
              </>
            ) : (
@@ -207,6 +176,40 @@ export default function BudgetReportPage() {
             )}
          </CardContent>
        </Card>
+
+      {isGenerating && (
+         <div className="space-y-6">
+            <Card>
+                <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+                <CardContent><Skeleton className="h-20 w-full" /></CardContent>
+            </Card>
+             <Card>
+                <CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader>
+                <CardContent><Skeleton className="h-64 w-full" /></CardContent>
+            </Card>
+         </div>
+      )}
+
+      {reportData && (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>AI Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <FormattedText text={reportData.summary} />
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Expense Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ProjectCostPieChart data={chartData} />
+                </CardContent>
+            </Card>
+        </div>
+      )}
     </div>
   );
 }
