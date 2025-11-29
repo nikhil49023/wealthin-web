@@ -206,10 +206,10 @@ export default function SignUpPage() {
         email: user.email,
         role: formData.role,
         createdAt: serverTimestamp(),
-        credits: 10, // Start with 10 credits
+        credits: 20, // Start with 20 credits
         hasCompletedTour: false, // New user flag
         creditHistory: [{
-          amount: 10,
+          amount: 20,
           description: 'Welcome Bonus!',
           date: serverTimestamp()
         }],
