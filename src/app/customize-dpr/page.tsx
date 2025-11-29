@@ -23,7 +23,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const db = getFirestore(app);
 
-const DPR_GENERATION_COST = 4;
+const DPR_GENERATION_COST = 0; // Temporarily free
 
 function CustomizeDPRContent() {
   const router = useRouter();
@@ -39,7 +39,6 @@ function CustomizeDPRContent() {
 
   useEffect(() => {
     const ideaTitle = searchParams.get('idea');
-    const name = searchParams.get('name');
     const storedAnalysis = localStorage.getItem('dprAnalysis');
 
     if (storedAnalysis) {
@@ -59,9 +58,7 @@ function CustomizeDPRContent() {
       toast({ variant: 'destructive', description: 'No analysis data found.' });
     }
     
-    if (name) {
-      setPromoterName(name);
-    } else if (user?.displayName) {
+    if (user?.displayName) {
       setPromoterName(user.displayName);
     } else {
       setError('Could not identify promoter name.');
@@ -71,36 +68,14 @@ function CustomizeDPRContent() {
   const handleNavigateToReport = async () => {
     if (!user || !userProfile || !analysis) return;
 
-    if ((userProfile.credits ?? 0) < DPR_GENERATION_COST) {
-        setShowCreditAlert(true);
-        return;
-    }
+    // Credit check disabled for now
+    // if ((userProfile.credits ?? 0) < DPR_GENERATION_COST) {
+    //     setShowCreditAlert(true);
+    //     return;
+    // }
     
     setIsNavigating(true);
-
-    // 1. Deduct credits first
-    const userDocRef = doc(db, 'users', user.uid);
-    const newCredits = (userProfile.credits ?? 0) - DPR_GENERATION_COST;
-
-    try {
-        await setDoc(userDocRef, { credits: newCredits }, { merge: true });
-        toast({
-            title: 'Credits Deducted',
-            description: `DPR generation started. ${DPR_GENERATION_COST} credits deducted.`
-        });
-        // Navigate to the report page on success
-        router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title)}&name=${encodeURIComponent(promoterName)}`);
-    } catch (e) {
-        console.error("Failed to deduct credits:", e);
-        const permissionError = new FirestorePermissionError({
-            path: userDocRef.path,
-            operation: 'update',
-            requestResourceData: { credits: newCredits }
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not deduct credits.' });
-        setIsNavigating(false);
-    }
+    router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title)}&name=${encodeURIComponent(promoterName)}`);
   };
   
   if (error) {
@@ -131,7 +106,7 @@ function CustomizeDPRContent() {
         <div className="text-center">
             <h1 className="text-3xl font-bold">Generate Your Detailed Project Report</h1>
             <p className="text-muted-foreground mt-2">
-            The AI will generate a complete, formatted DPR based on your business idea. This action costs {DPR_GENERATION_COST} credits.
+            The AI will generate a complete, bank-ready DPR based on your business idea.
             </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -9,31 +9,69 @@ import type {GenerateInvestmentIdeaAnalysisOutput} from '@/ai/schemas/investment
 
 // Base prompts for each section, matching the new template's requirements
 const dprChapters = [
-    { key: 'executiveSummary', title: 'Executive Summary', prompt: 'Summarize the project, its business objectives, market potential, and financial highlights. Keep it concise and impactful for a bank loan officer.' },
-    { key: 'promoterProfile', title: 'Promoter Profile & Company Overview', prompt: 'Describe the background of the promoter(s), their experience, qualifications, and role in the project. Use the promoter\'s name provided. Include the business objectives.' },
-    { key: 'marketAnalysis', title: 'Market Analysis & Strategy', prompt: 'Analyze the industry, market size, trends, and the target audience. Detail the demand-supply gap and the proposed marketing strategy.' },
-    { key: 'technicalDetails', title: 'Technical Details & Process Flow', prompt: 'Detail the technology, machinery, and processes required. Describe raw material sourcing and utility requirements (power, water). Create a simplified process flow description.' },
-    { key: 'implementationSchedule', title: 'Implementation Schedule', prompt: 'Outline a month-by-month timeline for key project milestones over a 6-month period, from setup to commercial launch. Output as an HTML table.' },
-    { key: 'financials', title: 'Financials', prompt: 'Generate a complete set of financial projections. The response must be a single JSON object containing keys for: "projectCost" (array of {particular, amount}), "meansOfFinance" (array of {particular, amount}), "workingCapital" (array of {component, period, total, margin, bankFinance}), "profitability" (array of {particular, year1, year2, year3, year4, year5}), and "balanceSheet" (object with liabilities and assets arrays). Ensure all values are credible numbers.'}
+    { key: 'executiveSummary', title: 'Executive Summary', prompt: 'Summarize the project, its business objectives, market potential, and financial highlights. Include a "Project at a Glance" table in HTML with credible, realistic numbers for all financial fields (Project Cost, Promoter\'s Contribution, Bank Loan, DSCR, Employment).' },
+    { key: 'introduction', title: 'Introduction & Background', prompt: 'Describe the company background and provide a detailed profile for each promoter, including their qualifications, experience, and net worth.'},
+    { key: 'marketAnalysis', title: 'Market Analysis', prompt: 'Analyze the industry, market size, trends, and the target audience. Detail the demand-supply gap and the proposed marketing strategy.' },
+    { key: 'technicalFeasibility', title: 'Technical Feasibility', prompt: 'Detail the manufacturing process in a numbered list. Also provide an HTML table for a "Key Machinery List" with machine names, fictional suppliers, and realistic costs.' },
+    { key: 'financials', title: 'Financials', prompt: `
+Generate a complete set of financial projections for a new manufacturing business. The response MUST BE A SINGLE VALID JSON OBJECT and nothing else.
+The JSON object must contain these top-level keys: "costOfProject", "meansOfFinance", "manpower", "workingCapital", "repaymentSchedule", "profitability", "balanceSheet", and "financialRatios".
+
+Populate each key with an array of objects containing realistic financial data based on the business profile. Follow this exact schema:
+{
+  "costOfProject": [{ "particular": "(string)", "amount": "(number)" }],
+  "meansOfFinance": [{ "source": "(string)", "amount": "(number)" }],
+  "manpower": [{ "category": "(string)", "no": "(number)", "salary": "(number)", "annualCost": "(number)" }],
+  "workingCapital": [{ "particular": "(string)", "period": "(string)", "total": "(number)", "margin": "(number)", "bankFinance": "(number)" }],
+  "repaymentSchedule": [{ "year": "(string)", "opening": "(number)", "repayment": "(number)", "interest": "(number)", "closing": "(number)" }],
+  "profitability": [{ "particular": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)", "year4": "(number)", "year5": "(number)" }],
+  "balanceSheet": {
+      "liabilities": [{ "particular": "(string)", "year1": "(number)", "year2": "number", "year3": "number" }],
+      "assets": [{ "particular": "(string)", "year1": "(number)", "year2": "number", "year3": "number" }]
+  },
+  "financialRatios": [{ "ratio": "(string)", "year1": "(number)", "year2": "(number)", "year3": "(number)", "benchmark": "(string)" }]
+}
+Ensure all numbers are credible and appropriate for a bank loan application.
+`},
+    { key: 'conclusion', title: 'Conclusion', prompt: 'Write a concluding paragraph summarizing the project\'s viability and formally requesting the bank to sanction the credit facilities.' },
 ];
 
-// Helper to generate an HTML table from JSON data
-function generateHtmlTable(headers: string[], data: any[], numCols: string[] = []): string {
-  let table = '<table><thead><tr>';
-  headers.forEach(h => table += `<th>${h}</th>`);
-  table += '</tr></thead><tbody>';
-  data.forEach(row => {
-    table += '<tr>';
-    headers.forEach(header => {
-      const key = header.toLowerCase().replace(/ /g, '').replace('($)','').replace('.','');
-      const value = row[key] ?? row[header] ?? '';
-      const isNum = numCols.includes(header);
-      table += `<td class="${isNum ? 'num' : ''}">${typeof value === 'number' ? value.toLocaleString('en-IN') : value}</td>`;
+
+function generateHtmlTable(headers: string[], data: any[], numCols: string[] = [], totalRow?: any): string {
+    if (!data || data.length === 0) return '<table><tr><td>No data available.</td></tr></table>';
+
+    let table = '<table><thead><tr>';
+    headers.forEach(h => table += `<th class="${numCols.includes(h) ? 'num' : ''}">${h}</th>`);
+    table += '</tr></thead><tbody>';
+
+    data.forEach(row => {
+        table += '<tr>';
+        headers.forEach(header => {
+            const key = header.toLowerCase().replace(/ /g, '').replace(/[^\w\s]/gi, '');
+            let value = row[key] ?? row[header] ?? '';
+            if(typeof value === 'number') {
+                value = value.toLocaleString('en-IN');
+            }
+            table += `<td class="${numCols.includes(header) ? 'num' : ''}">${value}</td>`;
+        });
+        table += '</tr>';
     });
-    table += '</tr>';
-  });
-  table += '</tbody></table>';
-  return table;
+
+    if (totalRow) {
+        table += '<tr class="total">';
+        headers.forEach(header => {
+             const key = header.toLowerCase().replace(/ /g, '').replace(/[^\w\s]/gi, '');
+             let value = totalRow[key] ?? totalRow[header] ?? '';
+             if(typeof value === 'number') {
+                value = value.toLocaleString('en-IN');
+            }
+            table += `<td class="${numCols.includes(header) ? 'num' : ''}">${value}</td>`;
+        });
+        table += '</tr>';
+    }
+
+    table += '</tbody></table>';
+    return table;
 }
 
 export async function POST(req: Request) {
@@ -47,7 +85,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Generate all sections in parallel
     const generationPromises = dprChapters.map(chapter =>
       generateDprSection({
         idea,
@@ -64,52 +101,56 @@ export async function POST(req: Request) {
         generatedContent[dprChapters[index].key] = result.content;
     });
 
-    // 2. Read the HTML template
     const templatePath = path.join(process.cwd(), 'src', 'app', 'dpr-template.html');
     let template = await fs.readFile(templatePath, 'utf-8');
 
-    // 3. Inject content into the template
     template = template.replace(/{{projectName}}/g, idea.title || 'Your Project');
     template = template.replace(/{{promoterName}}/g, promoterName);
     template = template.replace('{{executiveSummary}}', generatedContent.executiveSummary || '');
-    template = template.replace('{{promoterProfile}}', generatedContent.promoterProfile || '');
+    template = template.replace('{{introduction}}', generatedContent.introduction || '');
     template = template.replace('{{marketAnalysis}}', generatedContent.marketAnalysis || '');
-    template = template.replace('{{technicalDetails}}', generatedContent.technicalDetails || '');
-    template = template.replace('{{implementationSchedule}}', generatedContent.implementationSchedule || '<table><tr><td>Not generated</td></tr></table>');
+    template = template.replace('{{technicalFeasibility}}', generatedContent.technicalFeasibility || '');
+    template = template.replace('{{conclusion}}', generatedContent.conclusion || '');
 
-    // Handle financial data injection
     const financials = generatedContent.financials;
     if (financials && typeof financials === 'object') {
-        const projectCostTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.projectCost || [], ['Amount ($)']);
-        template = template.replace('{{projectCostTable}}', projectCostTable);
+        const costTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.costOfProject, ['Amount ($)'], financials.costOfProject.find((r:any) => r.particular === 'Total'));
+        template = template.replace('{{costOfProjectTable}}', costTable);
+        
+        const financeTable = generateHtmlTable(['Source', 'Amount ($)'], financials.meansOfFinance, ['Amount ($)'], financials.meansOfFinance.find((r:any) => r.source === 'Total'));
+        template = template.replace('{{meansOfFinanceTable}}', financeTable);
 
-        const meansOfFinanceTable = generateHtmlTable(['Particulars', 'Amount ($)'], financials.meansOfFinance || [], ['Amount ($)']);
-        template = template.replace('{{meansOfFinanceTable}}', meansOfFinanceTable);
+        const manpowerTable = generateHtmlTable(['Category', 'No.', 'Salary/Mo ($)', 'Annual Cost ($)'], financials.manpower, ['No.', 'Salary/Mo ($)', 'Annual Cost ($)'], financials.manpower.find((r:any) => r.category === 'Total Salaries'));
+        template = template.replace('{{manpowerTable}}', manpowerTable);
+
+        const capitalTable = generateHtmlTable(['Particulars', 'Holding Period', 'Year 1 Level ($)', 'Margin (25%)', 'Bank Finance'], financials.workingCapital, ['Year 1 Level ($)', 'Margin (25%)', 'Bank Finance']);
+        template = template.replace('{{workingCapitalTable}}', capitalTable);
         
-        const workingCapitalTable = generateHtmlTable(['Component', 'Period', 'Total Reqd. ($)', 'Margin (25%)', 'Bank Finance'], financials.workingCapital || [], ['Total Reqd. ($)', 'Margin (25%)', 'Bank Finance']);
-        template = template.replace('{{workingCapitalTable}}', workingCapitalTable);
+        const repaymentTable = generateHtmlTable(['Year', 'Opening Bal', 'Repayment', 'Interest', 'Closing Bal'], financials.repaymentSchedule, ['Opening Bal', 'Repayment', 'Interest', 'Closing Bal']);
+        template = template.replace('{{repaymentScheduleTable}}', repaymentTable);
         
-        const profitabilityTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'], financials.profitability || [], ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5']);
-        template = template.replace('{{profitabilityTable}}', profitabilityTable);
+        const profitTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'], financials.profitability, ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5']);
+        template = template.replace('{{profitabilityTable}}', profitTable);
 
         if (financials.balanceSheet) {
-            const liabilitiesTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2'], financials.balanceSheet.liabilities || [], ['Year 1', 'Year 2']);
+            const liabilitiesTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2', 'Year 3'], financials.balanceSheet.liabilities || [], ['Year 1', 'Year 2', 'Year 3']);
             template = template.replace('{{liabilitiesTable}}', liabilitiesTable);
             
-            const assetsTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2'], financials.balanceSheet.assets || [], ['Year 1', 'Year 2']);
+            const assetsTable = generateHtmlTable(['Particulars', 'Year 1', 'Year 2', 'Year 3'], financials.balanceSheet.assets || [], ['Year 1', 'Year 2', 'Year 3']);
             template = template.replace('{{assetsTable}}', assetsTable);
-        } else {
-             template = template.replace('{{liabilitiesTable}}', '<table><tr><td>Not generated</td></tr></table>');
-             template = template.replace('{{assetsTable}}', '<table><tr><td>Not generated</td></tr></table>');
         }
+        
+        const ratiosTable = generateHtmlTable(['Ratio', 'Year 1', 'Year 2', 'Year 3', 'Benchmark'], financials.financialRatios, ['Year 1', 'Year 2', 'Year 3']);
+        template = template.replace('{{financialRatiosTable}}', ratiosTable);
+        
+        const profitChartData = JSON.stringify(financials.profitability.filter((d: any) => d.particular === 'Total Income' || d.particular === 'Net Profit (PAT)'));
+        template = template.replace('{{profitChartData}}', profitChartData);
 
-    } else {
-        // Fallback if financials fail
-        template = template.replace(/\{\{.*?Table\}\}/g, '<table><tr><td>Financial data could not be generated.</td></tr></table>');
+        const dscrChartData = JSON.stringify(financials.financialRatios.find((r: any) => r.ratio === 'DSCR'));
+        template = template.replace('{{dscrChartData}}', dscrChartData);
     }
 
 
-    // 4. Return the final HTML
     return new NextResponse(template, {
       headers: {
         'Content-Type': 'text/html',

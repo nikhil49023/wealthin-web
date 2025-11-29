@@ -4,234 +4,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detailed Project Report - {{projectName}}</title>
+    <title>Bank-Ready Detailed Project Report</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:wght@300;400;700&display=swap');
-
-        :root {
-            --primary: #1e3a8a; /* Blue 900 */
-            --secondary: #64748b; /* Slate 500 */
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            color: #1e293b;
-            line-height: 1.6;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: 'Merriweather', serif;
-        }
-
-        .chapter-title {
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--primary);
-        }
-
-        /* Table Styling */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-        
-        th, td {
-            border: 1px solid #e2e8f0;
-            padding: 8px 12px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f1f5f9;
-            color: #334155;
-            font-weight: 700;
-        }
-
-        .num {
-            text-align: right;
-            font-family: 'Courier New', monospace;
-        }
-
-        .total-row {
-            font-weight: bold;
-            background-color: #e2e8f0;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:wght@300;400;700&display=swap');
+        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; color: #334155; }
+        .a4-page { background: white; width: 210mm; min-height: 297mm; margin: 3rem auto; padding: 20mm; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); outline: none; }
+        .a4-page h1, .a4-page h2, .a4-page h3, .a4-page h4 { font-family: 'Merriweather', serif; color: #0f172a; }
+        .a4-page h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.2; text-align: center; }
+        .a4-page h2 { font-size: 1.4rem; font-weight: 700; border-bottom: 2px solid #0f172a; padding-bottom: 0.5rem; margin-top: 2.5rem; margin-bottom: 1.2rem; color: #0f172a; page-break-after: avoid; }
+        .a4-page h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #334155; }
+        .a4-page p { margin-bottom: 1rem; line-height: 1.6; text-align: justify; font-size: 0.95rem; color: #334155; }
+        .a4-page ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; font-size: 0.95rem; }
+        .a4-page ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; font-size: 0.95rem; }
+        .a4-page table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.8rem; border: 1px solid #cbd5e1; page-break-inside: avoid; }
+        .a4-page th, .a4-page td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+        .a4-page th { background-color: #f8fafc; font-weight: 700; color: #0f172a; text-transform: uppercase; font-size: 0.7rem; }
+        .a4-page td.num { text-align: right; font-family: 'Inter', monospace; }
+        .a4-page tr.total { font-weight: 700; background-color: #e2e8f0; }
+        .a4-page tr.sub-total { font-weight: 600; background-color: #f1f5f9; }
+        .toolbar-btn { padding: 8px; border-radius: 6px; color: #64748b; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+        .toolbar-btn:hover { background-color: #f1f5f9; color: #0f172a; }
+        .toolbar-divider { width: 1px; height: 24px; background-color: #e2e8f0; margin: 0 8px; }
+        .widget-block { user-select: none; page-break-inside: avoid; }
         @media print {
-            @page {
-                size: A4;
-                margin: 20mm;
-            }
-            
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                background-color: white;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            .page-break {
-                page-break-before: always;
-            }
-
-            .avoid-break {
-                page-break-inside: avoid;
-            }
-            
-            a {
-                text-decoration: none;
-                color: black;
-            }
-            
-            .shadow-lg, .shadow-md, .shadow-xl {
-                box-shadow: none !important;
-                border: 1px solid #ccc;
-            }
-            
-            .min-h-screen {
-                min-h-0 !important;
-            }
+            body { background: white; margin: 0; }
+            .no-print { display: none !important; }
+            .a4-page { margin: 0; box-shadow: none; width: 100%; padding: 0; }
+            @page { size: A4; margin: 20mm; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
-<body class="bg-gray-50">
-
-    <div class="max-w-5xl mx-auto bg-white shadow-xl min-h-screen my-8 p-12 print:shadow-none print:m-0 print:p-0 print:w-full">
-
-        <!-- COVER PAGE -->
-        <section class="h-[90vh] flex flex-col justify-between text-center border-b-4 border-blue-900 pb-10 mb-10">
-            <div class="mt-20">
-                <div class="w-32 h-32 mx-auto bg-blue-900 text-white rounded-full flex items-center justify-center mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-spreadsheet"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 16h8"/><path d="M8 20h8"/><path d="M15 12h-5"/></svg>
-                </div>
-                <h1 class="text-5xl font-bold text-blue-900 mb-4">DETAILED PROJECT REPORT</h1>
-                <h2 class="text-2xl text-gray-600 font-light">{{projectName}}</h2>
+<body>
+    <div id="document-page" class="a4-page" contenteditable="true" spellcheck="false">
+        <div style="text-align: center; margin-bottom: 6rem; margin-top: 4rem;">
+            <div style="width: 100px; height: 100px; background: #0f172a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem auto;">
+                <i data-lucide="building-2" size="48"></i>
             </div>
-
-            <div class="my-10">
-                <p class="text-sm uppercase tracking-widest text-gray-500 mb-2">Submitted By</p>
-                <h3 class="text-3xl font-bold text-slate-800">{{promoterName}}</h3>
+            <h1 style="font-size: 2.5rem; color: #0f172a; text-transform: uppercase; letter-spacing: 2px;">Project Report</h1>
+            <p style="font-size: 1.2rem; color: #64748b; margin-top: 1rem;">{{projectName}}</p>
+            <div style="margin-top: 4rem; padding: 2rem; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
+                <p style="font-size: 0.9rem; font-weight: bold; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem;">Applicant</p>
+                <h2 style="border: none; margin: 0; font-size: 2rem; color: #0f172a;">{{promoterName}}</h2>
             </div>
+            <p style="margin-top: 4rem; font-size: 0.9rem; color: #94a3b8;">CONFIDENTIAL | BANK LOAN PROPOSAL</p>
+        </div>
 
-            <div class="mb-10">
-                <p class="text-sm uppercase tracking-widest text-gray-500 mb-2">Submitted To</p>
-                <h3 class="text-2xl font-bold text-slate-800">The Bank / Financial Institution</h3>
-                <p class="mt-8 text-sm text-gray-400">Date: <span id="reportDate"></span></p>
-            </div>
-        </section>
+        <h2>1. Executive Summary</h2>
+        <div class="prose">{{executiveSummary}}</div>
 
-        <div class="page-break"></div>
+        <h2>2. Introduction & Background</h2>
+        <div class="prose">{{introduction}}</div>
 
-        <section class="mb-16">
-            <h2 class="text-2xl font-bold text-blue-900 mb-6 border-b pb-2">Table of Contents</h2>
-            <ul class="space-y-3">
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>1. Executive Summary</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>2. Promoter Profile & Company Overview</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>3. Market Analysis & Strategy</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>4. Technical Details & Process Flow</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>5. Implementation Schedule</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>6. Cost of Project & Means of Finance</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>7. Working Capital Assessment</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>8. Projected Profitability Statement</span></li>
-                <li class="flex justify-between border-b border-dotted border-gray-300 pb-1"><span>9. Projected Balance Sheet</span></li>
-            </ul>
-        </section>
+        <h2>3. Market Analysis</h2>
+        <div class="prose">{{marketAnalysis}}</div>
 
-        <section id="executive" class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">1. Executive Summary</h2>
-            <div class="text-justify text-gray-700 prose max-w-none">{{executiveSummary}}</div>
-        </section>
+        <h2>4. Technical Feasibility</h2>
+        <div class="prose">{{technicalFeasibility}}</div>
 
-        <div class="page-break"></div>
+        <h2>5. Cost of Project & Means of Finance</h2>
+        <div style="display: flex; gap: 20px; flex-direction: column;">
+            <div><h3>5.1 Cost of Project</h3>{{costOfProjectTable}}</div>
+            <div><h3>5.2 Means of Finance</h3>{{meansOfFinanceTable}}</div>
+        </div>
 
-        <section id="company" class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">2. Promoter Profile & Company Overview</h2>
-            <div class="text-justify text-gray-700 prose max-w-none">{{promoterProfile}}</div>
-        </section>
+        <h2>6. Operating Expenses Assessment</h2>
+        <h3>6.1 Manpower Requirement</h3>
+        {{manpowerTable}}
+
+        <h2>7. Working Capital Assessment</h2>
+        <p>Assessment of limit based on the Operating Cycle Method (Turnover Method).</p>
+        {{workingCapitalTable}}
+
+        <h2>8. Term Loan Repayment Schedule</h2>
+        {{repaymentScheduleTable}}
+
+        <h2>9. Projected Profitability</h2>
+        <div contenteditable="false" class="widget-block my-6 p-6 bg-white border border-slate-200 rounded-lg shadow-sm text-center">
+            <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Revenue vs Net Profit Trend</h4>
+            <div class="relative h-[250px] w-full"><canvas id="profitChart"></canvas></div>
+        </div>
+        {{profitabilityTable}}
+
+        <h2>10. Projected Balance Sheet</h2>
+        <div style="display: flex; gap: 20px; flex-direction: column;">
+            <div><h3>Liabilities</h3>{{liabilitiesTable}}</div>
+            <div><h3>Assets</h3>{{assetsTable}}</div>
+        </div>
         
-        <section class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">3. Market Analysis & Strategy</h2>
-             <div class="text-justify text-gray-700 prose max-w-none">{{marketAnalysis}}</div>
-        </section>
-
-        <div class="page-break"></div>
-
-        <section id="technical" class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">4. Technical Details & Process Flow</h2>
-            <div class="text-justify text-gray-700 prose max-w-none">{{technicalDetails}}</div>
-        </section>
-
-        <section class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">5. Implementation Schedule</h2>
-             <div class="text-justify text-gray-700 prose max-w-none">{{implementationSchedule}}</div>
-        </section>
-
-        <div class="page-break"></div>
-
-        <section id="financials" class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">6. Cost of Project & Means of Finance</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="avoid-break">
-                    <h3 class="text-lg font-bold text-center bg-gray-200 p-2 border border-gray-300">Cost of Project</h3>
-                    {{projectCostTable}}
-                </div>
-                <div class="avoid-break">
-                    <h3 class="text-lg font-bold text-center bg-gray-200 p-2 border border-gray-300">Means of Finance</h3>
-                    {{meansOfFinanceTable}}
-                </div>
-            </div>
-        </section>
-
-        <section class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">7. Working Capital Assessment</h2>
-            <div class="avoid-break">{{workingCapitalTable}}</div>
-        </section>
-
-        <div class="page-break"></div>
-
-        <section class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">8. Projected Profitability Statement</h2>
-            <div class="overflow-x-auto avoid-break">{{profitabilityTable}}</div>
-        </section>
-
-        <div class="page-break"></div>
-
-        <section class="mb-12">
-            <h2 class="chapter-title text-2xl font-bold">9. Projected Balance Sheet</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                <div class="avoid-break">
-                    <h4 class="font-bold text-center bg-gray-100 p-2 border mb-0">Liabilities</h4>
-                    {{liabilitiesTable}}
-                </div>
-                <div class="avoid-break">
-                    <h4 class="font-bold text-center bg-gray-100 p-2 border mb-0">Assets</h4>
-                    {{assetsTable}}
-                </div>
-            </div>
-        </section>
-
-        <footer class="mt-12 pt-6 border-t text-center text-xs text-gray-400">
-            <p>Generated by WealthIn AI | {{projectName}} | Confidential</p>
-        </footer>
-
+        <h2>11. Financial Ratios</h2>
+        <div contenteditable="false" class="widget-block my-6 p-6 bg-white border border-slate-200 rounded-lg shadow-sm text-center">
+            <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Debt Service Coverage Ratio (DSCR)</h4>
+            <div class="relative h-[250px] w-full"><canvas id="dscrChart"></canvas></div>
+            <p class="text-xs text-slate-400 mt-2">Benchmark: > 1.5</p>
+        </div>
+        {{financialRatiosTable}}
+        
+        <h2>12. Conclusion</h2>
+        <div class="prose">{{conclusion}}</div>
     </div>
-
     <script>
-        document.addEventListener('DOMContentLoaded', (event) => {
-            const dateElement = document.getElementById('reportDate');
-            if(dateElement) {
-                dateElement.textContent = new Date().toLocaleDateString('en-GB', {
-                    day: '2-digit', month: 'long', year: 'numeric'
+        lucide.createIcons();
+        function initCharts() {
+            const profitChartData = JSON.parse('{{profitChartData}}');
+            const dscrChartData = JSON.parse('{{dscrChartData}}');
+            
+            const ctxProfit = document.getElementById('profitChart');
+            if(ctxProfit && profitChartData) {
+                const revenueData = profitChartData.find(d => d.particular === 'Total Income');
+                const profitData = profitChartData.find(d => d.particular === 'Net Profit (PAT)');
+                new Chart(ctxProfit, {
+                    type: 'line',
+                    data: {
+                        labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+                        datasets: [
+                            { label: 'Revenue', data: [revenueData.year1, revenueData.year2, revenueData.year3, revenueData.year4, revenueData.year5], borderColor: '#0f172a', tension: 0.3, yAxisID: 'y' },
+                            { label: 'Net Profit', data: [profitData.year1, profitData.year2, profitData.year3, profitData.year4, profitData.year5], borderColor: '#10b981', borderDash: [5, 5], tension: 0.3, yAxisID: 'y' }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { title: {display: true, text: 'Amount ($)'} } } }
                 });
             }
+
+            const ctxDscr = document.getElementById('dscrChart');
+            if(ctxDscr && dscrChartData) {
+                new Chart(ctxDscr, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Year 1', 'Year 2', 'Year 3'],
+                        datasets: [{ label: 'DSCR Value', data: [dscrChartData.year1, dscrChartData.year2, dscrChartData.year3], backgroundColor: ['#94a3b8', '#64748b', '#0f172a'], borderRadius: 6 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } } } }
+                });
+            }
+        }
+        window.addEventListener('load', () => {
+            initCharts();
         });
     </script>
 </body>

@@ -9,18 +9,11 @@ import { useToast } from '@/hooks/use-toast';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { doc, setDoc, getFirestore } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
-import { useAuth } from '@/context/auth-provider';
-
-
-const db = getFirestore(app);
 
 function DPRReportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user, userProfile } = useAuth();
 
   const [reportHtml, setReportHtml] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
@@ -32,7 +25,7 @@ function DPRReportContent() {
     const promoterName = searchParams.get('name');
     const storedAnalysis = localStorage.getItem('dprAnalysis');
     
-    if (!ideaTitle || !promoterName || !storedAnalysis || !userProfile) {
+    if (!ideaTitle || !promoterName || !storedAnalysis) {
         setError("Missing required information to generate the report. Please start over.");
         setIsGenerating(false);
         return;
@@ -64,12 +57,6 @@ function DPRReportContent() {
         } catch (err: any) {
             setError(err.message);
             toast({ variant: 'destructive', title: 'Generation Failed', description: err.message });
-            // Refund credits if generation fails
-            if (user) {
-                const userDocRef = doc(db, 'users', user.uid);
-                await setDoc(userDocRef, { credits: userProfile.credits }, { merge: true });
-                toast({ title: 'Credits Refunded', description: 'Your credits have been returned due to a generation error.' });
-            }
         } finally {
             setIsGenerating(false);
         }
@@ -77,33 +64,12 @@ function DPRReportContent() {
     
     generateReport();
 
-  }, [searchParams, toast, user, userProfile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, toast]);
 
-  const handlePrint = () => {
-    const iframe = iframeRef.current;
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-    }
-  };
 
   return (
     <div className="space-y-8">
-        <div className="flex justify-between items-start">
-            <div>
-            <h1 className="text-3xl font-bold">Your Detailed Project Report</h1>
-            <p className="text-muted-foreground">
-                Your professionally formatted DPR is ready for review.
-            </p>
-            </div>
-            <Button variant="ghost" asChild className="-ml-4">
-            <Link href="/my-ideas">
-                <ArrowLeft className="mr-2" />
-                Back to My Ideas
-            </Link>
-            </Button>
-        </div>
-
         {isGenerating && (
             <Card className="text-center py-20">
                 <CardContent className="space-y-4">
@@ -127,23 +93,12 @@ function DPRReportContent() {
         )}
         
         {reportHtml && !isGenerating && (
-            <Card>
-                <CardHeader className="flex flex-row justify-between items-center">
-                    <CardTitle>{JSON.parse(localStorage.getItem('dprAnalysis') || '{}').title}</CardTitle>
-                    <Button onClick={handlePrint} variant="outline" size="sm">
-                    <Printer className="mr-2 h-4 w-4"/>
-                    Print / Save as PDF
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <iframe
-                        ref={iframeRef}
-                        srcDoc={reportHtml}
-                        className="w-full h-[600px] border rounded-md"
-                        title="Detailed Project Report"
-                    />
-                </CardContent>
-            </Card>
+            <iframe
+                ref={iframeRef}
+                srcDoc={reportHtml}
+                className="w-full h-[80vh] border rounded-md"
+                title="Detailed Project Report"
+            />
         )}
     </div>
   );
