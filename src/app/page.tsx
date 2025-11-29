@@ -104,7 +104,7 @@ import { generateDashboardSummaryAction, generateFinBiteAction } from './actions
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import AIAdvisorChat from '@/components/financify/ai-advisor-chat';
+import { FormattedText } from '@/components/financify/formatted-text';
 
 const db = getFirestore(app);
 
@@ -786,13 +786,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Suggestion Card */}
-      <Card className="flex flex-col h-full min-h-[400px]">
-        <CardHeader className="p-4 md:p-6">
-          <CardTitle>AI Financial Advisor</CardTitle>
-          <CardDescription>Ask me anything about your finances.</CardDescription>
+       <Card>
+        <CardHeader className="flex flex-row items-center gap-4">
+          <Lightbulb className="w-8 h-8 text-primary" />
+          <div>
+            <CardTitle>{translations.dashboard.suggestionsTitle}</CardTitle>
+            <CardDescription>
+              Your daily AI-powered Fin Bite.
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-0">
-          <AIAdvisorChat initialMessage={summary?.suggestion} />
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-6 w-full" />
+          ) : (
+            <FormattedText text={summary?.suggestion || ''} />
+          )}
         </CardContent>
       </Card>
 

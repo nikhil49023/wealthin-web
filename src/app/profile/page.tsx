@@ -309,7 +309,7 @@ export default function ProfilePage() {
                  </CardHeader>
                  <CardContent>
                     {sortedCreditHistory.length > 0 ? (
-                        <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+                        <div className="space-y-4 pr-2">
                             {sortedCreditHistory.map((tx, index) => (
                                 <div key={index} className="flex justify-between items-center text-sm">
                                     <div className="flex items-center gap-3">
@@ -443,7 +443,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
-
-    
