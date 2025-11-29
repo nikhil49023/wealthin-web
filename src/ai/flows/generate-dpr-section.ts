@@ -62,9 +62,11 @@ Legal Requirements: ${idea.legalRequirements}
 
   let finalPrompt: string;
   let systemPrompt: string;
+  let isRefinement = false;
 
   if (refinementPrompt && existingContent) {
     // Mode 2: Refine existing content
+    isRefinement = true;
     systemPrompt = `You are an expert consultant editing a Detailed Project Report (DPR).
 Your task is to rewrite the "Existing Content" based on the "User's Instruction".
 Maintain the original format (JSON for financial projections, HTML for others).
