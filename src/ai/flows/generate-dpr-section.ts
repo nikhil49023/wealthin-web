@@ -7,6 +7,41 @@
 import catalystService from '@/services/catalyst';
 import type { GenerateDprSectionInput, GenerateDprSectionOutput } from '@/ai/schemas/dpr';
 
+/**
+ * Cleans the raw text response from an AI model to extract a valid JSON string
+ * or a clean HTML/text block.
+ * @param text The raw text response from the AI.
+ * @param expectJson Whether to specifically look for a JSON block.
+ * @returns A clean string.
+ */
+function cleanAiResponse(text: string, expectJson: boolean = false): string {
+    if (!text) return '';
+
+    let content = text.trim();
+
+    // 1. Regex to find content within markdown-style code blocks (e.g., ```json ... ``` or ```html ... ```)
+    const codeBlockRegex = /```(?:json|html|text)?\s*([\s\S]*?)\s*```/;
+    const match = content.match(codeBlockRegex);
+
+    if (match && match[1]) {
+        content = match[1].trim();
+    }
+
+    // 2. If JSON is expected, find the first and last curly braces as a fallback.
+    if (expectJson) {
+        const firstBrace = content.indexOf('{');
+        const lastBrace = content.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            return content.substring(firstBrace, lastBrace + 1);
+        }
+    }
+    
+    // 3. For non-JSON, we assume the main content is what we need, even if there's no code block.
+    // The initial trim and regex should handle most cases.
+    return content;
+}
+
+
 export async function generateDprSection(
   input: GenerateDprSectionInput
 ): Promise<GenerateDprSectionOutput> {
@@ -73,14 +108,19 @@ Now, generate the content for the "${section}" section.
   }
 
   try {
-    const text = await catalystService.generateText(finalPrompt, systemPrompt);
+    const rawText = await catalystService.generateText(finalPrompt, systemPrompt);
+    const isJsonExpected = section === 'financialProjections' || (typeof existingContent === 'object' && refinementPrompt);
+    
+    const cleanedText = cleanAiResponse(rawText, isJsonExpected);
 
-    if (section === 'financialProjections') {
-      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    if (isJsonExpected) {
       const parsed = JSON.parse(cleanedText);
       return { content: parsed };
     } else {
-      return { content: text };
+      if (!cleanedText) {
+        throw new Error("The AI returned an empty response for this section.");
+      }
+      return { content: cleanedText };
     }
   } catch (e: any) {
     console.error(`Failed to parse AI response for section "${section}":`, e.message);
