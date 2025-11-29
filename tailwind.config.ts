@@ -15,6 +15,9 @@ export default {
         headline: ['var(--font-inter)', 'sans-serif'],
         code: ['monospace'],
       },
+      aspectRatio: {
+        'a4': '1 / 1.414',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

@@ -139,12 +139,14 @@ function DPRReportContent() {
         <>
             <Card>
                 <CardContent className="p-2 sm:p-4">
-                    <iframe
-                        ref={iframeRef}
-                        srcDoc={reportHtml}
-                        className="w-full h-[70vh] border rounded-md"
-                        title="DPR Preview"
-                    />
+                    <div className="w-full max-w-4xl mx-auto aspect-[1/1.414] shadow-lg">
+                        <iframe
+                            ref={iframeRef}
+                            srcDoc={reportHtml}
+                            className="w-full h-full border rounded-md"
+                            title="DPR Preview"
+                        />
+                    </div>
                 </CardContent>
             </Card>
             <div className="text-center py-4 space-x-4">
