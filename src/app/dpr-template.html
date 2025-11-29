@@ -112,23 +112,31 @@
         .resizable-wrapper:hover {
             border: 1px dashed #94a3b8;
         }
-        .resize-handle {
+        .resize-handle, .delete-handle {
             position: absolute;
-            bottom: -10px;
-            right: -10px;
-            width: 20px;
-            height: 20px;
-            background-color: #3b82f6;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            cursor: se-resize;
             display: none; /* Hidden by default */
             z-index: 10;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             align-items: center;
             justify-content: center;
             color: white;
+            cursor: pointer;
         }
-        .resizable-wrapper:hover .resize-handle {
+        .resize-handle {
+            bottom: -10px;
+            right: -10px;
+            background-color: #3b82f6;
+            cursor: se-resize;
+        }
+        .delete-handle {
+            top: -10px;
+            right: -10px;
+            background-color: #ef4444;
+        }
+        .resizable-wrapper:hover .resize-handle, .resizable-wrapper:hover .delete-handle {
             display: flex;
         }
 
@@ -139,7 +147,7 @@
             .a4-page { margin: 0; box-shadow: none; width: 100%; padding: 0; }
             @page { size: A4; margin: 20mm; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .resize-handle { display: none !important; }
+            .resize-handle, .delete-handle { display: none !important; }
             .resizable-wrapper { border: none !important; }
         }
     </style>
@@ -310,6 +318,7 @@
         let profitChartInstance = null;
         let dscrChartInstance = null;
         let currentImageTarget = null;
+        let originalImagePlaceholderHTML = {};
         let cropper = null;
         let activeSectionForAI = null;
 
@@ -361,8 +370,6 @@
                         section: activeSectionForAI,
                         existingContent: sectionElement.innerHTML,
                         refinementPrompt: prompt,
-                        // You'll need to pass the idea and promoterName from somewhere
-                        // For now, we'll omit them and the API must handle it
                     })
                 });
 
@@ -475,14 +482,29 @@
         }
 
 
-        // --- IMAGE UPLOAD & CROPPER LOGIC ---
+        // --- IMAGE UPLOAD, CROP & DELETE LOGIC ---
         function triggerImageUpload(element) {
             if (element.classList.contains('resizable-wrapper')) {
                 currentImageTarget = element;
             } else {
                 currentImageTarget = element;
+                // Store the original placeholder HTML if it's the first time
+                const placeholderId = element.dataset.placeholderId;
+                if (placeholderId && !originalImagePlaceholderHTML[placeholderId]) {
+                    originalImagePlaceholderHTML[placeholderId] = element.outerHTML;
+                }
             }
             document.getElementById('globalImageInput').click();
+        }
+
+        function deleteImage(buttonElement) {
+            const wrapper = buttonElement.parentElement;
+            const placeholderId = wrapper.dataset.placeholderId;
+            if (placeholderId && originalImagePlaceholderHTML[placeholderId]) {
+                wrapper.outerHTML = originalImagePlaceholderHTML[placeholderId];
+                lucide.createIcons();
+                localStorage.setItem(STORAGE_KEY, docPage.innerHTML);
+            }
         }
 
         function handleImageUpload(event) {
@@ -520,11 +542,16 @@
         function applyCrop() {
             if (!cropper) return;
             const croppedDataUrl = cropper.getCroppedCanvas().toDataURL('image/jpeg');
+            const placeholderId = currentImageTarget.dataset.placeholderId || currentImageTarget.parentElement.dataset.placeholderId || `img-${Date.now()}`;
+            
             const resizableHTML = `
-                <div class="resizable-wrapper widget-block group" style="width: 100%;" contenteditable="false">
+                <div class="resizable-wrapper widget-block group" style="width: 100%;" contenteditable="false" data-placeholder-id="${placeholderId}">
                     <img src="${croppedDataUrl}" class="uploaded-image cursor-pointer" onclick="triggerImageUpload(this.parentElement)">
                     <div class="resize-handle" onmousedown="initResize(event, this.parentNode)">
                         <i data-lucide="move-diagonal-2" size="14"></i>
+                    </div>
+                    <div class="delete-handle" onclick="deleteImage(this)">
+                        <i data-lucide="trash-2" size="14"></i>
                     </div>
                 </div>
             `;
@@ -596,12 +623,23 @@
                 });
             }
         }
+        
+        function storeOriginalPlaceholders() {
+            docPage.querySelectorAll('.image-placeholder').forEach((el, index) => {
+                const id = `placeholder-${index}`;
+                el.dataset.placeholderId = id;
+                originalImagePlaceholderHTML[id] = el.outerHTML;
+            });
+        }
 
         // --- INIT ---
         window.addEventListener('load', () => {
             const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) docPage.innerHTML = saved;
+            if (saved) {
+                docPage.innerHTML = saved;
+            }
             
+            storeOriginalPlaceholders();
             wrapSections();
             lucide.createIcons();
             
@@ -614,5 +652,3 @@
     </script>
 </body>
 </html>
-
-    
