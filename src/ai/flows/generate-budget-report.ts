@@ -67,12 +67,14 @@ ${transactionsList}
     });
 
     const savings = Math.max(0, totalIncome - totalExpenses);
+    const savingsRate = totalIncome > 0 ? Math.round((savings / totalIncome) * 100) : 0;
 
-    parsed.overallBreakdown = [
-        { name: 'Total Income', value: totalIncome },
-        { name: 'Total Expenses', value: totalExpenses },
-        { name: 'Savings', value: savings }
-    ].filter(item => item.value > 0); // Only show items with a value
+    parsed.overallBreakdown = {
+        totalIncome,
+        totalExpenses,
+        savings,
+        savingsRate
+    };
 
     return GenerateBudgetReportOutputSchema.parse(parsed);
     

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/auth-provider';
 import {
   Card,
@@ -14,9 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FileDown, ArrowLeft, FilePieChart } from 'lucide-react';
 import type { GenerateBudgetReportOutput } from '@/ai/schemas/budget-report';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
-import { Skeleton } from '@/components/ui/skeleton';
-import { FormattedText } from '@/components/financify/formatted-text';
-import { ProjectCostPieChart } from '@/components/financify/dpr-charts';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
@@ -26,6 +23,7 @@ import { app } from '@/lib/firebase';
 import { generateBudgetReportAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const db = getFirestore(app);
 
@@ -34,7 +32,6 @@ const BUDGET_REPORT_REWARD = 3;
 export default function BudgetReportPage() {
   const { user, userProfile } = useAuth();
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
-  const [report, setReport] = useState<GenerateBudgetReportOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -51,7 +48,7 @@ export default function BudgetReportPage() {
           setTransactions(fetchedTransactions);
           setIsLoading(false);
       },
-      async (error) => {
+      (error) => {
         console.error("Budget report transactions snapshot error", error);
         const permissionError = new FirestorePermissionError({
             path: transactionsRef.path,
@@ -61,11 +58,10 @@ export default function BudgetReportPage() {
         setIsLoading(false);
       });
       return () => unsubscribe();
-    } else {
-      setIsLoading(false);
+    } else if (!user && !isLoading) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -76,6 +72,34 @@ export default function BudgetReportPage() {
     }
     return () => clearInterval(timer);
   }, [isGenerating, progress]);
+
+  const generateReportHtml = useCallback(async (reportData: GenerateBudgetReportOutput) => {
+    const response = await fetch('/budget-report-template.html');
+    let template = await response.text();
+    
+    const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+
+    template = template.replace(/{{userName}}/g, user?.displayName || 'Valued User');
+    template = template.replace(/{{currentDate}}/g, new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }));
+    template = template.replace(/{{totalIncome}}/g, formatCurrency(reportData.overallBreakdown.totalIncome));
+    template = template.replace(/{{totalExpenses}}/g, formatCurrency(reportData.overallBreakdown.totalExpenses));
+    template = template.replace(/{{savings}}/g, formatCurrency(reportData.overallBreakdown.savings));
+    template = template.replace(/{{savingsRate}}/g, String(reportData.overallBreakdown.savingsRate));
+    template = template.replace(/{{aiSummary}}/g, reportData.summary);
+
+    const expenseRowsHtml = reportData.expenseBreakdown
+        .map(item => `
+            <tr>
+                <td class="px-6 py-4 font-medium text-gray-700">${item.name}</td>
+                <td class="px-6 py-4 num-cell font-bold text-gray-800">${formatCurrency(item.value)}</td>
+            </tr>
+        `)
+        .join('');
+    template = template.replace('{{expenseRows}}', expenseRowsHtml);
+    
+    return template;
+
+  }, [user]);
 
   const handleGenerateReport = async () => {
     if (transactions.length === 0) {
@@ -103,8 +127,16 @@ export default function BudgetReportPage() {
         }
 
         const data = result.data;
+        const finalHtml = await generateReportHtml(data);
         setProgress(100);
-        setReport(data);
+
+        const reportWindow = window.open();
+        if (reportWindow) {
+            reportWindow.document.write(finalHtml);
+            reportWindow.document.close();
+        } else {
+            throw new Error("Could not open new tab. Please disable your pop-up blocker.");
+        }
 
         // Award credits for generating a report
         const userDocRef = doc(db, 'users', user.uid);
@@ -126,13 +158,6 @@ export default function BudgetReportPage() {
         setIsGenerating(false);
     }
   };
-
-  const handleExport = () => {
-    window.print();
-  };
-
-  const totalExpenses = report?.expenseBreakdown.reduce((acc, item) => acc + item.value, 0) || 0;
-  const totalIncome = report?.overallBreakdown.find(item => item.name === 'Total Income')?.value || 0;
   
   if (isLoading) {
       return (
@@ -145,35 +170,7 @@ export default function BudgetReportPage() {
 
   return (
     <div className="space-y-8">
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 1.5cm;
-          }
-          body * {
-            visibility: hidden;
-          }
-          #print-section,
-          #print-section * {
-            visibility: visible;
-          }
-          #print-section {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-grid-cols-2 {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-      `}</style>
-      
-      <div className="flex justify-between items-start no-print">
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <FilePieChart />
@@ -191,22 +188,15 @@ export default function BudgetReportPage() {
         </Button>
       </div>
 
-       <div className="flex gap-2 no-print">
-         <Button onClick={handleGenerateReport} disabled={isGenerating}>
+       <div className="flex gap-2">
+         <Button onClick={handleGenerateReport} disabled={isGenerating || transactions.length === 0}>
           {isGenerating ? <Loader2 className="mr-2 animate-spin" /> : null}
-          {isGenerating ? 'Generating...' : 'Generate Report'}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleExport}
-          disabled={!report}
-        >
-          <FileDown className="mr-2" /> Export to PDF
+          {isGenerating ? 'Generating...' : 'Generate & View Report'}
         </Button>
       </div>
 
       {error && !isGenerating && (
-        <Card className="text-center py-10 bg-destructive/10 border-destructive no-print">
+        <Card className="text-center py-10 bg-destructive/10 border-destructive">
           <CardHeader className="p-4 md:p-6">
             <CardTitle>Error Generating Report</CardTitle>
           </CardHeader>
@@ -230,81 +220,28 @@ export default function BudgetReportPage() {
                     <Skeleton className="h-4 w-full" />
                     <Skeleton className="h-4 w-3/4" />
                 </div>
-                 <div className="grid md:grid-cols-2 gap-4">
-                    <Skeleton className="h-72 w-full" />
-                    <Skeleton className="h-72 w-full" />
-                 </div>
             </CardContent>
          </Card>
       )}
       
-      {!report && !isGenerating && transactions.length > 0 && (
-         <Card className="text-center py-10 md:py-20">
-             <CardContent className="p-4 md:p-6 pt-0">
-                 <FilePieChart className="h-16 w-16 mx-auto text-muted-foreground mb-4"/>
-                <h3 className="text-xl font-semibold">Ready to Analyze Your Budget?</h3>
-                <p className="text-muted-foreground mt-2">Click "Generate Report" to get a detailed breakdown of your spending.</p>
-             </CardContent>
-         </Card>
-      )}
-
-       {!report && !isGenerating && transactions.length === 0 && (
+      {!isGenerating && transactions.length === 0 && (
          <Card className="text-center py-10 md:py-20">
              <CardContent className="p-4 md:p-6 pt-0">
                 <h3 className="text-xl font-semibold">No Transaction Data</h3>
                 <p className="text-muted-foreground mt-2">Please add some transactions before generating a report.</p>
-                <Button asChild className="mt-4"><Link href="/transactions">Add Transactions</Link></Button>
+                <Button asChild className="mt-4"><Link href="/funds">Add Transactions</Link></Button>
              </CardContent>
          </Card>
       )}
 
-      {report && !isGenerating && (
-        <div id="print-section" className="space-y-6">
-            <Card>
-                <CardHeader className="p-4 md:p-6">
-                    <CardTitle>Monthly Financial Report</CardTitle>
-                    <CardDescription>
-                        An AI-generated analysis of your finances.
-                        Total Income: <span className="font-bold text-green-600">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalIncome)}</span>
-                        {' '}| Total Expenses: <span className="font-bold text-destructive">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalExpenses)}</span>
-                    </CardDescription>
-                </CardHeader>
-            </Card>
-            <Card>
-                <CardHeader className="p-4 md:p-6">
-                    <CardTitle>AI-Powered Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 md:p-6 pt-0">
-                    <FormattedText text={report.summary} />
-                </CardContent>
-            </Card>
-             <div className="space-y-6">
-                <Card>
-                    <CardHeader className="p-4 md:p-6">
-                        <CardTitle>Overall Breakdown</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 md:p-6 pt-0">
-                        {report.overallBreakdown.length > 0 ? (
-                            <ProjectCostPieChart data={report.overallBreakdown} />
-                        ) : (
-                            <p className="text-muted-foreground text-center py-10">No overall data to display.</p>
-                        )}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="p-4 md:p-6">
-                        <CardTitle>Expense Breakdown</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 md:p-6 pt-0">
-                        {report.expenseBreakdown.length > 0 ? (
-                            <ProjectCostPieChart data={report.expenseBreakdown} />
-                        ) : (
-                            <p className="text-muted-foreground text-center py-10">No expense data to display.</p>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+      {!isGenerating && transactions.length > 0 && (
+         <Card className="text-center py-10 md:py-20">
+             <CardContent className="p-4 md:p-6 pt-0">
+                 <FilePieChart className="h-16 w-16 mx-auto text-muted-foreground mb-4"/>
+                <h3 className="text-xl font-semibold">Ready to Analyze Your Budget?</h3>
+                <p className="text-muted-foreground mt-2">Click "Generate Report" to open a new tab with a detailed, printable breakdown of your spending.</p>
+             </CardContent>
+         </Card>
       )}
     </div>
   );
