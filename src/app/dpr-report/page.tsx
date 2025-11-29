@@ -8,7 +8,7 @@ import { Loader2, Printer, ArrowLeft, Wand2, Star, FileText, Check, Save } from 
 import { useToast } from '@/hooks/use-toast';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
 import RichTextEditor from '@/components/wealthin/rich-text-editor';
 import { generateDprAction } from '@/app/actions';
@@ -325,6 +325,8 @@ export default function DPRReportPage() {
         </Suspense>
     )
 }
+
+    
 
     
 
