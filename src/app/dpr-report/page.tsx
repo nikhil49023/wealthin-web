@@ -23,6 +23,8 @@ import {
   ProjectCostPieChart,
   FinancialProjectionsBarChart,
 } from '@/components/wealthin/dpr-charts';
+import { FormattedText } from '@/components/wealthin/formatted-text';
+import { Progress } from '@/components/ui/progress';
 
 
 const db = getFirestore(app);
@@ -323,5 +325,7 @@ export default function DPRReportPage() {
         </Suspense>
     )
 }
+
+    
 
     
