@@ -70,6 +70,7 @@ Legal Requirements: ${idea.legalRequirements}
     systemPrompt = `You are an expert consultant editing a Detailed Project Report (DPR).
 Your task is to rewrite the "Existing Content" based on the "User's Instruction".
 Maintain the original format (JSON for financial projections, HTML for others).
+All financial figures MUST be in Indian Rupees (INR).
 Output ONLY the refined, complete content for the section. Do not add any extra commentary.`;
     
     finalPrompt = `
@@ -87,6 +88,7 @@ ${businessProfile}
     // Mode 1: Generate from scratch
     systemPrompt = `You are an expert consultant hired to write a bank-ready Detailed Project Report (DPR) for an entrepreneur in India.
 You have been provided with a detailed business profile and the promoter's name.
+All financial figures MUST be in Indian Rupees (INR) and use the '₹' symbol.
 
 **Critical Output Format:**
 - For all sections EXCEPT 'financialProjections', you MUST output ONLY the generated text content as a raw string using basic HTML for formatting (<h3>, <p>, <ul>, <li>).
