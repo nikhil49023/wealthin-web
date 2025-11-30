@@ -123,7 +123,7 @@ export default function FundManagementPage() {
   // Form states
   const [newInvestment, setNewInvestment] = useState({ name: '', type: 'Stocks', amount: '' });
   const [newDebt, setNewDebt] = useState({ name: '', type: 'Personal Loan', totalAmount: '', amountPaid: '0' });
-  const [newTransaction, setNewTransaction] = useState({ description: '', date: '', type: 'expense' as 'income' | 'expense', amount: '' });
+  const [newTransaction, setNewTransaction] = useState({ description: '', datetime: '', type: 'expense' as 'income' | 'expense', amount: '' });
 
   // File Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -169,8 +169,8 @@ export default function FundManagementPage() {
 
   // Financial Health Score Calculation
   const financialHealth = useMemo(() => {
-    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(String(t.amount).replace(/[^0-9.-]+/g, '') || '0'), 0);
-    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(String(t.amount).replace(/[^0-9.-]+/g, '') || '0'), 0);
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
     const totalInvestments = investments.reduce((sum, i) => sum + i.amount, 0);
     const totalDebt = debts.reduce((sum, d) => sum + (d.totalAmount - d.amountPaid), 0);
 
@@ -273,7 +273,11 @@ export default function FundManagementPage() {
             const transactionsRef = collection(db, 'users', user.uid, 'transactions');
             result.data.transactions.forEach(transaction => {
                 const docRef = doc(transactionsRef);
-                batch.set(docRef, transaction);
+                const dataToSave = {
+                  ...transaction,
+                  date: new Date(transaction.datetime).toLocaleDateString('en-GB')
+                };
+                batch.set(docRef, dataToSave);
             });
             await batch.commit();
             invalidateDashboardCache();
@@ -394,24 +398,25 @@ export default function FundManagementPage() {
                   <DialogHeader><DialogTitle>Add New Transaction</DialogTitle></DialogHeader>
                   <div className="grid gap-4 py-4">
                     <Input placeholder="Description" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})}/>
-                    <Input type="datetime-local" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
+                    <Input type="datetime-local" value={newTransaction.datetime} onChange={e => setNewTransaction({...newTransaction, datetime: e.target.value})}/>
                     <Select value={newTransaction.type} onValueChange={(v: 'income' | 'expense') => setNewTransaction({...newTransaction, type: v})}>
                       <SelectTrigger><SelectValue/></SelectTrigger>
                       <SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent>
                     </Select>
-                    <Input placeholder="Amount (e.g., 1500.00)" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})}/>
+                    <Input placeholder="Amount (e.g., 1500.00)" type="number" value={newTransaction.amount} onChange={e => setNewTransaction({...newTransaction, amount: e.target.value})}/>
                   </div>
                   <DialogFooter>
                     <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                     <Button disabled={isAdding} onClick={() => {
-                        if (!newTransaction.date) {
+                        if (!newTransaction.datetime) {
                             toast({ variant: 'destructive', title: 'Error', description: 'Please select a date and time.' });
                             return;
                         }
-                        const date = new Date(newTransaction.date);
+                        const date = new Date(newTransaction.datetime);
                         const dataToSave = {
-                          ...newTransaction,
-                          amount: `INR ${newTransaction.amount}`,
+                          description: newTransaction.description,
+                          amount: parseFloat(newTransaction.amount),
+                          type: newTransaction.type,
                           date: date.toLocaleDateString('en-GB'),
                           datetime: date.toISOString()
                         };
@@ -442,7 +447,7 @@ export default function FundManagementPage() {
                         <p className="text-xs text-muted-foreground">{new Date(t.datetime).toLocaleString()}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">{t.amount}</TableCell>
+                      <TableCell className="text-right font-mono">₹{t.amount.toLocaleString('en-IN')}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete('transactions', t.id)}><Trash2 className="h-4 w-4"/></Button>
                       </TableCell>

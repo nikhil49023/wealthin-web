@@ -13,16 +13,15 @@ export const ExtractedTransactionSchema = z.object({
   date: z
     .string()
     .describe('The date of the transaction in DD/MM/YYYY format.'),
-  datetime: z
-    .string()
-    .datetime()
+  datetime: z.coerce
+    .date()
     .describe('The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If time is not present, default to 00:00:00.'),
   type: z
     .enum(['income', 'expense'])
     .describe('The type of transaction (income or expense).'),
   amount: z
-    .string()
-    .describe("The transaction amount, formatted as a string with currency (e.g., 'INR 1,234.56')."),
+    .coerce.number()
+    .describe("The transaction amount as a number."),
   invoiceUrl: z.string().optional().describe("The URL of the attached invoice file in Firebase Storage."),
 });
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
@@ -30,7 +29,7 @@ export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
 export const ExtractTransactionsInputSchema = z.object({
   documentDataUri: z.union([z.string(), z.array(z.string())])
     .describe(
-      "A document (like a bank statement) containing transactions, as a single data URI or an array of data URIs for multi-page documents. Each URI must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A document (like a bank statement) containing transactions, as a single data URI or an array of data URIs for multi-page documents. Each URI must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 export type ExtractTransactionsInput = z.infer<

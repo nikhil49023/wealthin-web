@@ -9,43 +9,11 @@ import type {
   ExtractTransactionsOutput,
 } from '@/ai/schemas/transactions';
 import { ExtractTransactionsOutputSchema } from '@/ai/schemas/transactions';
-
-/**
- * Cleans the raw text response from an AI model to extract a valid JSON string.
- * It looks for a JSON block enclosed in markdown backticks (```json ... ```)
- * or falls back to finding the first and last curly braces.
- * @param text The raw text response from the AI.
- * @returns A clean JSON string.
- * @throws An error if a valid JSON object cannot be found.
- */
-function cleanJsonString(text: string): string {
-    const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
-    const match = text.match(jsonBlockRegex);
-
-    if (match && match[1]) {
-        return match[1].trim();
-    }
-    
-    // Fallback for cases where markdown is not used
-    const startIndex = text.indexOf('{');
-    const endIndex = text.lastIndexOf('}');
-
-    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-        return text.substring(startIndex, endIndex + 1);
-    }
-    
-    if (text && text.trim() && text.startsWith('{')) {
-        return text;
-    }
-
-    throw new Error("The AI model did not return a valid JSON object block.");
-}
-
+import { cleanAndParseJSON } from '@/lib/cleanJson';
 
 export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
-
   let base64Images: string[] = [];
   try {
     const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
@@ -75,7 +43,7 @@ The JSON object must conform to this exact schema:
       "date": "(string) The date in DD/MM/YYYY format. If the year is not specified, assume the current year.",
       "datetime": "(string) The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If time is not present, default to 00:00:00 for that day. This is a critical field.",
       "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals and 'income' for credits/deposits.",
-      "amount": "(string) The transaction amount, formatted as a string with currency (e.g., 'INR 1,234.56')."
+      "amount": "(number) The transaction amount as a raw number, without any currency symbols or commas."
     }
   ]
 }
@@ -83,38 +51,20 @@ The JSON object must conform to this exact schema:
 - For debits, withdrawals, or payments, the 'type' must be 'expense'.
 - For credits, deposits, or fund transfers in, the 'type' must be 'income'.
 - The 'datetime' field MUST be a valid ISO 8601 string (YYYY-MM-DDTHH:mm:ss). This is the most important rule.
-- Ensure amounts are captured accurately with currency symbols.
+- The 'amount' field MUST be a raw number (e.g., 1234.56).
 
 Your response MUST be ONLY the JSON object. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.
 `;
 
-
   try {
     const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, base64Images);
     
-    let cleanedJsonString: string;
-    try {
-        cleanedJsonString = cleanJsonString(jsonResponseText);
-    } catch (e: any) {
-        console.error("Failed to clean AI response. Raw text:", jsonResponseText);
-        throw new Error("AI returned a response that could not be cleaned into a JSON format.");
-    }
+    const parsedData = cleanAndParseJSON(jsonResponseText);
     
-    let parsed: any;
-    try {
-        parsed = JSON.parse(cleanedJsonString);
-    } catch (e: any) {
-        console.error("Failed to parse JSON string. Cleaned text:", cleanedJsonString);
-        throw new Error("AI returned malformed JSON that could not be parsed.");
-    }
-
-    // After parsing, validate against the Zod schema to ensure correctness
-    try {
-        return ExtractTransactionsOutputSchema.parse(parsed);
-    } catch (e: any) {
-        console.error("Zod schema validation failed.", e.errors);
-        throw new Error("AI returned JSON with an invalid structure or data types.");
-    }
+    // Zod will now automatically handle minor type issues like coercing string numbers to numbers.
+    const validatedData = ExtractTransactionsOutputSchema.parse(parsedData);
+    
+    return validatedData;
 
   } catch (e: any) {
     console.error('Error during transaction extraction flow:', e.message);
