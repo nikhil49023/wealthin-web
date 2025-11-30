@@ -82,6 +82,7 @@ import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 import { extractTransactionsAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useRouter } from 'next/navigation';
 
 const db = getFirestore(app);
 
@@ -645,5 +646,7 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
+    
 
     
