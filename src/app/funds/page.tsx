@@ -470,7 +470,7 @@ export default function FundManagementPage() {
                                             <TableRow key={i}>
                                                 <TableCell>{t.description}</TableCell>
                                                 <TableCell>{t.date} {t.time}</TableCell>
-                                                <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'}>{t.type}</TableCell>
+                                                <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'}>{t.type}</Badge></TableCell>
                                                 <TableCell className="text-right font-mono">₹{Number(t.amount).toLocaleString('en-IN')}</TableCell>
                                             </TableRow>
                                         ))}
