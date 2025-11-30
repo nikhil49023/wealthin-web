@@ -389,13 +389,13 @@ export default function FundManagementPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="transactions">
+      <Tabs defaultValue="cashflow">
         <div className="flex flex-wrap gap-4 justify-between items-center">
             <TabsList className="grid w-full grid-cols-4 sm:w-auto">
+                <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
                 <TabsTrigger value="transactions">Transactions</TabsTrigger>
                 <TabsTrigger value="investments">Investments</TabsTrigger>
                 <TabsTrigger value="debts">Debts</TabsTrigger>
-                <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
             </TabsList>
             <Dialog open={importDialogOpen} onOpenChange={open => { if (!open) resetImportDialog(); else setImportDialogOpen(true); }}>
                 <DialogTrigger asChild>
@@ -414,7 +414,7 @@ export default function FundManagementPage() {
                              <div className="grid md:grid-cols-2 gap-6 py-4">
                                 <div
                                     className={cn('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center', { 'bg-accent': isDragging })}
-                                    onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}
+                                    onDrop={handleDrop} onDragOver={(e) => {e.preventDefault(); setIsDragging(true);}}
                                     onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                     onClick={() => fileInputRef.current?.click()}
                                 >
@@ -489,6 +489,11 @@ export default function FundManagementPage() {
             </Dialog>
         </div>
         
+        {/* Cashflow Tab */}
+        <TabsContent value="cashflow">
+            <CashflowForecast transactions={transactions} isLoading={loadingTransactions} />
+        </TabsContent>
+
         {/* Transactions Tab */}
         <TabsContent value="transactions">
           <Card>
@@ -673,13 +678,7 @@ export default function FundManagementPage() {
           </Card>
         </TabsContent>
 
-         {/* Cashflow Tab */}
-        <TabsContent value="cashflow">
-            <CashflowForecast transactions={transactions} isLoading={loadingTransactions} />
-        </TabsContent>
-
       </Tabs>
     </div>
   );
 }
-
