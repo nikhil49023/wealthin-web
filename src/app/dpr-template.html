@@ -3,555 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive DPR - {{company_name}}</title>
-    <!-- Tailwind CSS -->
+    <title>Detailed Project Report</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <style>
-        /* --- PRINT OPTIMIZATIONS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;500&display=swap');
+
+        body {
+            background-color: #F3F4F6;
+            font-family: 'Roboto', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 2rem auto;
+            padding: 2.5cm 2cm;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+        }
+
+        h1 { font-size: 28px; text-align: center; margin-bottom: 8px; }
+        h2 { font-size: 20px; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 6px; margin-top: 24px; margin-bottom: 16px; }
+        h3 { font-size: 16px; font-weight: 700; color: #1f2937; margin-top: 16px; margin-bottom: 8px; }
+
+        p, li { line-height: 1.6; color: #374151; }
+        ul { list-style-type: disc; padding-left: 20px; }
+        strong { font-weight: 500; color: #111827; }
+
+        .prose-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .prose-table th, .prose-table td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+        .prose-table th { background-color: #f3f4f6; }
+
+        .footer {
+            position: absolute;
+            bottom: 1cm;
+            left: 2cm;
+            right: 2cm;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+
+        .editable-section {
+            padding: 8px;
+            transition: background-color 0.2s ease-in-out;
+        }
+        
+        .editable-section:hover {
+            background-color: #f0f9ff;
+        }
+
         @media print {
-            body { background: white; -webkit-print-color-adjust: exact; }
+            body { background: white !important; }
             .no-print { display: none !important; }
             .page-break { page-break-before: always; }
             .page { 
                 box-shadow: none; 
                 margin: 0; 
-                width: 100%; 
+                width: 100%;
                 border: none;
-                padding: 10mm; /* Reduced padding for print */
+                padding: 1.5cm;
             }
-            .chart-container { page-break-inside: avoid; }
-        }
-
-        /* --- A4 DOCUMENT STYLING --- */
-        body { font-family: 'Helvetica', 'Arial', sans-serif; background-color: #525659; }
-        .page {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 20px auto;
-            background: white;
-            padding: 20mm;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* --- BANKING TABLE STYLES --- */
-        .bank-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; }
-        .bank-table th { 
-            background-color: #e5e7eb; 
-            border: 1px solid #9ca3af; 
-            padding: 6px; 
-            text-align: right; 
-            font-weight: bold; 
-            color: #1f2937;
-        }
-        .bank-table th.left-align { text-align: left; }
-        .bank-table td { 
-            border: 1px solid #d1d5db; 
-            padding: 6px; 
-            text-align: right; 
-        }
-        .bank-table td.left-align { text-align: left; }
-        .bank-table tr:nth-child(even) { background-color: #f9fafb; }
-        
-        h1 { font-family: 'Times New Roman', serif; }
-        h2 { 
-            font-size: 16px; 
-            font-weight: bold; 
-            color: #1e3a8a; /* Bank Blue */
-            border-bottom: 2px solid #1e3a8a; 
-            padding-bottom: 5px; 
-            margin-bottom: 15px; 
-            margin-top: 20px;
-        }
-        
-        .footer {
-            position: absolute;
-            bottom: 10mm;
-            left: 20mm;
-            right: 20mm;
-            border-top: 1px solid #ccc;
-            padding-top: 5px;
-            font-size: 10px;
-            color: #666;
-            display: flex;
-            justify-content: space-between;
+            .editable-section:hover { background-color: transparent; }
         }
     </style>
 </head>
 <body>
 
-    <!-- CONTROL PANEL -->
-    <div class="no-print fixed top-5 right-5 z-50 flex flex-col gap-2">
-        <button onclick="window.print()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded shadow-lg flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            Print / Save as PDF
-        </button>
-    </div>
+    <div class="page" id="dpr-document">
+        
+        <header class="text-center mb-10">
+            <h1>Detailed Project Report</h1>
+            <p class="text-lg text-gray-600">for</p>
+            <p class="text-3xl font-bold mt-2">{{executiveSummary}}</p> 
+        </header>
 
-    <!-- ================= PAGE 1: PROJECT AT A GLANCE ================= -->
-    <div class="page">
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">{{company_name}}</h1>
-            <p class="text-sm font-semibold uppercase tracking-widest text-gray-500">Detailed Project Report (DPR)</p>
-            <div class="h-1 w-32 bg-blue-800 mx-auto mt-4"></div>
-        </div>
+        <main>
+            <div id="executiveSummary" class="editable-section">
+                <h2>1. Executive Summary</h2>
+                {{executiveSummary}}
+            </div>
 
-        <h2>1. Project at a Glance</h2>
-        <table class="bank-table">
-            <tr>
-                <td class="left-align w-1/2 font-bold">Name of the Enterprise</td>
-                <td class="left-align">{{company_name}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Constitution</td>
-                <td class="left-align">{{business_type}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Promoter Name</td>
-                <td class="left-align">{{promoter_name}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Location of Unit</td>
-                <td class="left-align">{{city}}, {{state}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Industry / Activity</td>
-                <td class="left-align">{{industry_sector}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Total Project Cost</td>
-                <td class="left-align font-bold text-blue-700">₹ {{cost_total}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Term Loan Required</td>
-                <td class="left-align font-bold text-blue-700">₹ {{finance_loan}}</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Debt Service Coverage Ratio (Avg)</td>
-                <td class="left-align">{{ratio_dscr}} (Benchmark > 1.25)</td>
-            </tr>
-            <tr>
-                <td class="left-align font-bold">Employment Generation</td>
-                <td class="left-align">{{employee_count}} Persons</td>
-            </tr>
-        </table>
+            <div id="projectIntroduction" class="editable-section page-break">
+                <h2>2. Project Introduction & Background</h2>
+                {{projectIntroduction}}
+            </div>
+            
+            <div id="promoterDetails" class="editable-section">
+                <h2>3. Promoter's Background</h2>
+                {{promoterDetails}}
+            </div>
 
-        <h2>2. Promoter Profile</h2>
-        <div class="text-sm text-gray-700 mb-6 text-justify">
-            <p class="mb-2"><strong>{{promoter_name}}</strong>, aged {{promoter_age}} years, is the key promoter of the enterprise. They hold a qualification of {{promoter_qualification}} and have {{promoter_experience}} years of experience in the {{industry_sector}} industry.</p>
-            <p>The promoter has a strong credit history with a CIBIL score of {{promoter_cibil}}. Their expertise in operations and marketing will ensure the technical and commercial viability of this project.</p>
-        </div>
+            <div id="businessModel" class="editable-section page-break">
+                <h2>4. Business Model & Operational Plan</h2>
+                {{businessModel}}
+            </div>
+            
+            <div id="marketAnalysis" class="editable-section">
+                <h2>5. Market Analysis & Marketing Strategy</h2>
+                {{marketAnalysis}}
+            </div>
 
-        <h2>3. Market Potential & Strategy</h2>
-        <div class="text-sm text-gray-700 text-justify">
-            <p class="mb-2">The demand for {{product_name}} is growing at a CAGR of {{market_growth_rate}}% in the domestic market. The unit aims to target local retailers in {{city}} and expand to neighboring districts within Year 2.</p>
-            <ul class="list-disc pl-5 space-y-1">
-                <li><strong>Target Customer:</strong> {{target_audience}}</li>
-                <li><strong>Competition:</strong> The market is fragmented with few organized players in {{city}}.</li>
-                <li><strong>Marketing Strategy:</strong> Direct B2B sales, Digital Marketing, and local trade fairs.</li>
-            </ul>
-        </div>
+            <div id="locationAndSite" class="editable-section page-break">
+                <h2>6. Location and Site Development</h2>
+                {{locationAndSite}}
+            </div>
 
+            <div id="technicalFeasibility" class="editable-section">
+                <h2>7. Technical Feasibility</h2>
+                {{technicalFeasibility}}
+            </div>
+            
+            <div id="implementationSchedule" class="editable-section">
+                <h2>8. Implementation Schedule</h2>
+                {{implementationSchedule}}
+            </div>
+
+            <div id="financialProjections" class="editable-section page-break">
+                <h2>9. Financial Feasibility</h2>
+                {{financialProjections}}
+            </div>
+
+            <div id="swotAnalysis" class="editable-section page-break">
+                <h2>10. SWOT Analysis</h2>
+                {{swotAnalysis}}
+            </div>
+            
+            <div id="regulatoryCompliance" class="editable-section">
+                <h2>11. Regulatory & Legal Compliance</h2>
+                {{regulatoryCompliance}}
+            </div>
+
+            <div id="riskAssessment" class="editable-section page-break">
+                <h2>12. Risk Assessment & Mitigation</h2>
+                {{riskAssessment}}
+            </div>
+
+            <div id="annexures" class="editable-section">
+                <h2>13. Annexures</h2>
+                {{annexures}}
+            </div>
+        </main>
+        
         <div class="footer">
-            <span>Confidential Financial Document</span>
-            <span>Page 1</span>
+            <p>Generated by WealthIn AI</p>
         </div>
     </div>
-
-    <!-- ================= PAGE 2: COST & FINANCE ================= -->
-    <div class="page page-break">
-        <h2>4. Cost of Project & Means of Finance</h2>
-        <div class="grid grid-cols-2 gap-8">
-            <div>
-                <h3 class="text-xs font-bold uppercase text-gray-500 mb-2">A. Estimated Cost of Project</h3>
-                <table class="bank-table">
-                    <thead><tr><th class="left-align">Particulars</th><th>Amount (₹)</th></tr></thead>
-                    <tbody>
-                        <tr><td class="left-align">Land & Site Development</td><td>{{cost_land}}</td></tr>
-                        <tr><td class="left-align">Building & Civil Works</td><td>{{cost_building}}</td></tr>
-                        <tr><td class="left-align">Plant & Machinery</td><td>{{cost_machinery}}</td></tr>
-                        <tr><td class="left-align">Furniture & Fixtures</td><td>{{cost_furniture}}</td></tr>
-                        <tr><td class="left-align">Technical Know-how</td><td>{{cost_tech}}</td></tr>
-                        <tr><td class="left-align">Pre-operative Expenses</td><td>{{cost_preops}}</td></tr>
-                        <tr><td class="left-align">Contingencies (5%)</td><td>{{cost_contingency}}</td></tr>
-                        <tr><td class="left-align">Working Capital Margin</td><td>{{cost_working_capital}}</td></tr>
-                        <tr class="bg-gray-200 font-bold"><td class="left-align">Total Cost</td><td>{{cost_total}}</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div>
-                <h3 class="text-xs font-bold uppercase text-gray-500 mb-2">B. Means of Finance</h3>
-                <table class="bank-table">
-                    <thead><tr><th class="left-align">Source</th><th>Amount (₹)</th></tr></thead>
-                    <tbody>
-                        <tr><td class="left-align">Promoter's Equity (Own)</td><td>{{finance_own}}</td></tr>
-                        <tr><td class="left-align">Term Loan (Bank)</td><td>{{finance_loan}}</td></tr>
-                        <tr><td class="left-align">Unsecured Loans</td><td>{{finance_unsecured}}</td></tr>
-                        <tr><td class="left-align">Govt. Subsidy</td><td>{{finance_subsidy}}</td></tr>
-                        <tr class="bg-gray-200 font-bold"><td class="left-align">Total Means</td><td>{{finance_total}}</td></tr>
-                    </tbody>
-                </table>
-                <div class="h-40 w-full flex justify-center">
-                    <canvas id="financePie"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <h2>5. Manpower & Utility Requirements</h2>
-        <table class="bank-table">
-            <thead>
-                <tr>
-                    <th class="left-align">Designation</th>
-                    <th>No. of Persons</th>
-                    <th>Monthly Salary (₹)</th>
-                    <th>Annual Cost (₹)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="left-align">Manager / Supervisor</td>
-                    <td>1</td>
-                    <td>25,000</td>
-                    <td>3,00,000</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Skilled Workers</td>
-                    <td>2</td>
-                    <td>15,000</td>
-                    <td>3,60,000</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Unskilled / Helpers</td>
-                    <td>3</td>
-                    <td>10,000</td>
-                    <td>3,60,000</td>
-                </tr>
-                <tr class="font-bold bg-gray-100">
-                    <td class="left-align">Total Manpower Cost</td>
-                    <td>6</td>
-                    <td>-</td>
-                    <td>10,20,000</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div class="footer">
-            <span>{{company_name}}</span>
-            <span>Page 2</span>
-        </div>
-    </div>
-
-    <!-- ================= PAGE 3: PROFITABILITY STATEMENT ================= -->
-    <div class="page page-break">
-        <h2>6. Projected Profit & Loss Account (5 Years)</h2>
-        <table class="bank-table">
-            <thead>
-                <tr>
-                    <th class="left-align w-1/3">Particulars</th>
-                    <th>Year 1</th>
-                    <th>Year 2</th>
-                    <th>Year 3</th>
-                    <th>Year 4</th>
-                    <th>Year 5</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Income -->
-                <tr><td class="left-align font-bold text-gray-600" colspan="6">A. INCOME</td></tr>
-                <tr>
-                    <td class="left-align">Gross Revenue (Sales)</td>
-                    <td>{{rev_y1}}</td><td>{{rev_y2}}</td><td>{{rev_y3}}</td><td>{{rev_y4}}</td><td>{{rev_y5}}</td>
-                </tr>
-                
-                <!-- Expenditure -->
-                <tr><td class="left-align font-bold text-gray-600" colspan="6">B. EXPENDITURE</td></tr>
-                <tr>
-                    <td class="left-align">Raw Material Consumed</td>
-                    <td>{{rm_y1}}</td><td>{{rm_y2}}</td><td>{{rm_y3}}</td><td>{{rm_y4}}</td><td>{{rm_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Power & Utilities</td>
-                    <td>{{util_y1}}</td><td>{{util_y2}}</td><td>{{util_y3}}</td><td>{{util_y4}}</td><td>{{util_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Manpower Cost</td>
-                    <td>{{sal_y1}}</td><td>{{sal_y2}}</td><td>{{sal_y3}}</td><td>{{sal_y4}}</td><td>{{sal_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Selling & Admin Exp</td>
-                    <td>{{admin_y1}}</td><td>{{admin_y2}}</td><td>{{admin_y3}}</td><td>{{admin_y4}}</td><td>{{admin_y5}}</td>
-                </tr>
-                <tr class="bg-gray-100 font-bold">
-                    <td class="left-align">Total Expenditure</td>
-                    <td>{{exp_y1}}</td><td>{{exp_y2}}</td><td>{{exp_y3}}</td><td>{{exp_y4}}</td><td>{{exp_y5}}</td>
-                </tr>
-
-                <!-- Profits -->
-                <tr><td class="left-align font-bold text-gray-600" colspan="6">C. PROFITABILITY</td></tr>
-                <tr class="font-bold">
-                    <td class="left-align">Operating Profit (EBITDA)</td>
-                    <td>{{ebitda_y1}}</td><td>{{ebitda_y2}}</td><td>{{ebitda_y3}}</td><td>{{ebitda_y4}}</td><td>{{ebitda_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Less: Interest on Loan</td>
-                    <td>{{int_y1}}</td><td>{{int_y2}}</td><td>{{int_y3}}</td><td>{{int_y4}}</td><td>{{int_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Less: Depreciation</td>
-                    <td>{{dep_y1}}</td><td>{{dep_y2}}</td><td>{{dep_y3}}</td><td>{{dep_y4}}</td><td>{{dep_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Profit Before Tax (PBT)</td>
-                    <td>{{pbt_y1}}</td><td>{{pbt_y2}}</td><td>{{pbt_y3}}</td><td>{{pbt_y4}}</td><td>{{pbt_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Tax</td>
-                    <td>{{tax_y1}}</td><td>{{tax_y2}}</td><td>{{tax_y3}}</td><td>{{tax_y4}}</td><td>{{tax_y5}}</td>
-                </tr>
-                <tr class="bg-blue-100 font-bold border-t-2 border-blue-500">
-                    <td class="left-align">Net Profit (PAT)</td>
-                    <td>{{pat_y1}}</td><td>{{pat_y2}}</td><td>{{pat_y3}}</td><td>{{pat_y4}}</td><td>{{pat_y5}}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- Profit Chart -->
-        <div class="h-64 mt-8 chart-container">
-            <canvas id="profitChart"></canvas>
-        </div>
-
-        <div class="footer">
-            <span>{{company_name}}</span>
-            <span>Page 3</span>
-        </div>
-    </div>
-
-    <!-- ================= PAGE 4: BALANCE SHEET ================= -->
-    <div class="page page-break">
-        <h2>7. Projected Balance Sheet</h2>
-        <table class="bank-table">
-            <thead>
-                <tr>
-                    <th class="left-align w-1/3">Liabilities</th>
-                    <th>Year 1</th>
-                    <th>Year 2</th>
-                    <th>Year 3</th>
-                    <th>Year 4</th>
-                    <th>Year 5</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="left-align font-bold">Capital Account</td>
-                    <td>{{cap_y1}}</td><td>{{cap_y2}}</td><td>{{cap_y3}}</td><td>{{cap_y4}}</td><td>{{cap_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Add: Reserves & Surplus</td>
-                    <td>{{res_y1}}</td><td>{{res_y2}}</td><td>{{res_y3}}</td><td>{{res_y4}}</td><td>{{res_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Long Term Loans</td>
-                    <td>{{loan_y1}}</td><td>{{loan_y2}}</td><td>{{loan_y3}}</td><td>{{loan_y4}}</td><td>{{loan_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Current Liabilities</td>
-                    <td>{{cl_y1}}</td><td>{{cl_y2}}</td><td>{{cl_y3}}</td><td>{{cl_y4}}</td><td>{{cl_y5}}</td>
-                </tr>
-                <tr class="bg-gray-200 font-bold">
-                    <td class="left-align">Total Liabilities</td>
-                    <td>{{tl_y1}}</td><td>{{tl_y2}}</td><td>{{tl_y3}}</td><td>{{tl_y4}}</td><td>{{tl_y5}}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <table class="bank-table mt-4">
-            <thead>
-                <tr>
-                    <th class="left-align w-1/3">Assets</th>
-                    <th>Year 1</th>
-                    <th>Year 2</th>
-                    <th>Year 3</th>
-                    <th>Year 4</th>
-                    <th>Year 5</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="left-align">Gross Fixed Assets</td>
-                    <td>{{gfa_y1}}</td><td>{{gfa_y2}}</td><td>{{gfa_y3}}</td><td>{{gfa_y4}}</td><td>{{gfa_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Less: Accumulated Dep.</td>
-                    <td>{{acc_dep_y1}}</td><td>{{acc_dep_y2}}</td><td>{{acc_dep_y3}}</td><td>{{acc_dep_y4}}</td><td>{{acc_dep_y5}}</td>
-                </tr>
-                <tr class="font-bold text-gray-700">
-                    <td class="left-align">Net Fixed Assets</td>
-                    <td>{{nfa_y1}}</td><td>{{nfa_y2}}</td><td>{{nfa_y3}}</td><td>{{nfa_y4}}</td><td>{{nfa_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Current Assets (Stock/Cash)</td>
-                    <td>{{ca_y1}}</td><td>{{ca_y2}}</td><td>{{ca_y3}}</td><td>{{ca_y4}}</td><td>{{ca_y5}}</td>
-                </tr>
-                <tr class="bg-gray-200 font-bold">
-                    <td class="left-align">Total Assets</td>
-                    <td>{{ta_y1}}</td><td>{{ta_y2}}</td><td>{{ta_y3}}</td><td>{{ta_y4}}</td><td>{{ta_y5}}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <div class="footer">
-            <span>{{company_name}}</span>
-            <span>Page 4</span>
-        </div>
-    </div>
-
-    <!-- ================= PAGE 5: RATIO ANALYSIS & DSCR ================= -->
-    <div class="page page-break">
-        <h2>8. Debt Service Coverage Ratio (DSCR)</h2>
-        <p class="text-xs text-gray-500 mb-2">Banks typically require a DSCR > 1.25. This table demonstrates repayment capacity.</p>
-        <table class="bank-table">
-            <thead>
-                <tr>
-                    <th class="left-align w-1/3">Particulars</th>
-                    <th>Year 1</th>
-                    <th>Year 2</th>
-                    <th>Year 3</th>
-                    <th>Year 4</th>
-                    <th>Year 5</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="left-align">Net Profit After Tax</td>
-                    <td>{{pat_y1}}</td><td>{{pat_y2}}</td><td>{{pat_y3}}</td><td>{{pat_y4}}</td><td>{{pat_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Add: Depreciation</td>
-                    <td>{{dep_y1}}</td><td>{{dep_y2}}</td><td>{{dep_y3}}</td><td>{{dep_y4}}</td><td>{{dep_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Add: Interest on TL</td>
-                    <td>{{int_y1}}</td><td>{{int_y2}}</td><td>{{int_y3}}</td><td>{{int_y4}}</td><td>{{int_y5}}</td>
-                </tr>
-                <tr class="bg-green-50 font-bold">
-                    <td class="left-align">A. Total Cash Accrual</td>
-                    <td>{{cash_y1}}</td><td>{{cash_y2}}</td><td>{{cash_y3}}</td><td>{{cash_y4}}</td><td>{{cash_y5}}</td>
-                </tr>
-                <tr><td colspan="6" class="bg-white border-none h-2"></td></tr>
-                <tr>
-                    <td class="left-align">Interest Payment</td>
-                    <td>{{int_y1}}</td><td>{{int_y2}}</td><td>{{int_y3}}</td><td>{{int_y4}}</td><td>{{int_y5}}</td>
-                </tr>
-                <tr>
-                    <td class="left-align">Principal Repayment</td>
-                    <td>{{prin_y1}}</td><td>{{prin_y2}}</td><td>{{prin_y3}}</td><td>{{prin_y4}}</td><td>{{prin_y5}}</td>
-                </tr>
-                <tr class="bg-red-50 font-bold">
-                    <td class="left-align">B. Total Debt Service</td>
-                    <td>{{debt_y1}}</td><td>{{debt_y2}}</td><td>{{debt_y3}}</td><td>{{debt_y4}}</td><td>{{debt_y5}}</td>
-                </tr>
-                <tr><td colspan="6" class="bg-white border-none h-2"></td></tr>
-                <tr class="bg-blue-100 border-t-2 border-blue-500 font-bold text-lg">
-                    <td class="left-align">DSCR (A / B)</td>
-                    <td>{{dscr_y1}}</td><td>{{dscr_y2}}</td><td>{{dscr_y3}}</td><td>{{dscr_y4}}</td><td>{{dscr_y5}}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h2>9. Break-Even Analysis (Year 3)</h2>
-        <div class="flex justify-between items-center bg-gray-50 border p-4 rounded mb-6">
-            <div class="w-2/3">
-                <p class="text-sm"><strong>Fixed Costs:</strong> ₹ {{fixed_cost_y3}} (Salary + Int + Dep)</p>
-                <p class="text-sm"><strong>Variable Costs:</strong> ₹ {{variable_cost_y3}} (Raw Material + Power)</p>
-                <p class="text-sm"><strong>Total Revenue:</strong> ₹ {{rev_y3}}</p>
-                <div class="mt-3 text-2xl font-bold text-blue-800">BEP: {{ratio_bep}}%</div>
-                <p class="text-xs text-gray-500">The project breaks even at {{ratio_bep}}% capacity utilization.</p>
-            </div>
-            <div class="w-1/3">
-                <!-- Placeholder for BEP Chart -->
-                <canvas id="bepChart"></canvas>
-            </div>
-        </div>
-
-        <h2>10. Conclusion</h2>
-        <p class="text-sm text-gray-700 text-justify">
-            The proposed project for <strong>{{company_name}}</strong> is technically feasible and economically viable. 
-            The Break-Even Point is low at {{ratio_bep}}%, and the Average DSCR is {{ratio_dscr}}, indicating a strong repayment capacity. 
-            The promoters have sufficient experience to manage the operations effectively. We request the bank to sanction the Term Loan of ₹ {{finance_loan}} as applied.
-        </p>
-
-        <div class="mt-16 flex justify-between px-10">
-            <div class="text-center">
-                <div class="border-t border-gray-400 w-40 mx-auto"></div>
-                <p class="font-bold text-sm mt-1">{{promoter_name}}</p>
-                <p class="text-xs text-gray-500">Proprietor / Director</p>
-            </div>
-            <div class="text-center">
-                <div class="border-t border-gray-400 w-40 mx-auto"></div>
-                <p class="font-bold text-sm mt-1">Authorized Signatory</p>
-                <p class="text-xs text-gray-500">Seal & Date</p>
-            </div>
-        </div>
-
-        <div class="footer">
-            <span>{{company_name}}</span>
-            <span>Page 5</span>
-        </div>
-    </div>
-
-    <!-- SCRIPT FOR CHARTS -->
-    <script>
+     <script>
+        // Simple script to allow editing and saving to localStorage
         document.addEventListener('DOMContentLoaded', () => {
-            const formatCurrency = (val) => new Intl.NumberFormat('en-IN').format(val);
+            const sections = document.querySelectorAll('.editable-section');
+            
+            // Function to save content
+            const saveContent = () => {
+                const allContent = {};
+                sections.forEach(section => {
+                    allContent[section.id] = section.innerHTML;
+                });
+                localStorage.setItem('dpr-content', JSON.stringify(allContent));
+            };
 
-            // 1. Finance Mix (Pie)
-            const financeOwn = parseFloat('{{finance_own}}'.replace(/,/g, ''));
-            const financeLoan = parseFloat('{{finance_loan}}'.replace(/,/g, ''));
-            const financeSubsidy = parseFloat('{{finance_subsidy}}'.replace(/,/g, ''));
-            new Chart(document.getElementById('financePie'), {
-                type: 'pie',
-                data: {
-                    labels: ['Own Capital', 'Bank Loan', 'Subsidy'],
-                    datasets: [{
-                        data: [financeOwn, financeLoan, financeSubsidy], 
-                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b']
-                    }]
-                },
-                options: { plugins: { legend: { position: 'right' } } }
-            });
-
-            // 2. Profit Growth (Bar)
-            new Chart(document.getElementById('profitChart'), {
-                type: 'bar',
-                data: {
-                    labels: ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
-                    datasets: [
-                        { label: 'Revenue', data: [{{rev_y1}}, {{rev_y2}}, {{rev_y3}}, {{rev_y4}}, {{rev_y5}}], backgroundColor: '#93c5fd' },
-                        { label: 'Net Profit', data: [{{pat_y1}}, {{pat_y2}}, {{pat_y3}}, {{pat_y4}}, {{pat_y5}}], backgroundColor: '#1d4ed8' }
-                    ]
-                },
-                options: { 
-                    scales: { y: { beginAtZero: true, ticks: { callback: (val) => '₹' + formatCurrency(val) } } },
-                    plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ₹${formatCurrency(ctx.raw)}` } } }
+            // Load content from localStorage if it exists
+            const savedContent = localStorage.getItem('dpr-content');
+            if (savedContent) {
+                try {
+                    const parsedContent = JSON.parse(savedContent);
+                    sections.forEach(section => {
+                        if (parsedContent[section.id]) {
+                            section.innerHTML = parsedContent[section.id];
+                        }
+                    });
+                } catch (e) {
+                    console.error("Could not load saved DPR content:", e);
                 }
+            }
+
+            // Add event listeners for editing
+            sections.forEach(section => {
+                section.setAttribute('contenteditable', 'true');
+                section.addEventListener('blur', saveContent);
             });
 
-            // 3. BEP Donut (Small)
-            const bepRatio = parseFloat('{{ratio_bep}}');
-            new Chart(document.getElementById('bepChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['BEP', 'Margin of Safety'],
-                    datasets: [{ data: [bepRatio, 100 - bepRatio], backgroundColor: ['#ea580c', '#e5e7eb'] }]
-                },
-                options: { plugins: { legend: { display: false } }, cutout: '70%' }
+            // Listen for messages from parent window to save
+            window.addEventListener('message', (event) => {
+                if (event.data.type === 'saveContent') {
+                    saveContent();
+                }
             });
         });
     </script>
-
 </body>
 </html>

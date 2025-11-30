@@ -22,19 +22,6 @@ export async function generateDprSection(
 ): Promise<GenerateDprSectionOutput> {
   const { idea, promoterName, section, basePrompt, existingContent, refinementPrompt } = input;
 
-  const businessProfile = `
----
-**Business Profile**
-Title: ${idea.title}
-Summary: ${idea.summary}
-InvestmentStrategy: ${idea.investmentStrategy}
-TargetAudience: ${idea.targetAudience}
-ROI Projection: ${idea.roi}
-Future-Proofing: ${idea.futureProofing}
-Relevant Schemes: ${idea.relevantSchemes}
-Legal Requirements: ${idea.legalRequirements}
----`;
-
   let finalPrompt: string;
   let systemPrompt: string;
 
@@ -55,7 +42,11 @@ ${typeof existingContent === 'object' ? JSON.stringify(existingContent, null, 2)
 ---
 
 **Business Profile (for context):**
-${businessProfile}
+- Title: ${idea.title}
+- Summary: ${idea.summary}
+- Investment Strategy: ${idea.investmentStrategy}
+- Target Audience: ${idea.targetAudience}
+- ROI Projection: ${idea.roi}
 `;
   } else {
     // Mode 1: Generate from scratch
@@ -73,11 +64,6 @@ Your current task is to generate the content for ONLY the following section: **$
 
 **Section-Specific Instructions:**
 ${basePrompt}
-
-**Business Profile (for context):**
-${businessProfile}
-
-**Promoter's Name:** "${promoterName}"
 
 Now, generate the content for the "${section}" section.
 `;
