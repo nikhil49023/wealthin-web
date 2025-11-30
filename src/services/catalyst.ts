@@ -61,6 +61,7 @@ class CatalystService {
     const token = await this.getValidAccessToken();
     const chatApiUrl = `https://api.catalyst.zoho.in/quickml/v2/project/${this.projectId}/llm/chat`;
     
+    // CORRECTED: The body now matches the exact structure required by the API.
     const body = {
       "prompt": prompt,
       "model": "crm-di-qwen_text_14b-fp8-it",
@@ -91,6 +92,7 @@ class CatalystService {
 
     const responseData: any = await apiResponse.json();
 
+    // CORRECTED: Accessing the nested 'response' field from the API output.
     if (responseData && responseData.response) {
       return responseData.response;
     } else {
