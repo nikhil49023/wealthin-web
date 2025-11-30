@@ -1,20 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { AlertTriangle, CheckCircle, TrendingDown, Calendar, PlusCircle, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Calendar, RefreshCw, Loader2 } from 'lucide-react';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 
 // --- Types ---
-type RecurringBill = {
-  id: string;
-  name: string;
-  amount: number;
-  dayOfMonth: number; // 1-31
-  type: 'income' | 'expense';
-};
-
 type DailyForecast = {
   date: Date;
   dayOfMonth: number;
@@ -47,7 +39,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const initialBalance = transactions.reduce((acc, t) => {
+    const initialBalanceValue = transactions.reduce((acc, t) => {
         return t.type === 'income' ? acc + Number(t.amount) : acc - Number(t.amount);
     }, 0);
     
@@ -55,9 +47,9 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
         .filter(t => t.type === 'expense' && new Date(t.date) >= thirtyDaysAgo)
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
-    const averageDailyBurn = recentExpenses > 0 ? recentExpenses / 30 : 0;
+    const averageDailyBurnValue = recentExpenses > 0 ? recentExpenses / 30 : 0;
 
-    let currentBalance = initialBalance;
+    let currentBalance = initialBalanceValue;
     const forecast: DailyForecast[] = [];
     const today = new Date();
 
@@ -69,7 +61,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
       let dailyExpense = 0;
       let dailyEvents: string[] = [];
 
-      dailyExpense += averageDailyBurn;
+      dailyExpense += averageDailyBurnValue;
 
       if (isSimulating && simulationDate && simulationAmount) {
         const simDateObj = new Date(simulationDate);
@@ -98,7 +90,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
         status,
       });
     }
-    return { forecastData, initialBalance, averageDailyBurn };
+    return { forecastData: forecast, initialBalance: initialBalanceValue, averageDailyBurn: averageDailyBurnValue };
   }, [transactions, simulationAmount, simulationDate, isSimulating]);
 
   // --- Helper to format currency ---
