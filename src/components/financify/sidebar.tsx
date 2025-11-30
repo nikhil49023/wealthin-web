@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,7 +10,8 @@ import {
   Rocket,
   Globe,
   MessagesSquare,
-  DollarSign,
+  Rupee,
+  AreaChart,
 } from 'lucide-react';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
@@ -62,7 +64,7 @@ export default function Sidebar({
     {
       href: '/funds',
       label: 'Funds',
-      icon: DollarSign,
+      icon: Rupee,
     },
     {
       href: '/brainstorm',

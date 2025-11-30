@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BrainCircuit, Rocket, MessagesSquare, DollarSign } from 'lucide-react';
+import { Home, BrainCircuit, Rocket, MessagesSquare, Rupee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/context/auth-provider';
@@ -15,7 +16,7 @@ export default function BottomNavbar() {
 
   const navItems = [
     { href: '/', label: translations.sidebar.dashboard, icon: Home },
-    { href: '/funds', label: 'Funds', icon: DollarSign },
+    { href: '/funds', label: 'Funds', icon: Rupee },
     { href: '/ai-advisor', label: 'AI', icon: MessagesSquare },
     { href: '/brainstorm', label: translations.sidebar.brainstorm, icon: BrainCircuit },
     { href: '/launchpad', label: isMsme ? translations.sidebar.growthHub : translations.sidebar.launchpad, icon: Rocket },
