@@ -111,6 +111,7 @@ export default function FundManagementPage() {
   const [loadingDebts, setLoadingDebts] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
 
   // Dialog states
   const [addInvestmentDialogOpen, setAddInvestmentDialogOpen] = useState(false);
@@ -126,6 +127,8 @@ export default function FundManagementPage() {
 
   // File Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
 
   // Data fetching effects
   useEffect(() => {
@@ -219,11 +222,39 @@ export default function FundManagementPage() {
     }
   };
 
+  const startProgressAnimation = () => {
+    setImportProgress(0);
+    progressIntervalRef.current = setInterval(() => {
+        setImportProgress(prev => {
+            if (prev >= 95) { // Stop just before 100 to wait for the actual result
+                clearInterval(progressIntervalRef.current!);
+                return 95;
+            }
+            // Animate progress slowly
+            return prev + 1;
+        });
+    }, 200); // Adjust interval for desired speed
+  };
+
+  const finishProgressAnimation = () => {
+    if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+    }
+    setImportProgress(100);
+    // Hide progress bar after a short delay
+    setTimeout(() => {
+        setIsImporting(false);
+        setImportProgress(0);
+    }, 1000);
+  };
+
   // Import handler
   const processFile = async (file: File) => {
     if (!user) return;
     setIsImporting(true);
     setImportDialogOpen(false);
+    startProgressAnimation();
+
     try {
         const documentDataUri = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -250,7 +281,7 @@ export default function FundManagementPage() {
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Import Failed', description: error.message });
     } finally {
-        setIsImporting(false);
+        finishProgressAnimation();
     }
   };
 
@@ -300,6 +331,19 @@ export default function FundManagementPage() {
         </CardContent>
       </Card>
 
+      {isImporting && (
+        <Card>
+            <CardHeader>
+                <CardTitle>Importing Transactions...</CardTitle>
+                <CardDescription>AI is analyzing your document. Please wait.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Progress value={importProgress} className="w-full" />
+                <p className="text-center text-sm text-muted-foreground mt-2">{Math.round(importProgress)}%</p>
+            </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="transactions">
         <div className="flex justify-between items-center">
             <TabsList>
@@ -310,8 +354,8 @@ export default function FundManagementPage() {
             <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline" disabled={isImporting}>
-                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        {isImporting ? 'Importing...' : 'Import'}
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -512,5 +556,7 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
+    
 
     
