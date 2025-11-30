@@ -10,133 +10,93 @@ import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investme
 type DprSectionKey = 'executiveSummary' | 'projectIntroduction' | 'promoterDetails' | 'businessModel' | 'marketAnalysis' | 'locationAndSite' | 'technicalFeasibility' | 'implementationSchedule' | 'financialProjections' | 'swotAnalysis' | 'regulatoryCompliance' | 'riskAssessment' | 'annexures';
 
 const getBasePromptForSection = (section: DprSectionKey, idea: GenerateInvestmentIdeaAnalysisOutput, promoterName: string): string => {
-  const businessContext = `
-Here is the core business profile for context. Use this information to generate the content.
-- **Project Title:** ${idea.title}
-- **Project Summary:** ${idea.summary}
-- **Investment Strategy Context:** ${idea.investmentStrategy}
-- **Target Audience Context:** ${idea.targetAudience}
-- **ROI Projection Context:** ${idea.roi}
-- **Promoter's Name:** ${promoterName}
-  `;
+  
+  // Create smaller, targeted context strings
+  const projectContext = `**Project:** "${idea.title}" by ${promoterName}. **Summary:** ${idea.summary}`;
+  const marketContext = `**Target Audience:** ${idea.targetAudience}`;
+  const financialContext = `**Investment:** ${idea.investmentStrategy}. **ROI:** ${idea.roi}`;
 
   const prompts: Record<DprSectionKey, string> = {
     executiveSummary: `
-      You are writing the "Executive Summary" for a Detailed Project Report (DPR) for a bank loan in India.
-      - **Objective:** Create a compelling, professional, and concise summary (2-3 paragraphs) that captures the essence of the business proposal.
-      - **Content to Include:**
-        1.  **Opening:** Start with a strong opening statement introducing the business, "${idea.title}".
-        2.  **Core Concept:** Briefly explain the business model, the target market, and the key problem it solves or the opportunity it addresses.
-        3.  **Financial Highlights:** Summarize the key financial projections. Mention the total estimated project cost and the projected profitability in the initial years.
-        4.  **Promoter's Strength:** Briefly mention the promoter's capability and relevant experience.
-        5.  **Closing:** Conclude with a confident statement about the project's viability and its potential for success.
-      ${businessContext}
+      Write a compelling 2-3 paragraph "Executive Summary" for a DPR.
+      - **Content:** Introduce the business, explain the core concept, summarize key financials (project cost, projected profit), and state the project's viability.
+      - ${projectContext}
+      - ${financialContext}
     `,
     projectIntroduction: `
-      You are writing the "Project Introduction / Background" section of a DPR.
-      - **Objective:** Provide a clear and informative introduction to the project.
-      - **Content to Include:**
-        1.  **Introduce the Project:** State the name of the project, "${idea.title}".
-        2.  **Industry Overview:** Describe the industry the business operates in. Mention current trends and the specific opportunity that has been identified.
-        3.  **Mission & Vision:** Clearly state the mission (the 'what' and 'how') and the vision (the long-term aspiration) of the enterprise.
-        4.  **Products/Services:** Give a brief overview of the specific products or services that will be offered to customers.
-      ${businessContext}
+      Write the "Project Introduction / Background" section.
+      - **Content:** Describe the industry and opportunity. State the project's mission and vision. Briefly list the products/services.
+      - ${projectContext}
     `,
     promoterDetails: `
-      You are writing the "Promoter's Background" section for a DPR.
-      - **Objective:** Create a professional profile of the promoter, ${promoterName}, to build credibility.
-      - **Content to Include:**
-        1.  **Professional Profile:** Detail their educational qualifications (e.g., degree, university).
-        2.  **Relevant Experience:** Describe their professional experience, especially highlighting skills and years of experience that are directly relevant to making "${idea.title}" a success.
-        3.  **Vision:** Briefly mention their personal vision and commitment to the enterprise.
-      ${businessContext}
+      Write the "Promoter's Background" for ${promoterName}.
+      - **Content:** Detail their professional profile, relevant experience, and commitment to the project.
+      - ${projectContext}
     `,
     businessModel: `
-      You are writing the "Business Model & Operational Plan" section.
-      - **Objective:** Explain exactly how the business will operate and generate revenue.
-      - **Content to Include:**
-        1.  **Core Business Model:** Describe the fundamental model (e.g., B2B manufacturing, Direct-to-Consumer e-commerce, subscription service, etc.).
-        2.  **Value Proposition:** Clearly state the unique value the business offers to its customers. What makes it different or better than competitors?
-        3.  **Revenue Streams:** Detail the specific ways the business will make money.
-        4.  **Operational Activities:** Outline the key day-to-day activities, such as procurement of raw materials, the production process, or the workflow for delivering a service.
-      ${businessContext}
+      Write the "Business Model & Operational Plan".
+      - **Content:** Explain the core model (e.g., B2B, D2C), revenue streams, and key day-to-day operational activities.
+      - ${projectContext}
     `,
     marketAnalysis: `
-      You are writing the "Market Analysis & Marketing Strategy" section.
-      - **Objective:** Demonstrate a clear understanding of the market and a practical plan to capture it.
-      - **Content to Include:**
-        1.  **Industry Overview:** Provide a brief overview of the industry size, growth rate, and key trends in India.
-        2.  **Target Market:** Describe the target market in detail, using the context provided: "${idea.targetAudience}". Include demographics, needs, and buying behavior.
-        3.  **Competition Analysis:** Identify key competitors (direct and indirect). What is this project's competitive advantage? (e.g., price, quality, service).
-        4.  **Marketing & Sales Strategy:** Outline a clear, step-by-step strategy to reach and acquire customers (e.g., digital marketing channels, direct sales team, partnerships, local advertising).
-      ${businessContext}
+      Write the "Market Analysis & Marketing Strategy".
+      - **Content:** Provide an industry overview, describe the target market in detail, analyze competitors, and outline a marketing/sales strategy.
+      - ${projectContext}
+      - ${marketContext}
     `,
     locationAndSite: `
-      You are writing the "Location and Site Development" section.
-      - **Objective:** Justify the choice of location and describe the physical infrastructure.
-      - **Content to Include:**
-        1.  **Proposed Location:** Specify the proposed location for the business (e.g., city, state).
-        2.  **Location Justification:** Explain *why* this location was chosen. Mention advantages like proximity to raw materials, access to the target market, availability of skilled labor, or logistical benefits.
-        3.  **Infrastructure:** Describe the proposed infrastructure (e.g., rented facility, owned land, office space) and any required site development or setup.
-      ${businessContext}
+      Write the "Location and Site Development" section.
+      - **Content:** Specify the proposed location and justify the choice (e.g., access to market, logistics). Describe the physical infrastructure.
+      - ${projectContext}
     `,
     technicalFeasibility: `
-      You are writing the "Technical Feasibility" section.
-      - **Objective:** Prove that the operational side of the business is well-planned.
-      - **Content to Include:**
-        1.  **Technology & Machinery:** Detail the key technology and machinery required for operations. Use the context from the "Investment Strategy": "${idea.investmentStrategy}".
-        2.  **Process Flow:** Describe the production process or service delivery workflow from start to finish.
-        3.  **Supply Chain:** Discuss the plan for sourcing raw materials and the supply chain.
-        4.  **Manpower:** Mention the required manpower and their necessary skill sets.
-      ${businessContext}
+      Write the "Technical Feasibility" section.
+      - **Content:** Detail the technology/machinery required, describe the process flow, and discuss the supply chain and manpower needs.
+      - ${projectContext}
+      - ${financialContext}
     `,
     implementationSchedule: `
-      You are writing the "Implementation Schedule" section.
-      - **Objective:** Create a realistic timeline for launching the project.
-      - **Critical Output Format:** You MUST present this as a simple HTML table with two columns: "Activity" and "Timeline".
-      - **Content to Include:** List key milestones like Loan Disbursement, Site Finalization, Machinery Purchase, Staff Hiring, Marketing Launch, and Commercial Launch. Assign a timeline (e.g., "Week 1-2", "Month 2") to each activity.
-      ${businessContext}
+      Write the "Implementation Schedule" section.
+      - **Output Format:** MUST be a simple HTML table with two columns: "Activity" and "Timeline".
+      - **Content:** List key milestones (e.g., Loan Disbursement, Site Finalization, Machinery Purchase, Staff Hiring, Commercial Launch) and assign a timeline to each.
+      - ${projectContext}
     `,
     financialProjections: `
-      You are writing the "Financial Feasibility" section. This is the most critical part for a bank loan.
-      - **Objective:** Generate comprehensive, realistic financial projections for a small-to-medium enterprise in India.
-      - **Critical Output Format:** You MUST generate detailed HTML tables for each of the following financial statements. Use appropriate table headers (<th>) and data cells (<td>).
-      - **Content to Include:**
-        1.  **Project Cost & Means of Finance:** Create two tables. The first details the project cost (Land, Building, Machinery, etc.). The second details the means of finance (Promoter's Equity, Bank Loan).
-        2.  **Projected Profit & Loss (P&L) Account for 5 years:** Create a table showing Revenue, key Expenses, EBITDA, Interest, Depreciation, PBT, and PAT for 5 years.
-        3.  **Projected Balance Sheet for 5 years:** Create a table showing key Liabilities (Capital, Loans) and Assets (Fixed Assets, Current Assets) for 5 years.
-        4.  **Debt Service Coverage Ratio (DSCR) Calculation for 5 years:** Create a table showing cash accrual, debt obligations, and the final DSCR ratio for each of the 5 years.
-        5.  **Break-Even Point (BEP) Analysis:** Create a simple table calculating the BEP.
-      - Include a brief introductory paragraph before each table explaining its purpose.
-      ${businessContext}
+      Write the "Financial Feasibility" section for a bank loan.
+      - **Output Format:** MUST generate detailed HTML tables for each statement.
+      - **Content:**
+        1.  **Project Cost & Means of Finance:** Two tables detailing project costs and how it will be financed (Equity, Loan).
+        2.  **Projected P&L Account (5 years):** Table showing Revenue, Expenses, EBITDA, PBT, PAT.
+        3.  **Projected Balance Sheet (5 years):** Table showing Liabilities and Assets.
+        4.  **DSCR Calculation (5 years):** Table showing cash accrual, debt, and the DSCR ratio.
+        5.  **Break-Even Point (BEP) Analysis:** A simple table calculating the BEP.
+      - Include a brief introductory paragraph before each table.
+      - ${projectContext}
+      - ${financialContext}
     `,
     swotAnalysis: `
-      You are writing the "SWOT Analysis" section.
-      - **Objective:** Provide a balanced assessment of the business.
-      - **Critical Output Format:** Present the analysis in four distinct sections using <h3> tags for Strengths, Weaknesses, Opportunities, and Threats. Under each heading, use a <ul> with <li> tags for at least 2-3 relevant points.
-      - **Content:** The points must be specific to the business idea "${idea.title}". Be realistic and balanced.
-      ${businessContext}
+      Write the "SWOT Analysis" section.
+      - **Output Format:** Use <h3> tags for Strengths, Weaknesses, Opportunities, and Threats. Under each, use a <ul> with <li> tags for 2-3 points.
+      - **Content:** Points must be specific to the business idea and be balanced.
+      - ${projectContext}
     `,
     regulatoryCompliance: `
-      You are writing the "Regulatory & Legal Compliance" section.
-      - **Objective:** List the necessary legal steps to operate the business in India.
-      - **Content to Include:** Create a bulleted list (<ul> and <li>) of key licenses, registrations, and permits. Examples: GST Registration, Udyam Aadhar, Trade License, FSSAI (if applicable), etc. Mention any industry-specific regulations.
-      ${businessContext}
+      Write the "Regulatory & Legal Compliance" section.
+      - **Content:** Create a bulleted list (<ul> and <li>) of key Indian licenses and registrations needed (e.g., GST, Udyam Aadhar, Trade License, FSSAI if applicable).
+      - ${projectContext}
     `,
     riskAssessment: `
-      You are writing the "Risk Assessment & Mitigation Strategies" section.
-      - **Objective:** Identify potential risks and propose practical solutions.
-      - **Content to Include:** Identify 3-4 potential risks (e.g., Market Risk, Operational Risk, Financial Risk, Competition Risk). For each risk, use a <h3> tag for the risk title and a <p> tag to explain the proposed mitigation strategy.
-      ${businessContext}
+      Write the "Risk Assessment & Mitigation Strategies" section.
+      - **Content:** Identify 3-4 potential risks (Market, Operational, Financial). For each, use an <h3> for the risk title and a <p> to explain the mitigation strategy.
+      - ${projectContext}
     `,
     annexures: `
-      You are writing the "Annexures" section.
-      - **Objective:** List the supporting documents that would be attached to a real DPR.
-      - **Content to Include:** Create a simple bulleted list (<ul> and <li>) of document names. DO NOT ask for the documents themselves. Include items like: Promoter's KYC documents (PAN, Aadhaar), Address Proof, Quotations for Machinery, Business Registration Certificate, etc.
-      ${businessContext}
+      Write the "Annexures" section.
+      - **Content:** Create a simple bulleted list (<ul> and <li>) of supporting document names that would be attached to a real DPR (e.g., Promoter's KYC, Machinery Quotations).
+      - ${projectContext}
     `,
   };
-  return prompts[section] || `Write a detailed section on ${section}. ${businessContext}`;
+  return prompts[section] || `Write a detailed section on ${section}. ${projectContext}`;
 };
 
 export async function POST(req: Request) {
@@ -184,7 +144,7 @@ export async function POST(req: Request) {
         const errorMessage = (result && 'message' in result) ? result.message : "AI generation failed for this section.";
         const errorHtml = `<div style="color: red; border: 1px solid red; padding: 10px; margin: 10px 0; background-color: #fff5f5;">
                              <strong style="font-size: 1.1em;">Error generating ${sectionKey}:</strong><br/>${errorMessage}
-                             <p style="font-size: 0.9em; margin-top: 5px;"><strong>Suggestion:</strong> Use the AI Toolkit to try again with a more detailed prompt. For example: "Based on a small-scale organic farm, generate the ${sectionKey}."</p>
+                             <p style="font-size: 0.9em; margin-top: 5px;"><strong>Suggestion:</strong> The prompt for this section may have been too long or the AI service is temporarily unavailable. Please try again.</p>
                            </div>`;
         htmlContent = htmlContent.replace(`{{${sectionKey}}}`, errorHtml);
       }
@@ -209,5 +169,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-    
