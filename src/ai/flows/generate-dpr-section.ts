@@ -7,6 +7,16 @@
 import catalystService from '@/services/catalyst';
 import type { GenerateDprSectionInput, GenerateDprSectionOutput } from '@/ai/schemas/dpr';
 
+function cleanAiResponse(response: string): string {
+    if (!response || typeof response !== 'string') {
+        return '';
+    }
+    // Remove markdown code blocks and trim whitespace
+    const cleaned = response.replace(/```html/g, '').replace(/```/g, '').trim();
+    return cleaned;
+}
+
+
 export async function generateDprSection(
   input: GenerateDprSectionInput
 ): Promise<GenerateDprSectionOutput> {
@@ -74,10 +84,11 @@ Now, generate the content for the "${section}" section.
   }
 
   try {
-    const text = await catalystService.generateText(finalPrompt, systemPrompt);
+    const rawText = await catalystService.generateText(finalPrompt, systemPrompt);
+    const text = cleanAiResponse(rawText);
     
-    if (!text || text.trim() === '') {
-      throw new Error(`The AI returned empty content for the "${section}" section. This might be due to a very specific or restrictive prompt.`);
+    if (!text) {
+      throw new Error(`The AI returned empty or invalid content for the "${section}" section. This can happen due to a restrictive prompt or a temporary service issue.`);
     }
     
     return { content: text };
