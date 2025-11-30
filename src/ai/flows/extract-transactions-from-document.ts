@@ -82,43 +82,45 @@ export async function extractTransactionsFromDocument(
 ): Promise<ExtractTransactionsOutput> {
   try {
     const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
-    let allTransactions: any[] = [];
+    
+    // Determine the processing strategy
+    const firstMimeType = uris[0].match(/^data:(.*?);base64,/)?.[1] || '';
 
-    for (const uri of uris) {
-      const mimeTypeMatch = uri.match(/^data:(.*?);base64,/);
-      if (!mimeTypeMatch) {
-        throw new Error("Invalid data URI format: MIME type not found.");
-      }
-      const mimeType = mimeTypeMatch[1];
-      const base64Data = uri.split(',')[1];
-      
-      let result;
+    let result;
 
-      if (mimeType.includes('pdf')) {
-        const pdfBuffer = Buffer.from(base64Data, 'base64');
-        const data = await pdf(pdfBuffer);
-        result = await processWithTextModel(data.text);
-      } else if (mimeType.startsWith('image/')) {
-        result = await processWithVisionModel([base64Data]);
-      } else if (mimeType.startsWith('text/')) {
-        const textBuffer = Buffer.from(base64Data, 'base64');
-        result = await processWithTextModel(textBuffer.toString('utf-8'));
-      } else {
-        // As a fallback for unknown types that might be text, try vision
-        console.warn('Unsupported MIME type: ' + mimeType + '. Falling back to Vision model.');
-        result = await processWithVisionModel([base64Data]);
-      }
-      
-      if (result && result.transactions) {
-        allTransactions.push(...result.transactions);
-      }
+    if (firstMimeType.startsWith('image/')) {
+        // If the first file is an image, treat all files as images for the VLM
+        const base64Images = uris.map(uri => uri.split(',')[1]);
+        result = await processWithVisionModel(base64Images);
+    } else {
+        // Otherwise, process as text-based documents (PDF, TXT, CSV)
+        let combinedText = '';
+        for (const uri of uris) {
+            const mimeTypeMatch = uri.match(/^data:(.*?);base64,/);
+             if (!mimeTypeMatch) {
+                console.warn("Skipping invalid data URI in text-based processing.");
+                continue;
+            }
+            const mimeType = mimeTypeMatch[1];
+            const base64Data = uri.split(',')[1];
+            
+            if (mimeType.includes('pdf')) {
+                const pdfBuffer = Buffer.from(base64Data, 'base64');
+                const data = await pdf(pdfBuffer);
+                combinedText += data.text + '\n\n';
+            } else { // Handles text/plain, text/csv, etc.
+                const textBuffer = Buffer.from(base64Data, 'base64');
+                combinedText += textBuffer.toString('utf-8') + '\n\n';
+            }
+        }
+        result = await processWithTextModel(combinedText);
     }
 
-    if (allTransactions.length === 0) {
-      throw new Error("No transactions were extracted from the document(s).");
+    if (!result || !result.transactions || result.transactions.length === 0) {
+      throw new Error("No transactions were extracted from the document(s). The document might be empty, unreadable, or not a financial statement.");
     }
 
-    const validatedData = ExtractTransactionsOutputSchema.parse({ transactions: allTransactions });
+    const validatedData = ExtractTransactionsOutputSchema.parse(result);
     return validatedData;
 
   } catch (e: any) {
