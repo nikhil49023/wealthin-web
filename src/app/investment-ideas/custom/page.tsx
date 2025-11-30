@@ -196,7 +196,7 @@ function InvestmentIdeaContent() {
   const generateSection = useCallback(async (index: number) => {
     if (index >= sections.length || !idea) return;
 
-    const sectionConf = sections[index];
+    const sectionConf = sectionConfig[index];
     setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'loading' } : s));
 
     try {
@@ -214,7 +214,7 @@ function InvestmentIdeaContent() {
     } catch (err) {
          setSections(prev => prev.map((s, i) => i === index ? { ...s, content: (err as Error).message, status: 'error' } : s));
     }
-  }, [idea, sections]);
+  }, [idea]);
   
   // Effect for initial analysis (title and summary)
   useEffect(() => {
