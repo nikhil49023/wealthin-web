@@ -79,6 +79,7 @@ import {
   getDocs,
   query,
   orderBy,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
@@ -134,9 +135,11 @@ export default function FundManagementPage() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   
-  const formatCurrency = (amount: number | undefined): string => {
-    if (amount === undefined) return '';
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  const formatCurrency = (amount: number | string | undefined): string => {
+    if (amount === undefined || amount === null || amount === '') return '₹0.00';
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(numAmount)) return '₹0.00';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(numAmount);
   };
 
   // Data fetching effects
@@ -178,7 +181,7 @@ export default function FundManagementPage() {
 
   // Financial Health Score Calculation
   const financialHealth = useMemo(() => {
-    if (loading) return { score: 0, feedback: 'Calculating score...' };
+    if (loading) return { score: null, feedback: 'Calculating score...' };
 
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
     const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
@@ -211,7 +214,10 @@ export default function FundManagementPage() {
     if (!user) return;
     setIsAdding(true);
     try {
-      await addDoc(collection(db, 'users', user.uid, collectionName), data);
+      await addDoc(collection(db, 'users', user.uid, collectionName), {
+        ...data,
+        createdAt: serverTimestamp(),
+      });
       toast({ title: 'Success', description: `${collectionName.slice(0, -1)} added.` });
       dialogSetter(false);
       invalidateDashboardCache();
@@ -372,11 +378,13 @@ export default function FundManagementPage() {
                 className="stroke-current text-muted"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none" strokeWidth="2" />
-              <path
-                className="stroke-current text-primary"
-                strokeDasharray={`${financialHealth.score}, 100`}
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none" strokeWidth="2.5" strokeLinecap="round" />
+              {financialHealth.score !== null && (
+                <path
+                  className="stroke-current text-primary"
+                  strokeDasharray={`${financialHealth.score}, 100`}
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  fill="none" strokeWidth="2.5" strokeLinecap="round" />
+              )}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-3xl font-bold">{financialHealth.score}</span>
@@ -563,7 +571,7 @@ export default function FundManagementPage() {
                         <p className="text-xs text-muted-foreground">{formatDate(t.date)} {t.time}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">₹{Number(t.amount).toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(t.amount)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete('transactions', t.id)}><Trash2 className="h-4 w-4"/></Button>
                       </TableCell>
@@ -618,7 +626,7 @@ export default function FundManagementPage() {
                     <TableRow key={i.id}>
                       <TableCell className="font-medium">{i.name}</TableCell>
                       <TableCell><Badge variant="secondary">{i.type}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">₹{i.amount.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(i.amount)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete('investments', i.id)}><Trash2 className="h-4 w-4"/></Button>
                       </TableCell>
@@ -678,7 +686,7 @@ export default function FundManagementPage() {
                       <TableCell>
                         <Progress value={(d.amountPaid / d.totalAmount) * 100} className="w-full"/>
                       </TableCell>
-                      <TableCell className="text-right font-mono">₹{(d.totalAmount - d.amountPaid).toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(d.totalAmount - d.amountPaid)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete('debts', d.id)}><Trash2 className="h-4 w-4"/></Button>
                       </TableCell>
@@ -694,5 +702,6 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
 
     
