@@ -147,7 +147,12 @@ export default function FundManagementPage() {
       return onSnapshot(ref, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         if (col === 'transactions') {
-            const sortedData = data.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+            const sortedData = data.sort((a, b) => {
+                const dateA = a.datetime?.toDate ? a.datetime.toDate() : new Date(a.datetime);
+                const dateB = b.datetime?.toDate ? b.datetime.toDate() : new Date(b.datetime);
+                if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
+                return dateB.getTime() - dateA.getTime();
+            });
             setTransactions(sortedData);
         }
         if (col === 'investments') setInvestments(data);
@@ -309,8 +314,11 @@ export default function FundManagementPage() {
   
   const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
 
-  const formatDate = (dateString: string | Date) => {
-    const date = new Date(dateString);
+  const formatDate = (dateValue: string | Date) => {
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (isNaN(date.getTime())) {
+        return "Invalid Date";
+    }
     return new Intl.DateTimeFormat('en-IN', {
         day: '2-digit',
         month: 'short',
