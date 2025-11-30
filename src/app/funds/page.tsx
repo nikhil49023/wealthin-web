@@ -311,7 +311,7 @@ export default function FundManagementPage() {
                 <DialogTrigger asChild>
                     <Button variant="outline" disabled={isImporting}>
                         {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Import
+                        {isImporting ? 'Importing...' : 'Import'}
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -325,7 +325,7 @@ export default function FundManagementPage() {
                         onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                         onClick={() => fileInputRef.current?.click()}
                     >
-                        <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv" className="hidden" />
+                        <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" className="hidden" />
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                             <FileUp className="w-8 h-8" />
                             <p>Drag & drop a file or click to select</p>

@@ -35,8 +35,7 @@ function cleanJsonString(text: string): string {
         return text.substring(startIndex, endIndex + 1);
     }
     
-    if (text && text.trim()) {
-        console.warn("AI did not return JSON. Trying to parse raw text.");
+    if (text && text.trim() && text.startsWith('{')) {
         return text;
     }
 
@@ -73,10 +72,10 @@ export async function extractTransactionsFromDocument(
   }
   
   // Use a powerful language model to structure the raw text into JSON
-  const structuringSystemPrompt = `You are an expert data processor specializing in financial records.
-Your only job is to convert the user's raw text data (likely from a CSV or similar format) into a valid JSON object.
-Your response MUST be ONLY the JSON object and nothing else. Do not add any explanation, commentary, or markdown formatting.
-The JSON object must conform to this exact schema:
+  const structuringSystemPrompt = `You are an expert data processor specializing in financial records. Your only job is to convert the user's raw text data into a valid JSON object. Your response MUST be ONLY the JSON object and nothing else. Do not add any explanation, commentary, or markdown formatting.`;
+  
+  const structuringUserPrompt = `
+Convert the following raw text into a valid JSON object. The JSON object must conform to this exact schema:
 {
   "transactions": [
     {
@@ -86,10 +85,9 @@ The JSON object must conform to this exact schema:
       "amount": "(string) The transaction amount, formatted as a string with currency (e.g., 'INR 1,234.56')."
     }
   ]
-}`;
-  
-  const structuringUserPrompt = `
-Here is the raw text extracted from a financial document. Convert it into a valid JSON object as per the schema I provided.
+}
+
+Here is the raw text extracted from a financial document:
 
 --- RAW TEXT ---
 ${rawTextContent}
