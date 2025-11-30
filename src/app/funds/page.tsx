@@ -26,15 +26,12 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   PlusCircle,
-  MoreVertical,
-  TrendingUp,
-  TrendingDown,
-  Scale,
-  Activity,
   Trash2,
   Upload,
   Loader2,
   FileUp,
+  HelpCircle,
+  Edit,
 } from 'lucide-react';
 import {
   Dialog,
@@ -56,12 +53,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
   } from '@/components/ui/alert-dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-  } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -101,6 +92,7 @@ type Debt = { id: string; name: string; type: string; totalAmount: number; amoun
 export default function FundManagementPage() {
   const { user, loading: loadingAuth } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   // State for all data types
   const [transactions, setTransactions] = useState<(ExtractedTransaction & { id: string })[]>([]);
@@ -127,10 +119,13 @@ export default function FundManagementPage() {
   const [newDebt, setNewDebt] = useState({ name: '', type: 'Personal Loan', totalAmount: '', amountPaid: '0' });
   const [newTransaction, setNewTransaction] = useState({ description: '', date: '', time: '', type: 'expense' as 'income' | 'expense', amount: '' });
 
+  // Import flow state
+  const [importStep, setImportStep] = useState<'upload' | 'confirm'>('upload');
+  const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
+
   // File Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
 
   // Data fetching effects
   useEffect(() => {
@@ -168,24 +163,23 @@ export default function FundManagementPage() {
 
   // Financial Health Score Calculation
   const financialHealth = useMemo(() => {
-    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
     const totalInvestments = investments.reduce((sum, i) => sum + i.amount, 0);
     const totalDebt = debts.reduce((sum, d) => sum + (d.totalAmount - d.amountPaid), 0);
 
     if (totalIncome === 0) return { score: 0, feedback: 'Add income to calculate score.' };
 
-    const savingsRate = (totalIncome - totalExpenses) / totalIncome; // e.g., 0.2 for 20%
-    const debtToIncome = totalDebt / totalIncome;
-    const investmentRate = totalInvestments / totalIncome;
+    const savingsRate = (totalIncome - totalExpenses) / totalIncome;
+    const debtToIncome = totalDebt > 0 ? totalDebt / totalIncome : 0;
+    const investmentRate = totalInvestments > 0 ? totalInvestments / totalIncome : 0;
 
-    // Simple scoring logic (can be refined)
     let score = 50;
-    score += savingsRate * 50; // Max 50 points for savings
-    score -= debtToIncome * 30; // Penalty for debt
-    score += investmentRate * 20; // Bonus for investments
+    score += savingsRate * 50;
+    score -= debtToIncome * 30;
+    score += investmentRate * 20;
 
-    score = Math.max(0, Math.min(100, score)); // Clamp score between 0 and 100
+    score = Math.max(0, Math.min(100, score));
 
     let feedback = 'You\'re on the right track!';
     if (score < 40) feedback = 'There is room for improvement. Focus on increasing savings and reducing debt.';
@@ -228,14 +222,13 @@ export default function FundManagementPage() {
     setImportProgress(0);
     progressIntervalRef.current = setInterval(() => {
         setImportProgress(prev => {
-            if (prev >= 95) { // Stop just before 100 to wait for the actual result
+            if (prev >= 95) {
                 clearInterval(progressIntervalRef.current!);
                 return 95;
             }
-            // Animate progress slowly
             return prev + 1;
         });
-    }, 200); // Adjust interval for desired speed
+    }, 200);
   };
 
   const finishProgressAnimation = () => {
@@ -243,18 +236,21 @@ export default function FundManagementPage() {
         clearInterval(progressIntervalRef.current);
     }
     setImportProgress(100);
-    // Hide progress bar after a short delay
     setTimeout(() => {
         setIsImporting(false);
         setImportProgress(0);
     }, 1000);
   };
 
-  // Import handler
+  const resetImportDialog = () => {
+    setImportDialogOpen(false);
+    setExtractedData([]);
+    setImportStep('upload');
+  };
+
   const processFile = async (file: File) => {
     if (!user) return;
     setIsImporting(true);
-    setImportDialogOpen(false);
     startProgressAnimation();
 
     try {
@@ -268,27 +264,41 @@ export default function FundManagementPage() {
         const result = await extractTransactionsAction({ documentDataUri });
 
         if (result.success && result.data.transactions.length > 0) {
-            const batch = writeBatch(db);
-            const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-            result.data.transactions.forEach(transaction => {
-                const docRef = doc(transactionsRef);
-                const dataToSave = {
-                  ...transaction,
-                };
-                batch.set(docRef, dataToSave);
-            });
-            await batch.commit();
-            invalidateDashboardCache();
-            toast({ title: 'Import Successful', description: `${result.data.transactions.length} transactions were imported.` });
+            setExtractedData(result.data.transactions);
+            setImportStep('confirm');
         } else {
-            throw new Error(result.error || 'No transactions were extracted.');
+            throw new Error(result.error || 'No transactions were extracted from the document.');
         }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Import Failed', description: error.message });
+        resetImportDialog();
     } finally {
         finishProgressAnimation();
+        setIsImporting(false);
     }
   };
+
+  const handleConfirmAndSave = async () => {
+    if (!user || extractedData.length === 0) return;
+    setIsAdding(true);
+    try {
+        const batch = writeBatch(db);
+        const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+        extractedData.forEach(transaction => {
+            const docRef = doc(transactionsRef);
+            batch.set(docRef, transaction);
+        });
+        await batch.commit();
+        invalidateDashboardCache();
+        toast({ title: 'Import Successful', description: `${extractedData.length} transactions were imported.` });
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Save Failed', description: e.message });
+    } finally {
+        setIsAdding(false);
+        resetImportDialog();
+    }
+  };
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -311,7 +321,7 @@ export default function FundManagementPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Activity /> Financial Health Score</CardTitle>
+          <CardTitle className="flex items-center gap-2">Financial Health Score</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row items-center gap-4">
           <div className="relative h-32 w-32">
@@ -336,7 +346,7 @@ export default function FundManagementPage() {
         </CardContent>
       </Card>
 
-      {isImporting && (
+      {isImporting && importStep === 'upload' && (
         <Card>
             <CardHeader>
                 <CardTitle>Importing Transactions...</CardTitle>
@@ -356,30 +366,94 @@ export default function FundManagementPage() {
                 <TabsTrigger value="investments">Investments</TabsTrigger>
                 <TabsTrigger value="debts">Debts</TabsTrigger>
             </TabsList>
-            <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <Dialog open={importDialogOpen} onOpenChange={open => { if (!open) resetImportDialog(); else setImportDialogOpen(true); }}>
                 <DialogTrigger asChild>
                     <Button variant="outline" disabled={isImporting}>
                         <Upload className="mr-2 h-4 w-4" />
                         Import
                     </Button>
                 </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Import Transactions</DialogTitle>
-                        <DialogDescription>Upload a document (PDF, image, CSV) to automatically extract transactions.</DialogDescription>
-                    </DialogHeader>
-                    <div
-                        className={cn('mt-4 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors', { 'bg-accent': isDragging })}
-                        onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}
-                        onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" className="hidden" />
-                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                            <FileUp className="w-8 h-8" />
-                            <p>Drag & drop a file or click to select</p>
-                        </div>
-                    </div>
+                <DialogContent className="max-w-2xl">
+                    {importStep === 'upload' && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>Import Transactions</DialogTitle>
+                                <DialogDescription>Upload a document (PDF, image, CSV) to automatically extract transactions.</DialogDescription>
+                            </DialogHeader>
+                             <div className="grid md:grid-cols-2 gap-6 py-4">
+                                <div
+                                    className={cn('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center', { 'bg-accent': isDragging })}
+                                    onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}
+                                    onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" className="hidden" />
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                        <FileUp className="w-8 h-8" />
+                                        <p>Drag & drop a file or click to select</p>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-muted/50 rounded-lg">
+                                    <h4 className="font-semibold flex items-center gap-2 mb-2"><HelpCircle className="h-5 w-5 text-primary"/>For Best Results</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">Ensure your document is clear and readable. For handwritten notes, use a simple table format:</p>
+                                    <Table className="bg-background text-xs">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Description</TableHead>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead>Type</TableHead>
+                                                <TableHead className="text-right">Amount</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            <TableRow>
+                                                <TableCell>Office Supplies</TableCell>
+                                                <TableCell>25/07/2024</TableCell>
+                                                <TableCell>Expense</TableCell>
+                                                <TableCell className="text-right">1500</TableCell>
+                                            </TableRow>
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                    {importStep === 'confirm' && (
+                         <>
+                            <DialogHeader>
+                                <DialogTitle>Confirm Extracted Data</DialogTitle>
+                                <DialogDescription>Please review the transactions extracted by the AI. If correct, click "Confirm & Save".</DialogDescription>
+                            </DialogHeader>
+                            <div className="max-h-[400px] overflow-y-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Description</TableHead>
+                                            <TableHead>Date & Time</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead className="text-right">Amount</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {extractedData.map((t, i) => (
+                                            <TableRow key={i}>
+                                                <TableCell>{t.description}</TableCell>
+                                                <TableCell>{t.date} {t.time}</TableCell>
+                                                <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'}>{t.type}</Badge></TableCell>
+                                                <TableCell className="text-right font-mono">₹{Number(t.amount).toLocaleString('en-IN')}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                             <DialogFooter className="mt-4">
+                                <Button variant="ghost" onClick={resetImportDialog} disabled={isAdding}>Cancel</Button>
+                                <Button onClick={handleConfirmAndSave} disabled={isAdding}>
+                                     {isAdding ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Saving...</> : 'Confirm & Save'}
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>
@@ -441,7 +515,7 @@ export default function FundManagementPage() {
                         <p className="text-xs text-muted-foreground">{t.date} {t.time}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">₹{t.amount.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right font-mono">₹{Number(t.amount).toLocaleString('en-IN')}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete('transactions', t.id)}><Trash2 className="h-4 w-4"/></Button>
                       </TableCell>
@@ -571,3 +645,5 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
+    
