@@ -29,17 +29,17 @@ const getDprSections = (
   {
     key: 'marketAnalysis',
     title: 'Market Analysis',
-    prompt: `Write the 'Market Analysis' section for a DPR. The business is "${idea.title}". Detail the target market size, growth trends, customer segments, and key competitors in India. Use the following context: ${idea.targetAudience}`,
+    prompt: `Write the 'Market Analysis' section for a DPR. The business is "${idea.title}". Detail the target market size, growth trends, customer segments, and key competitors in India. Use the following context about the target audience: ${idea.targetAudience}`,
   },
   {
     key: 'technicalFeasibility',
     title: 'Technical Feasibility',
-    prompt: `Write the 'Technical Feasibility' section for a DPR for "${idea.title}". Describe the core technology, operational processes, required equipment, and scalability of the solution. Use the following context: ${idea.investmentStrategy}`,
+    prompt: `Write the 'Technical Feasibility' section for a DPR for "${idea.title}". Describe the core technology, operational processes, required equipment, and scalability of the solution. Use the following context about the investment strategy: ${idea.investmentStrategy}`,
   },
   {
     key: 'financials',
     title: 'Financials',
-    prompt: `Generate the 'Financial Projections' section for a DPR for "${idea.title}". The output must be a well-structured set of HTML tables covering: 1. Project Cost & Means of Finance, 2. Projected Profit & Loss for 5 years, 3. Debt Service Coverage Ratio (DSCR) for 5 years, and 4. Break-Even Point Analysis. Use realistic figures for a small-to-medium scale business in India. Base your projections on this context: ${idea.investmentStrategy} and ${idea.roi}`,
+    prompt: `Generate the 'Financial Projections' section for a DPR for "${idea.title}". The output must be a well-structured set of HTML tables covering: 1. Project Cost & Means of Finance, 2. Projected Profit & Loss for 5 years, 3. Debt Service Coverage Ratio (DSCR) for 5 years, and 4. Break-Even Point Analysis. Use realistic figures for a small-to-medium scale business in India. Base your projections on this context about investment and ROI: ${idea.investmentStrategy} and ${idea.roi}`,
   },
   {
     key: 'conclusion',
@@ -67,10 +67,15 @@ export async function POST(req: Request) {
         promoterName: promoterName,
         section: section.title,
         basePrompt: section.prompt,
-      }).then(result => ({
-        key: section.key,
-        content: result.content,
-      }))
+      }).then(result => {
+        if (!result.content || (typeof result.content === 'string' && result.content.trim() === '')) {
+            throw new Error(`The AI returned an invalid format for the ${section.key} section. Please try again or rephrase the idea.`);
+        }
+        return {
+            key: section.key,
+            content: result.content,
+        };
+      })
     );
 
     const generatedSections = await Promise.all(generationPromises);
@@ -80,18 +85,15 @@ export async function POST(req: Request) {
       dprData[section.key] = section.content;
     });
 
-    // 1. Read the HTML template
     const templatePath = path.join(process.cwd(), 'src', 'app', 'dpr-template.html');
     let template = await fs.readFile(templatePath, 'utf-8');
 
-    // 2. Inject promoter name and idea title
     template = template.replace(
       /\{\{promoterName\}\}/g,
       promoterName
     );
     template = template.replace(/\{\{ideaTitle\}\}/g, idea.title);
 
-    // 3. Inject generated sections
     for (const key in dprData) {
       template = template.replace(
         new RegExp(`\\{\\{${key}\\}\\}`, 'g'),
@@ -99,7 +101,6 @@ export async function POST(req: Request) {
       );
     }
     
-     // Add editable wrapper and script to the template
     template = template.replace('</body>', `
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -118,7 +119,6 @@ export async function POST(req: Request) {
                     });
                     element.addEventListener('blur', () => {
                         element.style.border = '1px dashed transparent';
-                        // Save content logic
                         try {
                             localStorage.setItem('dpr-edit-' + id, element.innerHTML);
                         } catch(e) {
@@ -126,7 +126,6 @@ export async function POST(req: Request) {
                         }
                     });
 
-                    // Load saved content
                     try {
                         const savedContent = localStorage.getItem('dpr-edit-' + id);
                         if (savedContent) {
@@ -138,7 +137,6 @@ export async function POST(req: Request) {
                 }
             });
             
-            // Add a function to the window to save all content
             window.saveAllDprContent = function() {
                 sections.forEach(id => {
                     const element = document.getElementById(id);
@@ -152,12 +150,20 @@ export async function POST(req: Request) {
                 });
                 console.log('All DPR content saved to localStorage.');
             }
+
+            // A message handler for the AI Toolkit to save content
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'saveContent') {
+                    if (window.saveAllDprContent) {
+                        window.saveAllDprContent();
+                    }
+                }
+            });
         });
     </script>
     </body>
     `);
 
-    // 4. Return the final HTML
     return new NextResponse(template, {
       headers: {
         'Content-Type': 'text/html',
