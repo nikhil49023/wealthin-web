@@ -69,7 +69,7 @@ class CatalystService {
       "top_k": 50,
       "best_of": 1,
       "temperature": 0.7,
-      "max_tokens": 2048
+      "max_tokens": 1024 // Reduced from 2048
     };
 
     const apiResponse = await fetch(chatApiUrl, {
@@ -77,7 +77,7 @@ class CatalystService {
       headers: {
         'Content-Type': 'application/json',
         'CATALYST-ORG': this.orgId,
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`, // Corrected from 'Zoho-oauthtoken'
       },
       body: JSON.stringify(body),
     });
@@ -105,7 +105,7 @@ class CatalystService {
       "top_k": 50,
       "top_p": 0.9,
       "temperature": 0.7,
-      "max_tokens": 1024
+      "max_tokens": 1024 // Safe value based on samples
     };
 
     const apiResponse = await fetch(vlmApiUrl, {
@@ -113,7 +113,7 @@ class CatalystService {
       headers: {
         'Content-Type': 'application/json',
         'CATALYST-ORG': this.orgId,
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`, // Corrected from 'Zoho-oauthtoken'
       },
       body: JSON.stringify(body),
     });
