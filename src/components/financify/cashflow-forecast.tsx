@@ -5,6 +5,13 @@ import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { AlertTriangle, CheckCircle, Calendar, Loader2 } from 'lucide-react';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 // --- Types ---
 type DailyData = {
@@ -99,6 +106,15 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     return { historicalData: data, lowestPoint: finalLowestPoint };
   }, [transactions]);
 
+  const weeklyChunks = useMemo(() => {
+    const chunks = [];
+    for (let i = 0; i < historicalData.length; i += 7) {
+      chunks.push(historicalData.slice(i, i + 7));
+    }
+    return chunks;
+  }, [historicalData]);
+
+
   // --- Helper to format currency ---
   const formatINR = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -130,6 +146,41 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
           </div>
       )
   }
+
+  const BreakdownCard = ({ day }: { day: DailyData }) => (
+    <div 
+      className={`p-3 rounded-lg border text-sm transition-all hover:shadow-md ${
+        day.status === 'danger' ? 'bg-red-50 border-red-200' : 
+        day.status === 'warning' ? 'bg-amber-50 border-amber-200' : 
+        'bg-white border-slate-100'
+      }`}
+    >
+      <div className="flex justify-between items-center mb-2">
+        <span className="font-medium text-slate-600">{formatDate(day.date)}</span>
+        <span className={`font-bold ${day.status === 'danger' ? 'text-red-600' : day.status === 'warning' ? 'text-amber-600' : 'text-slate-800'}`}>
+          {formatINR(day.balance)}
+        </span>
+      </div>
+      
+      <div className="space-y-1">
+        {day.events.length > 0 ? (
+          day.events.slice(0, 2).map((event, i) => ( // Show max 2 events
+            <div key={i} className="flex items-center gap-1 text-xs">
+              {event.startsWith('+') ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+              ) : (
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0"></span>
+              )}
+              <span className="truncate" title={event}>{event}</span>
+            </div>
+          ))
+        ) : (
+          <div className="text-xs text-slate-400 italic">No transactions</div>
+        )}
+        {day.events.length > 2 && <div className="text-xs text-slate-400 italic">...and {day.events.length - 2} more</div>}
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
@@ -194,45 +245,32 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
           <Calendar className="w-4 h-4" /> 30-Day Breakdown
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {historicalData.map((day, idx) => (
-            <div 
-              key={idx} 
-              className={`p-3 rounded-lg border text-sm transition-all hover:shadow-md ${
-                day.status === 'danger' ? 'bg-red-50 border-red-200' : 
-                day.status === 'warning' ? 'bg-amber-50 border-amber-200' : 
-                'bg-white border-slate-100'
-              }`}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium text-slate-600">{formatDate(day.date)}</span>
-                <span className={`font-bold ${day.status === 'danger' ? 'text-red-600' : day.status === 'warning' ? 'text-amber-600' : 'text-slate-800'}`}>
-                  {formatINR(day.balance)}
-                </span>
-              </div>
-              
-              <div className="space-y-1">
-                {day.events.length > 0 ? (
-                  day.events.slice(0, 2).map((event, i) => ( // Show max 2 events
-                    <div key={i} className="flex items-center gap-1 text-xs">
-                      {event.startsWith('+') ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
-                      ) : (
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0"></span>
-                      )}
-                      <span className="truncate" title={event}>{event}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-xs text-slate-400 italic">No transactions</div>
-                )}
-                {day.events.length > 2 && <div className="text-xs text-slate-400 italic">...and {day.events.length - 2} more</div>}
-              </div>
-            </div>
+        {/* Mobile Carousel View */}
+        <div className="md:hidden">
+          <Carousel className="w-full">
+            <CarouselContent>
+              {weeklyChunks.map((week, weekIndex) => (
+                <CarouselItem key={weekIndex}>
+                  <div className="p-1 space-y-3">
+                    {week.map(day => <BreakdownCard key={day.date.toISOString()} day={day} />)}
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="absolute left-[-10px]" />
+            <CarouselNext className="absolute right-[-10px]" />
+          </Carousel>
+        </div>
+
+        {/* Desktop Grid View */}
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {historicalData.map((day) => (
+            <BreakdownCard key={day.date.toISOString()} day={day} />
           ))}
         </div>
       </div>
-
     </div>
   );
 }
+
+    
