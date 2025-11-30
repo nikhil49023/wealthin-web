@@ -13,7 +13,11 @@ export const ExtractedTransactionSchema = z.object({
   description: z.string().describe('The description of the transaction.'),
   date: z
     .string()
-    .describe('The date and time of the transaction, extracted exactly as it appears in the document.'),
+    .describe('The date of the transaction, extracted exactly as it appears in the document.'),
+  time: z
+    .string()
+    .optional()
+    .describe('The time of the transaction, extracted exactly as it appears in the document.'),
   type: z
     .enum(['income', 'expense'])
     .describe('The type of transaction (income or expense).'),

@@ -125,7 +125,7 @@ export default function FundManagementPage() {
   // Form states
   const [newInvestment, setNewInvestment] = useState({ name: '', type: 'Stocks', amount: '' });
   const [newDebt, setNewDebt] = useState({ name: '', type: 'Personal Loan', totalAmount: '', amountPaid: '0' });
-  const [newTransaction, setNewTransaction] = useState({ description: '', date: '', type: 'expense' as 'income' | 'expense', amount: '' });
+  const [newTransaction, setNewTransaction] = useState({ description: '', date: '', time: '', type: 'expense' as 'income' | 'expense', amount: '' });
 
   // File Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -396,7 +396,8 @@ export default function FundManagementPage() {
                   <DialogHeader><DialogTitle>Add New Transaction</DialogTitle></DialogHeader>
                   <div className="grid gap-4 py-4">
                     <Input placeholder="Description" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})}/>
-                    <Input type="text" placeholder="Date (e.g., 20/07/2024 10:30 AM)" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
+                    <Input type="text" placeholder="Date (e.g., 20/07/2024)" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
+                    <Input type="text" placeholder="Time (e.g., 10:30 AM)" value={newTransaction.time} onChange={e => setNewTransaction({...newTransaction, time: e.target.value})}/>
                     <Select value={newTransaction.type} onValueChange={(v: 'income' | 'expense') => setNewTransaction({...newTransaction, type: v})}>
                       <SelectTrigger><SelectValue/></SelectTrigger>
                       <SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent>
@@ -411,6 +412,7 @@ export default function FundManagementPage() {
                           amount: parseFloat(newTransaction.amount),
                           type: newTransaction.type,
                           date: newTransaction.date,
+                          time: newTransaction.time,
                         };
                         handleAdd('transactions', dataToSave, setAddTransactionDialogOpen);
                     }}>
@@ -436,7 +438,7 @@ export default function FundManagementPage() {
                     <TableRow key={t.id}>
                       <TableCell>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.date}</p>
+                        <p className="text-xs text-muted-foreground">{t.date} {t.time}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
                       <TableCell className="text-right font-mono">₹{t.amount.toLocaleString('en-IN')}</TableCell>
