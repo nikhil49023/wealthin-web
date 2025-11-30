@@ -101,7 +101,7 @@ class CatalystService {
       "prompt": prompt,
       "model": "VL-Qwen2.5-7B",
       "images": base64Images,
-      "system_prompt": "Be concise and factual. Extract the data exactly as requested in the required JSON format.",
+      "system_prompt": "You are a data extraction bot. Your response MUST be ONLY a valid JSON object. Do not include any other text, markdown, or explanations.",
       "top_k": 50,
       "top_p": 0.9,
       "temperature": 0.7,
