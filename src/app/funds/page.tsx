@@ -32,6 +32,7 @@ import {
   FileUp,
   HelpCircle,
   Edit,
+  AreaChart,
 } from 'lucide-react';
 import {
   Dialog,
@@ -76,6 +77,8 @@ import {
   deleteDoc,
   writeBatch,
   getDocs,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
@@ -83,12 +86,26 @@ import { extractTransactionsAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
+import { Calendar } from '@/components/ui/calendar';
+import { addMonths, startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
+import { AlertCircle } from 'lucide-react';
+
 
 const db = getFirestore(app);
 
 // Data types for new features
 type Investment = { id: string; name: string; type: string; amount: number };
 type Debt = { id: string; name: string; type: string; totalAmount: number; amountPaid: number };
+
+type ForecastDay = {
+  date: Date;
+  transactions: ExtractedTransaction[];
+  income: number;
+  expense: number;
+  net: number;
+  openingBalance: number;
+  closingBalance: number;
+};
 
 export default function FundManagementPage() {
   const { user, loading: loadingAuth } = useAuth();
@@ -127,6 +144,13 @@ export default function FundManagementPage() {
   // File Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Cashflow states
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [openingBalance, setOpeningBalance] = useState<number | ''>(0);
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
+  
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
   // Data fetching effects
   useEffect(() => {
@@ -140,7 +164,8 @@ export default function FundManagementPage() {
     const unsubscribes = Object.entries(collections).map(([col, setter]) => {
       setter(true);
       const ref = collection(db, 'users', user.uid, col);
-      return onSnapshot(ref, (snapshot) => {
+      const q = col === 'transactions' ? query(ref, orderBy('date', 'desc')) : ref;
+      return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         if (col === 'transactions') setTransactions(data);
         if (col === 'investments') setInvestments(data);
@@ -320,6 +345,66 @@ export default function FundManagementPage() {
   
   const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
 
+  const monthlyForecast = useMemo((): ForecastDay[] => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+    let currentBalance = Number(openingBalance) || 0;
+
+    return daysInMonth.map(day => {
+      const dayTransactions = transactions.filter(t => {
+        try {
+          // Handle both 'YYYY-MM-DD' and full ISO strings
+          const transactionDate = t.date.includes('T') ? parseISO(t.date) : new Date(t.date.split('/').reverse().join('-'));
+          return isSameDay(transactionDate, day);
+        } catch {
+          return false;
+        }
+      });
+      
+      const income = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+      const expense = dayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      const dayData: ForecastDay = {
+        date: day,
+        transactions: dayTransactions,
+        income,
+        expense,
+        net: income - expense,
+        openingBalance: currentBalance,
+        closingBalance: currentBalance + income - expense,
+      };
+      
+      currentBalance = dayData.closingBalance;
+      return dayData;
+    });
+  }, [currentMonth, transactions, openingBalance]);
+
+  const selectedDayData = monthlyForecast.find(d => isSameDay(d.date, selectedDay || new Date()));
+
+  const DayWithContent = ({ date }: { date: Date }) => {
+    const dayData = monthlyForecast.find(d => isSameDay(d.date, date));
+    if (!dayData) return <div className="p-1 text-center text-sm">{format(date, 'd')}</div>;
+
+    const isLowBalance = dayData.closingBalance < (Number(openingBalance) * 0.25); // Warning if balance drops below 25% of opening
+    const isNegativeBalance = dayData.closingBalance < 0;
+
+    return (
+      <div className={cn(
+        "h-full w-full p-1 flex flex-col justify-between text-left text-sm",
+        isNegativeBalance ? "bg-red-100/50 dark:bg-red-900/30" : isLowBalance ? "bg-amber-100/50 dark:bg-amber-900/30" : ""
+      )}>
+        <span className="font-medium">{format(date, 'd')}</span>
+        <div className="text-xs text-right">
+          {dayData.net > 0 && <span className="text-green-600 font-bold">+{formatCurrency(dayData.net)}</span>}
+          {dayData.net < 0 && <span className="text-red-600 font-bold">{formatCurrency(dayData.net)}</span>}
+        </div>
+      </div>
+    );
+  };
+
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Fund Management</h1>
@@ -365,15 +450,16 @@ export default function FundManagementPage() {
       )}
 
       <Tabs defaultValue="transactions">
-        <div className="flex justify-between items-center">
-            <TabsList>
+        <div className="flex flex-wrap gap-4 justify-between items-center">
+            <TabsList className="grid w-full grid-cols-4 sm:w-auto">
                 <TabsTrigger value="transactions">Transactions</TabsTrigger>
                 <TabsTrigger value="investments">Investments</TabsTrigger>
                 <TabsTrigger value="debts">Debts</TabsTrigger>
+                <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
             </TabsList>
             <Dialog open={importDialogOpen} onOpenChange={open => { if (!open) resetImportDialog(); else setImportDialogOpen(true); }}>
                 <DialogTrigger asChild>
-                    <Button variant="outline" disabled={isImporting}>
+                    <Button variant="outline" disabled={isImporting} className="w-full sm:w-auto">
                         <Upload className="mr-2 h-4 w-4" />
                         Import
                     </Button>
@@ -646,7 +732,110 @@ export default function FundManagementPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+         {/* Cashflow Tab */}
+        <TabsContent value="cashflow">
+          <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><AreaChart/> Cashflow Calendar</CardTitle>
+                    <CardDescription>Visually forecast your income, expenses, and daily balance for the month.</CardDescription>
+                </CardHeader>
+            </Card>
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                    <CardTitle>{format(currentMonth, 'MMMM yyyy')}</CardTitle>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setCurrentMonth(prev => addMonths(prev, -1))}>Previous</Button>
+                        <Button variant="outline" onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}>Next</Button>
+                    </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Calendar
+                    mode="single"
+                    selected={selectedDay}
+                    onSelect={setSelectedDay}
+                    month={currentMonth}
+                    onMonthChange={setCurrentMonth}
+                    components={{
+                        DayContent: DayWithContent,
+                    }}
+                    className="p-0"
+                    classNames={{
+                        day: 'h-20 w-full p-0 text-left align-top',
+                        head_cell: 'w-full'
+                    }}
+                    />
+                </CardContent>
+                </Card>
+
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Opening Balance</CardTitle>
+                            <CardDescription>Enter your starting balance for this month to get an accurate forecast.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Label htmlFor="opening-balance">Balance on {format(startOfMonth(currentMonth), 'do MMM')}</Label>
+                            <Input
+                                id="opening-balance"
+                                type="number"
+                                placeholder="e.g., 50000"
+                                value={openingBalance}
+                                onChange={(e) => setOpeningBalance(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                Details for {selectedDay ? format(selectedDay, 'do MMMM') : 'Today'}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {selectedDayData ? (
+                                <>
+                                    {selectedDayData.closingBalance < 0 && (
+                                        <Badge variant="destructive" className="flex items-center gap-2">
+                                            <AlertCircle className="h-4 w-4" /> Negative Balance Warning
+                                        </Badge>
+                                    )}
+                                    <div className="flex justify-between"><span>Opening Balance:</span> <span className="font-mono">{formatCurrency(selectedDayData.openingBalance)}</span></div>
+                                    <div className="flex justify-between text-green-600"><span>Income:</span> <span className="font-mono">+{formatCurrency(selectedDayData.income)}</span></div>
+                                    <div className="flex justify-between text-red-600"><span>Expense:</span> <span className="font-mono">{formatCurrency(selectedDayData.expense)}</span></div>
+                                    <hr />
+                                    <div className="flex justify-between font-bold"><span>Closing Balance:</span> <span className="font-mono">{formatCurrency(selectedDayData.closingBalance)}</span></div>
+
+                                    {selectedDayData.transactions.length > 0 && (
+                                        <div className="pt-4 space-y-2">
+                                            <h4 className="font-semibold">Transactions:</h4>
+                                            <ul className="text-sm space-y-1">
+                                            {selectedDayData.transactions.map((t, i) => (
+                                                <li key={i} className="flex justify-between">
+                                                    <span>{t.description}</span>
+                                                    <span className={cn("font-mono", t.type === 'income' ? 'text-green-600' : 'text-red-600')}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span>
+                                                </li>
+                                            ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-muted-foreground text-center">Select a day to see details.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+          </div>
+        </TabsContent>
+
       </Tabs>
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -64,11 +65,6 @@ export default function Sidebar({
       href: '/funds',
       label: 'Funds',
       icon: DollarSign,
-    },
-    {
-      href: '/cashflow',
-      label: 'Cashflow',
-      icon: AreaChart,
     },
     {
       href: '/brainstorm',
