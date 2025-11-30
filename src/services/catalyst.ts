@@ -77,7 +77,7 @@ class CatalystService {
       headers: {
         'Content-Type': 'application/json',
         'CATALYST-ORG': this.orgId,
-        'Authorization': `Zoho-oauthtoken ${token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
@@ -113,7 +113,7 @@ class CatalystService {
       headers: {
         'Content-Type': 'application/json',
         'CATALYST-ORG': this.orgId,
-        'Authorization': `Zoho-oauthtoken ${token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });

@@ -119,7 +119,6 @@ export async function extractTransactionsFromDocument(
       throw new Error("No transactions were extracted from the document(s).");
     }
 
-    // Zod will now automatically handle minor type issues like coercing string numbers to numbers.
     const validatedData = ExtractTransactionsOutputSchema.parse({ transactions: allTransactions });
     return validatedData;
 
