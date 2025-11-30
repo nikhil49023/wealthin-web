@@ -73,7 +73,7 @@ The JSON object must conform to this exact schema:
     {
       "description": "(string) A clear description of the transaction.",
       "date": "(string) The date in DD/MM/YYYY format. If the year is not specified, assume the current year.",
-      "datetime": "(string) The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If the time is not present, default to 00:00:00 for that day.",
+      "datetime": "(string) The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If time is not present, default to 00:00:00 for that day. This is a critical field.",
       "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals and 'income' for credits/deposits.",
       "amount": "(string) The transaction amount, formatted as a string with currency (e.g., 'INR 1,234.56')."
     }
@@ -82,6 +82,7 @@ The JSON object must conform to this exact schema:
 
 - For debits, withdrawals, or payments, the 'type' must be 'expense'.
 - For credits, deposits, or fund transfers in, the 'type' must be 'income'.
+- The 'datetime' field MUST be a valid ISO 8601 string (YYYY-MM-DDTHH:mm:ss). This is the most important rule.
 - Ensure amounts are captured accurately with currency symbols.
 
 Your response MUST be ONLY the JSON object. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.

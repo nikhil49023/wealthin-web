@@ -404,9 +404,14 @@ export default function FundManagementPage() {
                   <DialogFooter>
                     <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                     <Button disabled={isAdding} onClick={() => {
+                        if (!newTransaction.date) {
+                            toast({ variant: 'destructive', title: 'Error', description: 'Please select a date and time.' });
+                            return;
+                        }
                         const date = new Date(newTransaction.date);
                         const dataToSave = {
                           ...newTransaction,
+                          amount: `INR ${newTransaction.amount}`,
                           date: date.toLocaleDateString('en-GB'),
                           datetime: date.toISOString()
                         };
