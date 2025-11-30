@@ -1,25 +1,34 @@
 
 export function cleanAndParseJSON(llmOutput: string) {
+  if (typeof llmOutput !== 'string') {
+    console.error("cleanAndParseJSON received a non-string input:", llmOutput);
+    throw new Error("Invalid input to JSON parser.");
+  }
+  
   try {
-    // 1. Remove Markdown code blocks (```json ... ```)
-    let cleanText = llmOutput.replace(/```json/g, "").replace(/```/g, "");
+    // Attempt to parse directly first, in case the output is already perfect JSON
+    return JSON.parse(llmOutput);
+  } catch (e) {
+    // If direct parsing fails, proceed with cleaning
+    try {
+      // 1. Find the first '{' and the last '}' to isolate the JSON object
+      // This is a more robust way to strip leading/trailing text than regex.
+      const firstBrace = llmOutput.indexOf("{");
+      const lastBrace = llmOutput.lastIndexOf("}");
 
-    // 2. Find the first '{' and the last '}' to isolate the JSON object
-    // This ignores any conversational text before or after the JSON
-    const firstBrace = cleanText.indexOf("{");
-    const lastBrace = cleanText.lastIndexOf("}");
+      if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+        throw new Error("No valid JSON object found in the AI response.");
+      }
 
-    if (firstBrace === -1 || lastBrace === -1) {
-      throw new Error("No JSON object found in response");
+      const jsonString = llmOutput.substring(firstBrace, lastBrace + 1);
+
+      // 2. Parse the cleaned string
+      return JSON.parse(jsonString);
+
+    } catch (error: any) {
+      console.error("Failed to parse LLM JSON after cleaning:", error.message);
+      console.error("Original AI Output:", llmOutput);
+      throw new Error("AI returned an invalid or malformed JSON structure.");
     }
-
-    cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-
-    // 3. Parse the cleaned string
-    return JSON.parse(cleanText);
-  } catch (error) {
-    console.error("Failed to parse LLM JSON:", error);
-    console.error("Original Output:", llmOutput); // Log this to debug!
-    throw new Error("AI returned invalid JSON structure");
   }
 }
