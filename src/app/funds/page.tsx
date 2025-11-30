@@ -150,7 +150,10 @@ export default function FundManagementPage() {
   const [openingBalance, setOpeningBalance] = useState<number | ''>(0);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
   
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  const formatCurrency = (amount: number | undefined): string => {
+    if (amount === undefined) return '';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  };
 
   // Data fetching effects
   useEffect(() => {
@@ -355,11 +358,17 @@ export default function FundManagementPage() {
     return daysInMonth.map(day => {
       const dayTransactions = transactions.filter(t => {
         try {
-          // Handle both 'YYYY-MM-DD' and full ISO strings
-          const transactionDate = t.date.includes('T') ? parseISO(t.date) : new Date(t.date.split('/').reverse().join('-'));
+          const transactionDate = parseISO(t.date);
           return isSameDay(transactionDate, day);
         } catch {
-          return false;
+          // Handle cases where t.date might be in a different format or invalid
+          try {
+            const [d, m, y] = t.date.split('/');
+            const transactionDate = new Date(`${y}-${m}-${d}`);
+            return isSameDay(transactionDate, day);
+          } catch {
+            return false;
+          }
         }
       });
       
@@ -744,13 +753,11 @@ export default function FundManagementPage() {
             </Card>
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
+                <CardHeader className="flex-row items-center justify-between">
                     <CardTitle>{format(currentMonth, 'MMMM yyyy')}</CardTitle>
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={() => setCurrentMonth(prev => addMonths(prev, -1))}>Previous</Button>
                         <Button variant="outline" onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}>Next</Button>
-                    </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -838,4 +845,3 @@ export default function FundManagementPage() {
     </div>
   );
 }
-
