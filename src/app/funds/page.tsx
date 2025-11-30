@@ -144,7 +144,10 @@ export default function FundManagementPage() {
       const ref = collection(db, 'users', user.uid, col);
       return onSnapshot(ref, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if (col === 'transactions') setTransactions(data);
+        if (col === 'transactions') {
+            const sortedData = data.sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+            setTransactions(sortedData);
+        }
         if (col === 'investments') setInvestments(data);
         if (col === 'debts') setDebts(data);
         setter(false);
@@ -391,7 +394,7 @@ export default function FundManagementPage() {
                   <DialogHeader><DialogTitle>Add New Transaction</DialogTitle></DialogHeader>
                   <div className="grid gap-4 py-4">
                     <Input placeholder="Description" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})}/>
-                    <Input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
+                    <Input type="datetime-local" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
                     <Select value={newTransaction.type} onValueChange={(v: 'income' | 'expense') => setNewTransaction({...newTransaction, type: v})}>
                       <SelectTrigger><SelectValue/></SelectTrigger>
                       <SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent>
@@ -400,7 +403,15 @@ export default function FundManagementPage() {
                   </div>
                   <DialogFooter>
                     <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
-                    <Button disabled={isAdding} onClick={() => handleAdd('transactions', {...newTransaction, date: newTransaction.date ? new Date(newTransaction.date).toLocaleDateString('en-GB'): '' }, setAddTransactionDialogOpen)}>
+                    <Button disabled={isAdding} onClick={() => {
+                        const date = new Date(newTransaction.date);
+                        const dataToSave = {
+                          ...newTransaction,
+                          date: date.toLocaleDateString('en-GB'),
+                          datetime: date.toISOString()
+                        };
+                        handleAdd('transactions', dataToSave, setAddTransactionDialogOpen);
+                    }}>
                         {isAdding && <Loader2 className="mr-2 animate-spin"/>} Add
                     </Button>
                   </DialogFooter>
@@ -423,7 +434,7 @@ export default function FundManagementPage() {
                     <TableRow key={t.id}>
                       <TableCell>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.date}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(t.datetime).toLocaleString()}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
                       <TableCell className="text-right font-mono">{t.amount}</TableCell>
@@ -556,7 +567,3 @@ export default function FundManagementPage() {
     </div>
   );
 }
-
-    
-
-    

@@ -13,6 +13,10 @@ export const ExtractedTransactionSchema = z.object({
   date: z
     .string()
     .describe('The date of the transaction in DD/MM/YYYY format.'),
+  datetime: z
+    .string()
+    .datetime()
+    .describe('The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If time is not present, default to 00:00:00.'),
   type: z
     .enum(['income', 'expense'])
     .describe('The type of transaction (income or expense).'),

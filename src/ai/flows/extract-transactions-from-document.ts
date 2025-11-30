@@ -73,6 +73,7 @@ The JSON object must conform to this exact schema:
     {
       "description": "(string) A clear description of the transaction.",
       "date": "(string) The date in DD/MM/YYYY format. If the year is not specified, assume the current year.",
+      "datetime": "(string) The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If the time is not present, default to 00:00:00 for that day.",
       "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals and 'income' for credits/deposits.",
       "amount": "(string) The transaction amount, formatted as a string with currency (e.g., 'INR 1,234.56')."
     }
