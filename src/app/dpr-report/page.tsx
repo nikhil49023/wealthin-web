@@ -90,7 +90,7 @@ function DPRReportContent() {
   };
 
   const handleRefineSection = async () => {
-    if (!sectionToEdit || !refinementPrompt || !iframeRef.current?.contentWindow) {
+    if (!sectionToEdit || !refinementPrompt || !iframeRef.current?.contentWindow || !idea || !promoterName) {
       toast({ variant: 'destructive', description: 'Please select a section and enter a prompt.' });
       return;
     }
@@ -111,6 +111,8 @@ function DPRReportContent() {
                 section: sectionToEdit,
                 existingContent,
                 refinementPrompt,
+                idea: idea, // Pass the full idea object
+                promoterName: promoterName, // Pass the promoter name
             })
         });
 

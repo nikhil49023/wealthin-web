@@ -9,36 +9,21 @@ import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investme
 
 export async function POST(req: Request) {
   try {
-    const { section, existingContent, refinementPrompt } = await req.json();
+    const { section, existingContent, refinementPrompt, idea, promoterName } = await req.json();
 
-    // The full idea analysis should be stored in localStorage on the client
-    // and passed along with the request if needed. For now, we'll create a
-    // dummy object as the flow requires it. A more robust implementation
-    // would fetch this or pass it from the client.
-    const dummyIdea: GenerateInvestmentIdeaAnalysisOutput = {
-        title: "Business Idea",
-        summary: "A general business idea.",
-        investmentStrategy: "",
-        targetAudience: "",
-        roi: "",
-        futureProofing: "",
-        relevantSchemes: "",
-        legalRequirements: "",
-    };
-
-    if (!section || !existingContent || !refinementPrompt) {
+    if (!section || !existingContent || !refinementPrompt || !idea || !promoterName) {
       return NextResponse.json(
-        { message: 'Missing required fields: section, existingContent, or refinementPrompt' },
+        { message: 'Missing required fields: section, existingContent, refinementPrompt, idea, or promoterName' },
         { status: 400 }
       );
     }
     
-    // Find the base prompt for the section
+    // Find the base prompt for the section - for refinement, it's generic
     const basePrompt = "Refine the provided content based on the user's instruction.";
 
     const result = await generateDprSection({
-        idea: dummyIdea,
-        promoterName: "[Promoter]",
+        idea: idea,
+        promoterName: promoterName,
         section: section,
         basePrompt: basePrompt,
         existingContent: existingContent,
@@ -55,5 +40,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-    
