@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview A flow for extracting financial transactions from a document's text content.
+ * @fileOverview A flow for extracting financial transactions from a document using a Vision Language Model (VLM).
  */
 import catalystService from '@/services/catalyst';
 import type {
@@ -9,7 +9,6 @@ import type {
   ExtractTransactionsOutput,
 } from '@/ai/schemas/transactions';
 import { ExtractTransactionsOutputSchema } from '@/ai/schemas/transactions';
-
 
 /**
  * Cleans the raw text response from an AI model to extract a valid JSON string.
@@ -47,35 +46,28 @@ export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
 
-  let rawTextContent: string;
+  let base64Images: string[] = [];
   try {
-      // The input can be a single URI or an array for multi-page/multi-file, but we'll join them.
-      const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
-      
-      const decodedTexts = uris.map(uri => {
-          const parts = uri.split(',');
-          if (parts.length !== 2 || !parts[0].includes(';base64')) {
-              throw new Error("Invalid data URI format encountered. Expected Base64 encoded data.");
-          }
-          // Decode the Base64 string to its original text format
-          return Buffer.from(parts[1], 'base64').toString('utf8');
-      });
+    const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
+    
+    base64Images = uris.map(uri => {
+        const parts = uri.split(',');
+        if (parts.length !== 2 || !parts[0].includes(';base64')) {
+            throw new Error("Invalid data URI format encountered. Expected Base64 encoded data.");
+        }
+        return parts[1];
+    });
 
-      rawTextContent = decodedTexts.join('\n\n--- Document Break ---\n\n');
-
-      if (!rawTextContent.trim()) {
-        throw new Error("The provided document is empty or could not be read.");
-      }
-  } catch (e) {
-      console.error("Failed to decode data URI(s) to text:", e);
-      throw new Error("Could not extract text from the provided file(s). Ensure they are text-based (like CSV or TXT).");
+  } catch (e: any) {
+    console.error("Failed to process data URI(s):", e);
+    throw new Error("Could not extract image data from the provided file(s).");
   }
-  
-  // Use a powerful language model to structure the raw text into JSON
-  const structuringSystemPrompt = `You are an expert data processor specializing in financial records. Your only job is to convert the user's raw text data into a valid JSON object. Your response MUST be ONLY the JSON object and nothing else. Do not add any explanation, commentary, or markdown formatting.`;
-  
-  const structuringUserPrompt = `
-Convert the following raw text into a valid JSON object. The JSON object must conform to this exact schema:
+
+  const vlmUserPrompt = `
+You are an expert financial data analyst. Analyze the provided image(s) of a financial document (like a bank statement or transaction list).
+Your task is to extract all transactions and return them as a valid JSON object.
+
+The JSON object must conform to this exact schema:
 {
   "transactions": [
     {
@@ -87,17 +79,16 @@ Convert the following raw text into a valid JSON object. The JSON object must co
   ]
 }
 
-Here is the raw text extracted from a financial document:
+- For debits, withdrawals, or payments, the 'type' must be 'expense'.
+- For credits, deposits, or fund transfers in, the 'type' must be 'income'.
+- Ensure amounts are captured accurately with currency symbols.
 
---- RAW TEXT ---
-${rawTextContent}
---- END RAW TEXT ---
-
-Generate the JSON object now.
+Your response MUST be ONLY the JSON object. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.
 `;
 
+
   try {
-    const jsonResponseText = await catalystService.generateText(structuringUserPrompt, structuringSystemPrompt);
+    const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, base64Images);
     const jsonString = cleanJsonString(jsonResponseText);
     const parsed = JSON.parse(jsonString);
 
@@ -105,7 +96,7 @@ Generate the JSON object now.
     return ExtractTransactionsOutputSchema.parse(parsed);
 
   } catch (e: any) {
-    console.error('Failed to parse structured JSON from LLM:', e.message);
+    console.error('Failed to parse structured JSON from VLM:', e.message);
     throw new Error('Could not extract transactions. The AI returned an invalid format or the document content was unparsable.');
   }
 }
