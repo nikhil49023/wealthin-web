@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/context/auth-provider';
@@ -906,7 +905,7 @@ const dprWizardHtml = `
             });
             
             document.getElementById(tabName).classList.add('active');
-            event.currentTarget.classList.add('active');
+            event.target.classList.add('active');
         }
 
         // Financial Calculations
@@ -941,7 +940,7 @@ const dprWizardHtml = `
             html += '<tr><td>Interest on Loan</td><td>₹' + annualInterest.toFixed(2) + ' L</td></tr>';
             html += '<tr><td>Taxable Income</td><td>₹' + taxableIncome.toFixed(2) + ' L</td></tr>';
             html += '<tr><td>Income Tax (' + (taxRate*100).toFixed(1) + '%)</td><td>₹' + tax.toFixed(2) + ' L</td></tr>';
-            html += '<tr style="background: var(--color-wealthin-50);"><td><strong>Net Profit</strong></td><td><strong>₹' + netProfit.toFixed(2) + ' L</strong></td></tr>';
+            html += '<tr style="background: var(--color-gray-200);"><td><strong>Net Profit</strong></td><td><strong>₹' + netProfit.toFixed(2) + ' L</strong></td></tr>';
             html += '</table>';
 
             document.getElementById('financialResults').innerHTML = html;
@@ -1022,3 +1021,33 @@ const dprWizardHtml = `
     </script>
 </body>
 </html>
+`;
+
+
+function DprWizardPage() {
+    const { user } = useAuth();
+    
+    return (
+        <div className="space-y-6">
+             <Button variant="ghost" asChild className="-ml-4">
+                <Link href="/my-ideas">
+                    <ArrowLeft className="mr-2" />
+                    Back to My Ideas
+                </Link>
+            </Button>
+            <Card>
+                <CardContent className="p-0">
+                     <iframe
+                        srcDoc={dprWizardHtml}
+                        className="w-full h-[85vh] border-0"
+                        title="DPR Wizard"
+                    />
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+export default DprWizardPage;
+
+    
