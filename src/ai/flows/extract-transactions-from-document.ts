@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview A flow for extracting financial transactions from a document image using a two-step AI pipeline.
+ * @fileOverview A flow for extracting financial transactions from a document's text content.
  */
 import catalystService from '@/services/catalyst';
 import type {
@@ -35,11 +35,9 @@ function cleanJsonString(text: string): string {
         return text.substring(startIndex, endIndex + 1);
     }
     
-    // If no JSON is found, but there's some text, wrap it in a basic error structure to avoid complete failure.
     if (text && text.trim()) {
-        console.warn("AI did not return JSON. Returning raw text for debugging.");
-        // This part is for debugging and might not produce valid transactions, but avoids a hard crash.
-        return `{"transactions": []}`; 
+        console.warn("AI did not return JSON. Trying to parse raw text.");
+        return text;
     }
 
     throw new Error("The AI model did not return a valid JSON object block.");
@@ -50,49 +48,34 @@ export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
 
-  let base64Images: string[];
+  let rawTextContent: string;
   try {
-      // The input might be a single image URI or an array of them.
+      // The input can be a single URI or an array for multi-page/multi-file, but we'll join them.
       const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
-      base64Images = uris.map(uri => {
+      
+      const decodedTexts = uris.map(uri => {
           const parts = uri.split(',');
-          if (parts.length !== 2) {
-              throw new Error("Invalid data URI format encountered.");
+          if (parts.length !== 2 || !parts[0].includes(';base64')) {
+              throw new Error("Invalid data URI format encountered. Expected Base64 encoded data.");
           }
-          return parts[1];
+          // Decode the Base64 string to its original text format
+          return Buffer.from(parts[1], 'base64').toString('utf8');
       });
 
-      if (base64Images.some(img => !img)) {
-        throw new Error("Invalid data URI format provided.");
+      rawTextContent = decodedTexts.join('\n\n--- Document Break ---\n\n');
+
+      if (!rawTextContent.trim()) {
+        throw new Error("The provided document is empty or could not be read.");
       }
   } catch (e) {
-      console.error("Failed to decode data URI(s):", e);
-      throw new Error("Could not extract image data from the provided file(s).");
+      console.error("Failed to decode data URI(s) to text:", e);
+      throw new Error("Could not extract text from the provided file(s). Ensure they are text-based (like CSV or TXT).");
   }
   
-  // --- Step 1: Use the Vision Model to extract raw text from each page image ---
-  const visionPrompt = "Extract all text content from the provided document image. Focus on transaction details like dates, descriptions, and amounts. Do not format the output, just provide the raw text.";
-  
-  const textExtractionPromises = base64Images.map((base64Image, index) => 
-      catalystService.generateTextFromImage(visionPrompt, [base64Image])
-        .catch(err => {
-            console.error(`Failed to extract text from page ${index + 1}:`, err);
-            return `[Error processing page ${index + 1}]`; // Return error placeholder
-        })
-  );
-
-  const rawTexts = await Promise.all(textExtractionPromises);
-  const combinedRawText = rawTexts.join('\n\n--- Page Break ---\n\n');
-
-  if (!combinedRawText || combinedRawText.trim() === '') {
-      throw new Error("The vision model did not return any text from the document.");
-  }
-
-
-  // --- Step 2: Use the Language Model to structure the raw text into JSON ---
-  const structuringSystemPrompt = `You are a data processing expert. Your only job is to convert the user's raw text into a valid JSON object.
-The user has provided text from a multi-page financial document, with page breaks indicated by '--- Page Break ---'.
-Your response MUST be ONLY the JSON object and nothing else. Do not add any explanation or markdown formatting.
+  // Use a powerful language model to structure the raw text into JSON
+  const structuringSystemPrompt = `You are an expert data processor specializing in financial records.
+Your only job is to convert the user's raw text data (likely from a CSV or similar format) into a valid JSON object.
+Your response MUST be ONLY the JSON object and nothing else. Do not add any explanation, commentary, or markdown formatting.
 The JSON object must conform to this exact schema:
 {
   "transactions": [
@@ -106,10 +89,10 @@ The JSON object must conform to this exact schema:
 }`;
   
   const structuringUserPrompt = `
-Here is the raw text extracted from a financial document. Convert it into a valid JSON object as per the schema.
+Here is the raw text extracted from a financial document. Convert it into a valid JSON object as per the schema I provided.
 
 --- RAW TEXT ---
-${combinedRawText}
+${rawTextContent}
 --- END RAW TEXT ---
 
 Generate the JSON object now.
@@ -120,13 +103,11 @@ Generate the JSON object now.
     const jsonString = cleanJsonString(jsonResponseText);
     const parsed = JSON.parse(jsonString);
 
-    // After parsing, validate against the Zod schema
+    // After parsing, validate against the Zod schema to ensure correctness
     return ExtractTransactionsOutputSchema.parse(parsed);
 
   } catch (e: any) {
     console.error('Failed to parse structured JSON from LLM:', e.message);
-    // console.error('Raw text sent to LLM:', rawExtractedText);
-    // console.error('Raw response from LLM:', jsonResponseText);
-    throw new Error('Could not extract transactions. The AI returned an invalid format.');
+    throw new Error('Could not extract transactions. The AI returned an invalid format or the document content was unparsable.');
   }
 }
