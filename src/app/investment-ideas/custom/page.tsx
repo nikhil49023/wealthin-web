@@ -140,7 +140,7 @@ function InvestmentIdeaContent() {
     router.push(
       `/customize-dpr?idea=${encodeURIComponent(
         initialAnalysis.title
-      )}&name=${encodeURIComponent(user?.displayName || 'Entrepreneur')}`
+      )}`
     );
   };
 
@@ -382,4 +382,5 @@ export default function CustomInvestmentIdeaPage() {
     </Suspense>
   );
 }
+
 

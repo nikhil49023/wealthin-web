@@ -78,7 +78,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
       text: translations.aiAdvisor.welcome,
       sender: 'ai',
     };
-
+    
     if (initialMessage) {
         const initialUserMessage: Message = {
             id: getUniqueMessageId(),
@@ -86,12 +86,12 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
             sender: 'user',
         };
         setMessages([welcomeMessage, initialUserMessage]);
-        handleSendMessage(undefined, initialMessage);
+        handleSendMessage(undefined, initialMessage, true);
     } else {
         setMessages([welcomeMessage]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage]);
 
   const scrollToBottom = () => {
     bottomOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -103,13 +103,14 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
 
   const handleSendMessage = async (
     e?: React.FormEvent,
-    messageText?: string
+    messageText?: string,
+    isInitial = false
   ) => {
     e?.preventDefault();
     const queryText = messageText || input;
     if (!queryText.trim() || isLoading) return;
 
-    if (!messageText) {
+    if (!isInitial) {
       const newUserMessage: Message = {
         id: getUniqueMessageId(),
         text: queryText,
@@ -148,7 +149,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
 
   return (
     <div className="flex-1 flex flex-col justify-between">
-      <div className="flex-1 space-y-6 p-4 sm:p-6">
+      <div className="flex-1 space-y-6 p-4 sm:p-6 overflow-y-auto">
         <AnimatePresence>
           {messages.map((message, index) => (
             <motion.div
@@ -176,7 +177,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
                 }`}
               >
                 {message.sender === 'user' ? <p>{message.text}</p> : <FormattedText text={message.text} />}
-                {message.sender === 'ai' && index > 0 && (
+                 {message.sender === 'ai' && index > 0 && (
                   <Badge variant="outline" className="mt-3 border-blue-200 bg-blue-50 text-blue-800 text-xs">
                     Powered by WealthIn AI
                   </Badge>
