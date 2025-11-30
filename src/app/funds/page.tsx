@@ -174,13 +174,18 @@ export default function FundManagementPage() {
     }
   }, [user]);
 
+  const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
+
   // Financial Health Score Calculation
   const financialHealth = useMemo(() => {
+    if (loading) return { score: 0, feedback: 'Calculating score...' };
+
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
     const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
     const totalInvestments = investments.reduce((sum, i) => sum + i.amount, 0);
     const totalDebt = debts.reduce((sum, d) => sum + (d.totalAmount - d.amountPaid), 0);
 
+    if (totalIncome === 0 && totalExpenses > 0) return { score: 10, feedback: 'Start tracking your income to get a more accurate score.' };
     if (totalIncome === 0) return { score: 0, feedback: 'Add income to calculate score.' };
 
     const savingsRate = (totalIncome - totalExpenses) / totalIncome;
@@ -199,7 +204,7 @@ export default function FundManagementPage() {
     if (score > 80) feedback = 'Excellent! You are managing your funds very effectively.';
 
     return { score: Math.round(score), feedback };
-  }, [transactions, investments, debts]);
+  }, [transactions, investments, debts, loading]);
 
   // Generic add function
   const handleAdd = async (collectionName: string, data: any, dialogSetter: (open: boolean) => void) => {
@@ -330,7 +335,14 @@ export default function FundManagementPage() {
     if (files) processFiles(files);
   };
   
-  const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
+  if (loadingAuth || loadingTransactions || loadingInvestments || loadingDebts) {
+    return (
+      <div className="flex flex-col justify-center items-center h-full text-center">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <h2 className="text-xl font-semibold">Loading Financial Data...</h2>
+      </div>
+    );
+  }
 
 
   const formatDate = (dateString: string): string => {
@@ -682,3 +694,5 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
+    
