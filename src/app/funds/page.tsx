@@ -358,17 +358,10 @@ export default function FundManagementPage() {
     return daysInMonth.map(day => {
       const dayTransactions = transactions.filter(t => {
         try {
-          const transactionDate = parseISO(t.date);
+          const transactionDate = new Date(t.date);
           return isSameDay(transactionDate, day);
         } catch {
-          // Handle cases where t.date might be in a different format or invalid
-          try {
-            const [d, m, y] = t.date.split('/');
-            const transactionDate = new Date(`${y}-${m}-${d}`);
-            return isSameDay(transactionDate, day);
-          } catch {
-            return false;
-          }
+          return false;
         }
       });
       
@@ -396,18 +389,20 @@ export default function FundManagementPage() {
     const dayData = monthlyForecast.find(d => isSameDay(d.date, date));
     if (!dayData) return <div className="p-1 text-center text-sm">{format(date, 'd')}</div>;
 
-    const isLowBalance = dayData.closingBalance < (Number(openingBalance) * 0.25); // Warning if balance drops below 25% of opening
     const isNegativeBalance = dayData.closingBalance < 0;
 
     return (
       <div className={cn(
-        "h-full w-full p-1 flex flex-col justify-between text-left text-sm",
-        isNegativeBalance ? "bg-red-100/50 dark:bg-red-900/30" : isLowBalance ? "bg-amber-100/50 dark:bg-amber-900/30" : ""
+        "h-full w-full p-2 flex flex-col justify-between text-left text-sm",
+        isNegativeBalance ? "bg-red-100/50 dark:bg-red-900/30" : 
+        dayData.net > 0 ? "bg-green-100/30 dark:bg-green-900/20" :
+        dayData.net < 0 ? "bg-amber-100/30 dark:bg-amber-900/20" :
+        ""
       )}>
-        <span className="font-medium">{format(date, 'd')}</span>
-        <div className="text-xs text-right">
-          {dayData.net > 0 && <span className="text-green-600 font-bold">+{formatCurrency(dayData.net)}</span>}
-          {dayData.net < 0 && <span className="text-red-600 font-bold">{formatCurrency(dayData.net)}</span>}
+        <span className="font-semibold text-foreground">{format(date, 'd')}</span>
+        <div className="text-xs text-right mt-auto">
+          {dayData.net > 0 && <span className="font-bold text-green-600">+{formatCurrency(dayData.net)}</span>}
+          {dayData.net < 0 && <span className="font-bold text-red-600">{formatCurrency(dayData.net)}</span>}
         </div>
       </div>
     );
@@ -762,19 +757,19 @@ export default function FundManagementPage() {
                 </CardHeader>
                 <CardContent>
                     <Calendar
-                    mode="single"
-                    selected={selectedDay}
-                    onSelect={setSelectedDay}
-                    month={currentMonth}
-                    onMonthChange={setCurrentMonth}
-                    components={{
-                        DayContent: DayWithContent,
-                    }}
-                    className="p-0"
-                    classNames={{
-                        day: 'h-20 w-full p-0 text-left align-top',
-                        head_cell: 'w-full'
-                    }}
+                        mode="single"
+                        selected={selectedDay}
+                        onSelect={setSelectedDay}
+                        month={currentMonth}
+                        onMonthChange={setCurrentMonth}
+                        components={{
+                            DayContent: DayWithContent,
+                        }}
+                        className="p-0"
+                        classNames={{
+                            day: 'h-24 w-full p-0 text-left align-top',
+                            head_cell: 'w-full'
+                        }}
                     />
                 </CardContent>
                 </Card>
