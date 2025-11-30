@@ -7,42 +7,6 @@
 import catalystService from '@/services/catalyst';
 import type { GenerateDprSectionInput, GenerateDprSectionOutput } from '@/ai/schemas/dpr';
 
-/**
- * Cleans the raw text response from an AI model to extract a valid HTML string.
- * @param text The raw text response from the AI.
- * @returns A clean string.
- */
-function cleanAiResponse(text: string): string {
-    if (!text) return '';
-
-    let content = text.trim();
-
-    // 1. Regex to find content within markdown-style code blocks (e.g., ```html ... ```)
-    const codeBlockRegex = /```(?:html|text)?\s*([\s\S]*?)\s*```/;
-    const match = content.match(codeBlockRegex);
-
-    if (match && match[1]) {
-        content = match[1].trim();
-    }
-    
-    // 2. As a fallback for responses that don't use markdown blocks,
-    // remove any text before the first "<" and after the last ">".
-    // This is a bit aggressive but effective for isolating HTML.
-    const firstTag = content.indexOf('<');
-    const lastTag = content.lastIndexOf('>');
-    
-    if (firstTag !== -1 && lastTag !== -1 && lastTag > firstTag) {
-        // If there's content before the first HTML tag that looks like a sentence, it might be a preamble.
-        const preamble = content.substring(0, firstTag).trim();
-        if (preamble.length > 10 && preamble.includes(' ')) { // Heuristic for a sentence
-            content = content.substring(firstTag);
-        }
-    }
-
-    return content;
-}
-
-
 export async function generateDprSection(
   input: GenerateDprSectionInput
 ): Promise<GenerateDprSectionOutput> {
@@ -110,15 +74,13 @@ Now, generate the content for the "${section}" section.
   }
 
   try {
-    const rawText = await catalystService.generateText(finalPrompt, systemPrompt);
-    const cleanedText = cleanAiResponse(rawText);
-
-    if (!cleanedText) {
-      console.warn("AI returned empty or un-cleanable content for section \"" + section + "\". Raw response was: ", rawText);
+    const text = await catalystService.generateText(finalPrompt, systemPrompt);
+    
+    if (!text || text.trim() === '') {
       throw new Error(`The AI returned empty content for the "${section}" section. This might be due to a very specific or restrictive prompt.`);
     }
     
-    return { content: cleanedText };
+    return { content: text };
 
   } catch (e: any) {
     console.error("Failed to generate or parse AI response for section \"" + section + "\":", e.message);

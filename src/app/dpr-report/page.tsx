@@ -100,7 +100,7 @@ function DPRReportContent() {
         const doc = iframeRef.current.contentWindow.document;
         const sectionElement = doc.getElementById(sectionToEdit);
         if (!sectionElement) {
-            throw new Error(`Could not find section "${sectionToEdit}" in the document.`);
+            throw new Error(\`Could not find section "\${sectionToEdit}" in the document.\`);
         }
         const existingContent = sectionElement.innerHTML;
         
@@ -131,7 +131,7 @@ function DPRReportContent() {
             type: 'saveContent'
         }, '*');
 
-        toast({ title: 'Success', description: `Section "${dprSections.find(s => s.key === sectionToEdit)?.title}" has been refined.` });
+        toast({ title: 'Success', description: \`Section "\${dprSections.find(s => s.key === sectionToEdit)?.title}" has been refined.\` });
         setIsToolkitOpen(false);
         setRefinementPrompt('');
         setSectionToEdit('');

@@ -82,12 +82,12 @@ export async function POST(req: Request) {
             generatedContent[chapter.key] = result.value.content;
         } else {
             const reason = result.status === 'rejected' ? (result.reason as Error).message : 'Empty content';
-            console.error(`Failed to generate section "${chapter.key}":`, reason);
-            generatedContent[chapter.key] = `<div class="p-4 border-l-4 border-destructive bg-destructive/10 text-destructive-foreground">
+            console.error(\`Failed to generate section "\${chapter.key}":\`, reason);
+            generatedContent[chapter.key] = \`<div class="p-4 border-l-4 border-destructive bg-destructive/10 text-destructive-foreground">
                 <h4 class="font-bold">AI Generation Failed</h4>
-                <p class="text-sm">${reason}</p>
-                <p class="text-sm mt-2"><b>Suggestion:</b> Use the AI Toolkit to try again with a more detailed prompt. For example: "Based on a small-scale organic farm, generate the ${chapter.title}."</p>
-            </div>`;
+                <p class="text-sm">\${reason}</p>
+                <p class="text-sm mt-2"><b>Suggestion:</b> Use the AI Toolkit to try again with a more detailed prompt. For example: "Based on a small-scale organic farm, generate the \${chapter.title}."</p>
+            </div>\`;
         }
     });
 
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     let template = await fs.readFile(templatePath, 'utf-8');
 
     // Create a dynamic storage key based on the project title
-    const storageKey = `dpr-content-${idea.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+    const storageKey = \`dpr-content-\${idea.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}\`;
 
     template = template.replace(/{{projectName}}/g, idea.title || 'Your Project');
     template = template.replace(/{{promoterName}}/g, promoterName || '[Promoter Name]');
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Error in DPR HTML generation API:', error);
     return NextResponse.json(
-      {message: `Failed to generate DPR HTML: ${error.message}`},
+      {message: \`Failed to generate DPR HTML: \${error.message}\`},
       {status: 500}
     );
   }
