@@ -278,32 +278,6 @@ export default function BrainstormPage() {
         </Carousel>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/>Recommended Courses</CardTitle>
-          <CardDescription>Upskill yourself with these courses tailored for entrepreneurs.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {courses.map((item) => (
-              <Link key={item.title} href={item.href}>
-                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg">
-                                <item.icon className="h-6 w-6 text-primary" />
-                            </div>
-                            <CardTitle className="text-lg">{item.title}</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </CardContent>
-                </Card>
-              </Link>
-          ))}
-        </CardContent>
-      </Card>
-
        <Card>
         <CardHeader>
             <CardTitle>Analyze Your Own Idea</CardTitle>
@@ -331,6 +305,31 @@ export default function BrainstormPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/>Recommended Courses</CardTitle>
+          <CardDescription>Upskill yourself with these courses tailored for entrepreneurs.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {courses.map((item) => (
+              <Link key={item.title} href={item.href}>
+                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
+                    <CardHeader>
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg">
+                                <item.icon className="h-6 w-6 text-primary" />
+                            </div>
+                            <CardTitle className="text-lg">{item.title}</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </CardContent>
+                </Card>
+              </Link>
+          ))}
+        </CardContent>
+      </Card>
 
       <AlertDialog open={showLimitAlert} onOpenChange={setShowLimitAlert}>
         <AlertDialogContent>
