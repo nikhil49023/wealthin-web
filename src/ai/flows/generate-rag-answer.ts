@@ -19,7 +19,7 @@ export async function generateRagAnswer(
         ?.map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
         .join('\n') || 'No transactions provided.';
 
-    const systemPrompt = `You are a helpful financial advisor named WealthIn. Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting.`;
+    const systemPrompt = `You are a helpful financial advisor named WealthIn. Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting. Be concise.`;
 
     const fullPrompt = `
 Context: You are providing financial advice.

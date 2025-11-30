@@ -62,11 +62,9 @@ Legal Requirements: ${idea.legalRequirements}
 
   let finalPrompt: string;
   let systemPrompt: string;
-  let isRefinement = false;
 
   if (refinementPrompt && existingContent) {
     // Mode 2: Refine existing content
-    isRefinement = true;
     systemPrompt = `You are an expert consultant editing a Detailed Project Report (DPR).
 Your task is to rewrite the "Existing Content" based on the "User's Instruction".
 Maintain the original format (JSON for financial projections, HTML for others).
@@ -123,19 +121,19 @@ Now, generate the content for the "${section}" section.
         const parsed = JSON.parse(cleanedText);
         return { content: parsed };
       } catch (jsonError: any) {
-        console.error('JSON Parsing failed for section "' + section + '". Raw text:', cleanedText);
-        throw new Error('The AI returned malformed JSON for the ' + section + ' section.');
+        console.error("JSON Parsing failed for section \"" + section + "\". Raw text:", cleanedText);
+        throw new Error("The AI returned malformed JSON for the " + section + " section.");
       }
     } else {
       if (!cleanedText) {
         // Handle cases where the AI returns an empty but valid response
-        console.warn('AI returned empty content for section "' + section + '".');
+        console.warn("AI returned empty content for section \"" + section + "\".");
         return { content: '<p>No content was generated for this section.</p>' };
       }
       return { content: cleanedText };
     }
   } catch (e: any) {
-    console.error('Failed to generate or parse AI response for section "' + section + '":', e.message);
-    throw new Error('The AI returned an invalid format for the ' + section + ' section.');
+    console.error("Failed to generate or parse AI response for section \"" + section + "\":", e.message);
+    throw new Error("The AI returned an invalid format for the " + section + " section.");
   }
 }

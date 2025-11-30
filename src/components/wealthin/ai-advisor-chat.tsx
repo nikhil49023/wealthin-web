@@ -91,7 +91,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
         setMessages([welcomeMessage]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialMessage, translations.aiAdvisor.welcome]);
 
   const scrollToBottom = () => {
     bottomOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -117,7 +117,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
       };
       setMessages(prev => [...prev, newUserMessage]);
     }
-
+    
     setInput('');
     setIsLoading(true);
 
@@ -148,7 +148,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
 
   return (
     <div className="flex-1 flex flex-col justify-between">
-      <div className="flex-1 space-y-6 p-4 sm:p-6">
+      <div className="flex-1 space-y-6 p-4 sm:p-6 overflow-y-auto">
         <AnimatePresence>
           {messages.map((message, index) => (
             <motion.div

@@ -31,7 +31,7 @@ Generate the content now.
     const text = await catalystService.generateText(finalPrompt, systemPrompt);
     return { content: text };
   } catch (e: any) {
-    console.error('Failed to generate AI response for section "' + section + '":', e.message);
-    throw new Error('The AI returned an invalid format for the ' + section + ' section.');
+    console.error("Failed to generate AI response for section \"" + section + "\":", e.message);
+    throw new Error("The AI returned an invalid format for the " + section + " section.");
   }
 }
