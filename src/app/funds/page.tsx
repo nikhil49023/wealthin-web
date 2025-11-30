@@ -249,33 +249,37 @@ export default function FundManagementPage() {
     setImportStep('upload');
   };
 
-  const processFile = async (file: File) => {
-    if (!user) return;
+  const processFiles = async (files: FileList) => {
+    if (!user || files.length === 0) return;
     setIsImporting(true);
     startProgressAnimation();
 
     try {
-        const documentDataUri = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = error => reject(error);
+      const fileToDataUri = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
         });
+      };
 
-        const result = await extractTransactionsAction({ documentDataUri });
+      const dataUris = await Promise.all(Array.from(files).map(fileToDataUri));
 
-        if (result.success && result.data.transactions.length > 0) {
-            setExtractedData(result.data.transactions);
-            setImportStep('confirm');
-        } else {
-            throw new Error(result.error || 'No transactions were extracted from the document.');
-        }
+      const result = await extractTransactionsAction({ documentDataUri: dataUris });
+
+      if (result.success && result.data.transactions.length > 0) {
+        setExtractedData(result.data.transactions);
+        setImportStep('confirm');
+      } else {
+        throw new Error(result.error || 'No transactions were extracted from the document(s).');
+      }
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Import Failed', description: error.message });
-        resetImportDialog();
+      toast({ variant: 'destructive', title: 'Import Failed', description: error.message });
+      resetImportDialog();
     } finally {
-        finishProgressAnimation();
-        setIsImporting(false);
+      finishProgressAnimation();
+      setIsImporting(false);
     }
   };
 
@@ -302,16 +306,16 @@ export default function FundManagementPage() {
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) processFile(file);
+    const files = event.target.files;
+    if (files) processFiles(files);
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setIsDragging(false);
-    const file = event.dataTransfer.files?.[0];
-    if (file) processFile(file);
+    const files = event.dataTransfer.files;
+    if (files) processFiles(files);
   };
   
   const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
@@ -388,10 +392,10 @@ export default function FundManagementPage() {
                                     onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                     onClick={() => fileInputRef.current?.click()}
                                 >
-                                    <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" className="hidden" />
+                                    <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" className="hidden" multiple />
                                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                         <FileUp className="w-8 h-8" />
-                                        <p>Drag & drop a file or click to select</p>
+                                        <p>Drag & drop file(s) or click to select</p>
                                     </div>
                                 </div>
                                 <div className="p-4 bg-muted/50 rounded-lg">
@@ -471,8 +475,8 @@ export default function FundManagementPage() {
                   <DialogHeader><DialogTitle>Add New Transaction</DialogTitle></DialogHeader>
                   <div className="grid gap-4 py-4">
                     <Input placeholder="Description" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})}/>
-                    <Input type="text" placeholder="Date (e.g., 20/07/2024)" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
-                    <Input type="text" placeholder="Time (e.g., 10:30 AM)" value={newTransaction.time} onChange={e => setNewTransaction({...newTransaction, time: e.target.value})}/>
+                    <Input type="date" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
+                    <Input type="time" value={newTransaction.time} onChange={e => setNewTransaction({...newTransaction, time: e.target.value})}/>
                     <Select value={newTransaction.type} onValueChange={(v: 'income' | 'expense') => setNewTransaction({...newTransaction, type: v})}>
                       <SelectTrigger><SelectValue/></SelectTrigger>
                       <SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent>
@@ -646,7 +650,3 @@ export default function FundManagementPage() {
     </div>
   );
 }
-
-    
-
-    
