@@ -91,7 +91,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
         setMessages([welcomeMessage]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMessage]);
+  }, []);
 
   const scrollToBottom = () => {
     bottomOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -109,7 +109,6 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
     const queryText = messageText || input;
     if (!queryText.trim() || isLoading) return;
 
-    // Only add a new message if it's from the user typing, not the initial one
     if (!messageText) {
       const newUserMessage: Message = {
         id: getUniqueMessageId(),
@@ -118,7 +117,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
       };
       setMessages(prev => [...prev, newUserMessage]);
     }
-    
+
     setInput('');
     setIsLoading(true);
 
