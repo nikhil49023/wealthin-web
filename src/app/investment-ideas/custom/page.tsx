@@ -23,6 +23,7 @@ import {
   Landmark,
   FileText,
   Timer,
+  Check,
 } from 'lucide-react';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Button} from '@/components/ui/button';
@@ -102,7 +103,7 @@ const sectionConfig: Omit<AnalysisSection, 'content' | 'status'>[] = [
   },
 ];
 
-const COOLDOWN_PERIOD = 1000; // 1 second cooldown
+const COOLDOWN_SECONDS = 10;
 
 function InvestmentIdeaContent() {
   const searchParams = useSearchParams();
@@ -111,8 +112,10 @@ function InvestmentIdeaContent() {
 
   const [initialAnalysis, setInitialAnalysis] = useState<{title: string; summary: string} | null>(null);
   const [sections, setSections] = useState<AnalysisSection[]>(() => sectionConfig.map(s => ({ ...s, content: null, status: 'pending' })));
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   
+  const [visibleSectionIndex, setVisibleSectionIndex] = useState(-1);
+  const [generatingSectionIndex, setGeneratingSectionIndex] = useState(0);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +123,11 @@ function InvestmentIdeaContent() {
   const {toast} = useToast();
   
   const {translations} = useLanguage();
-  const isGeneratingRef = useRef(false);
+  
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isComplete = visibleSectionIndex >= sections.length - 1;
 
   const handleBuildDpr = () => {
     if (!isSaved) {
@@ -186,6 +193,29 @@ function InvestmentIdeaContent() {
     [user, toast, translations]
   );
   
+  const generateSection = useCallback(async (index: number) => {
+    if (index >= sections.length || !idea) return;
+
+    const sectionConf = sections[index];
+    setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'loading' } : s));
+
+    try {
+        const result = await generateIdeaSectionAction({
+            idea: idea,
+            section: sectionConf.key,
+            basePrompt: sectionConf.prompt,
+        });
+
+        if (result.success && result.data.content) {
+            setSections(prev => prev.map((s, i) => i === index ? { ...s, content: result.data.content, status: 'done' } : s));
+        } else {
+            throw new Error(result.error || `Failed to generate content for ${sectionConf.title}`);
+        }
+    } catch (err) {
+         setSections(prev => prev.map((s, i) => i === index ? { ...s, content: (err as Error).message, status: 'error' } : s));
+    }
+  }, [idea, sections]);
+  
   // Effect for initial analysis (title and summary)
   useEffect(() => {
     const generateInitialAnalysis = async () => {
@@ -205,7 +235,9 @@ function InvestmentIdeaContent() {
         
         if (result.success) {
             setInitialAnalysis({ title: result.data.title, summary: result.data.summary });
-            // This will trigger the next useEffect to start section generation
+            // This triggers the first section generation
+            setVisibleSectionIndex(0); 
+            setGeneratingSectionIndex(0);
         } else {
             throw new Error(result.error || 'Failed to generate initial analysis.');
         }
@@ -220,51 +252,45 @@ function InvestmentIdeaContent() {
 
   // Effect for sequential section generation
   useEffect(() => {
-    // Stop if there's no initial analysis, if we're done, or if already generating
-    if (!initialAnalysis || currentSectionIndex >= sections.length || isGeneratingRef.current) {
-        return;
+    if (initialAnalysis && generatingSectionIndex < sections.length) {
+      generateSection(generatingSectionIndex);
     }
+  }, [initialAnalysis, generatingSectionIndex, generateSection, sections.length]);
 
-    const generateSection = async () => {
-        isGeneratingRef.current = true;
-        const sectionConf = sections[currentSectionIndex];
+  // Effect to handle cooldown and next section generation
+  useEffect(() => {
+    const currentSection = sections[visibleSectionIndex];
+    if (currentSection?.status === 'done' || currentSection?.status === 'error') {
+      // Current section is done, start cooldown
+      setCooldown(COOLDOWN_SECONDS);
 
-        setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, status: 'loading' } : s));
-
-        try {
-            const result = await generateIdeaSectionAction({
-                idea: idea!,
-                section: sectionConf.key,
-                basePrompt: sectionConf.prompt,
-            });
-
-            if (result.success && result.data.content) {
-                setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, content: result.data.content, status: 'done' } : s));
-            } else {
-                throw new Error(result.error || `Failed to generate content for ${sectionConf.title}`);
-            }
-        } catch (err) {
-             setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, status: 'error' } : s));
-        } finally {
-            // Cooldown and move to next section
-            setTimeout(() => {
-                isGeneratingRef.current = false;
-                setCurrentSectionIndex(prev => prev + 1);
-            }, COOLDOWN_PERIOD);
-        }
+      // And immediately start generating the NEXT section in the background
+      if (generatingSectionIndex < sections.length - 1) {
+          setGeneratingSectionIndex(prev => prev + 1);
+      }
+    }
+  }, [sections, visibleSectionIndex, generatingSectionIndex]);
+  
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldown > 0) {
+      cooldownIntervalRef.current = setInterval(() => {
+        setCooldown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
+      }
     };
-
-    generateSection();
-
-  }, [initialAnalysis, sections, currentSectionIndex, idea]);
-
+  }, [cooldown]);
 
   // Effect to save analysis when all sections are done
   useEffect(() => {
-    const allDone = sections.every(s => s.status === 'done' || s.status === 'error');
-    if (allDone && initialAnalysis && !isSaved) {
+    const allGenerated = sections.every(s => s.status === 'done' || s.status === 'error');
+    if (allGenerated && initialAnalysis && !isSaved) {
         const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = sections.reduce((acc, section) => {
-            if (section.content) {
+            if (section.content && section.status === 'done') {
                 (acc as any)[section.key] = section.content;
             }
             return acc;
@@ -272,6 +298,13 @@ function InvestmentIdeaContent() {
         saveAnalysis(fullAnalysis);
     }
   }, [sections, initialAnalysis, isSaved, saveAnalysis]);
+
+  const handleContinue = () => {
+    if (cooldown > 0) return;
+    if (visibleSectionIndex < sections.length - 1) {
+        setVisibleSectionIndex(prev => prev + 1);
+    }
+  };
 
 
   if (error) {
@@ -323,7 +356,8 @@ function InvestmentIdeaContent() {
       <div className="space-y-6 md:space-y-8">
         <AnimatePresence>
           {sections.map(
-            (section) => (
+            (section, index) => (
+              (index <= visibleSectionIndex && initialAnalysis) &&
                 <motion.div
                   key={section.key}
                   initial={{opacity: 0, y: 20}}
@@ -359,7 +393,21 @@ function InvestmentIdeaContent() {
         </AnimatePresence>
       </div>
       
-       {sections.every(s => s.status === 'done' || s.status === 'error') && (
+      {!isComplete && initialAnalysis && (
+        <div className="flex justify-center mt-8">
+          <Button onClick={handleContinue} disabled={cooldown > 0} size="lg">
+              {cooldown > 0 ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Next section in {cooldown}s
+                </>
+              ) : "Continue"}
+          </Button>
+        </div>
+      )}
+
+
+       {isComplete && (
           <Card>
             <CardHeader>
                 <CardTitle>Next Steps</CardTitle>
@@ -413,4 +461,3 @@ export default function CustomInvestmentIdeaPage() {
     </Suspense>
   );
 }
-

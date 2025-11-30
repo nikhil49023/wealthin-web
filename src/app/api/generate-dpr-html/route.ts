@@ -81,11 +81,11 @@ export async function POST(req: Request) {
         if (result.status === 'fulfilled' && result.value.content) {
             generatedContent[chapter.key] = result.value.content;
         } else {
-            const reason = result.status === 'rejected' ? result.reason : 'Empty content';
+            const reason = result.status === 'rejected' ? (result.reason as Error).message : 'Empty content';
             console.error(`Failed to generate section "${chapter.key}":`, reason);
             generatedContent[chapter.key] = `<div class="p-4 border-l-4 border-destructive bg-destructive/10 text-destructive-foreground">
                 <h4 class="font-bold">AI Generation Failed</h4>
-                <p class="text-sm">The AI could not generate this section. This can happen if the business idea is too generic.</p>
+                <p class="text-sm">${reason}</p>
                 <p class="text-sm mt-2"><b>Suggestion:</b> Use the AI Toolkit to try again with a more detailed prompt. For example: "Based on a small-scale organic farm, generate the ${chapter.title}."</p>
             </div>`;
         }

@@ -67,7 +67,7 @@ Legal Requirements: ${idea.legalRequirements}
     // Mode 2: Refine existing content
     systemPrompt = `You are an expert consultant editing a Detailed Project Report (DPR).
 Your task is to rewrite the "Existing Content" based on the "User's Instruction".
-Maintain the original format (JSON for financial projections, HTML for others).
+Maintain the original format (HTML).
 All financial figures MUST be in Indian Rupees (INR).
 Output ONLY the refined, complete content for the section. Do not add any extra commentary.`;
     
@@ -89,9 +89,8 @@ You have been provided with a detailed business profile and the promoter's name.
 All financial figures MUST be in Indian Rupees (INR) and use the '₹' symbol.
 
 **Critical Output Format:**
-- For all sections EXCEPT 'financialProjections', you MUST output ONLY the generated text content as a raw string using basic HTML for formatting (<h3>, <p>, <ul>, <li>).
-- For the 'financialProjections' section, you MUST output ONLY a valid JSON object matching the required schema for financial data.
-- Do NOT include any other text, markdown formatting (like \`\`\`json), titles, or explanations in your response. Just the raw content.
+- You MUST output ONLY the generated text content as a raw string using basic HTML for formatting (<h3>, <p>, <ul>, <li>, <table>, <thead>, <tbody>, <tr>, <th>, <td>).
+- Do NOT include any other text, markdown formatting (like \`\`\`html), titles, or explanations in your response. Just the raw HTML content.
 `;
     
     finalPrompt = `
@@ -111,29 +110,17 @@ Now, generate the content for the "${section}" section.
 
   try {
     const rawText = await catalystService.generateText(finalPrompt, systemPrompt);
-    const isJsonExpected = section === 'financials';
-    
-    const cleanedText = cleanAiResponse(rawText, isJsonExpected);
+    const cleanedText = cleanAiResponse(rawText, false); // Always expect HTML now
 
-    if (isJsonExpected) {
-      // For financialProjections, ensure parsing succeeds before returning
-      try {
-        const parsed = JSON.parse(cleanedText);
-        return { content: parsed };
-      } catch (jsonError: any) {
-        console.error("JSON Parsing failed for section \"" + section + "\". Raw text:", cleanedText);
-        throw new Error("The AI returned malformed JSON for the " + section + " section.");
-      }
-    } else {
-      if (!cleanedText) {
-        // Handle cases where the AI returns an empty but valid response
-        console.warn("AI returned empty content for section \"" + section + "\".");
-        return { content: '<p>No content was generated for this section.</p>' };
-      }
-      return { content: cleanedText };
+    if (!cleanedText) {
+      console.warn("AI returned empty content for section \"" + section + "\".");
+      throw new Error(`The AI returned empty content for the "${section}" section. This might be due to a very specific or restrictive prompt.`);
     }
+    
+    return { content: cleanedText };
+
   } catch (e: any) {
     console.error("Failed to generate or parse AI response for section \"" + section + "\":", e.message);
-    throw new Error("The AI returned an invalid format for the " + section + " section.");
+    throw new Error(`The AI returned an invalid format for the ${section} section. Please try again or rephrase the idea.`);
   }
 }
