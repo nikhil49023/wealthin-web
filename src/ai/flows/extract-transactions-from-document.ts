@@ -91,14 +91,34 @@ Your response MUST be ONLY the JSON object. Do not include any other text, markd
 
   try {
     const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, base64Images);
-    const jsonString = cleanJsonString(jsonResponseText);
-    const parsed = JSON.parse(jsonString);
+    
+    let cleanedJsonString: string;
+    try {
+        cleanedJsonString = cleanJsonString(jsonResponseText);
+    } catch (e: any) {
+        console.error("Failed to clean AI response. Raw text:", jsonResponseText);
+        throw new Error("AI returned a response that could not be cleaned into a JSON format.");
+    }
+    
+    let parsed: any;
+    try {
+        parsed = JSON.parse(cleanedJsonString);
+    } catch (e: any) {
+        console.error("Failed to parse JSON string. Cleaned text:", cleanedJsonString);
+        throw new Error("AI returned malformed JSON that could not be parsed.");
+    }
 
     // After parsing, validate against the Zod schema to ensure correctness
-    return ExtractTransactionsOutputSchema.parse(parsed);
+    try {
+        return ExtractTransactionsOutputSchema.parse(parsed);
+    } catch (e: any) {
+        console.error("Zod schema validation failed.", e.errors);
+        throw new Error("AI returned JSON with an invalid structure or data types.");
+    }
 
   } catch (e: any) {
-    console.error('Failed to parse structured JSON from VLM:', e.message);
-    throw new Error('Could not extract transactions. The AI returned an invalid format or the document content was unparsable.');
+    console.error('Error during transaction extraction flow:', e.message);
+    // Re-throw the specific error from the nested try-catch blocks or a generic one
+    throw new Error(e.message || 'Could not extract transactions. The AI returned an invalid format or the document content was unparsable.');
   }
 }
