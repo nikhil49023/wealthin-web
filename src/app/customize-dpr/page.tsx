@@ -57,8 +57,8 @@ function CustomizeDPRContent() {
     if (!analysis) return;
     
     setIsNavigating(true);
-    // Navigate to the report page which will use the new template
-    router.push(`/dpr-report?idea=${encodeURIComponent(analysis.title)}&name=${encodeURIComponent(promoterName)}`);
+    // Navigate to the new wizard page
+    router.push(`/dpr-wizard`);
   };
   
   if (error) {
@@ -87,9 +87,9 @@ function CustomizeDPRContent() {
           </Link>
         </Button>
         <div className="text-center">
-            <h1 className="text-3xl font-bold">Generate Your Detailed Project Report</h1>
+            <h1 className="text-3xl font-bold">Launch the DPR Wizard</h1>
             <p className="text-muted-foreground mt-2">
-            The AI will generate a complete, bank-ready DPR which you can then edit and refine.
+            The wizard will guide you through building a bank-ready DPR.
             </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,16 +98,16 @@ function CustomizeDPRContent() {
                 onClick={handleNavigateToReport}
             >
                 <Banknote className="h-12 w-12 text-primary" />
-                <h3 className="font-semibold text-lg">Bank Loan Application</h3>
-                <p className="text-xs text-muted-foreground">Generate the full report optimized for bank loan applications.</p>
+                <h3 className="font-semibold text-lg">Bank Loan DPR</h3>
+                <p className="text-xs text-muted-foreground">Start building your report optimized for bank loan applications.</p>
             </Card>
              <Card 
                 className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
                 onClick={handleNavigateToReport}
              >
                 <FileText className="h-12 w-12 text-primary" />
-                <h3 className="font-semibold text-lg">Legal & General Purpose</h3>
-                 <p className="text-xs text-muted-foreground">Generate a comprehensive report for legal and general business planning.</p>
+                <h3 className="font-semibold text-lg">General Purpose DPR</h3>
+                 <p className="text-xs text-muted-foreground">Create a comprehensive report for legal and general business planning.</p>
             </Card>
         </div>
         
@@ -115,8 +115,8 @@ function CustomizeDPRContent() {
              <Card className="text-center py-10">
                 <CardContent className="space-y-4">
                     <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Preparing Your Report...</h3>
-                    <p className="text-muted-foreground">Please wait while we generate the document.</p>
+                    <h3 className="text-xl font-semibold">Launching Wizard...</h3>
+                    <p className="text-muted-foreground">Please wait a moment.</p>
                 </CardContent>
             </Card>
         )}
@@ -128,8 +128,3 @@ export default function CustomizeDPRPage() {
     return (
         <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
             <CustomizeDPRContent />
-        </Suspense>
-    )
-}
-
-    
