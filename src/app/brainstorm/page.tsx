@@ -15,9 +15,9 @@ import {
   GraduationCap,
   ArrowRight,
   Sparkles,
-  Presentation,
   DollarSign,
-  ClipboardCheck,
+  PieChart,
+  Megaphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -118,13 +118,13 @@ const courses = [
     { 
         title: "Digital Marketing Fundamentals", 
         description: "Learn how to market your product or service online effectively.", 
-        icon: Presentation,
+        icon: Megaphone,
         href: "#" 
     },
     { 
         title: "Business Plan Development", 
         description: "A step-by-step guide to creating a bank-ready business plan.", 
-        icon: ClipboardCheck,
+        icon: PieChart,
         href: "#" 
     },
     { 
