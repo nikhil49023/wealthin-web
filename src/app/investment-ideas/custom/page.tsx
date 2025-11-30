@@ -102,6 +102,8 @@ const sectionConfig: Omit<AnalysisSection, 'content' | 'status'>[] = [
   },
 ];
 
+const COOLDOWN_PERIOD = 1000; // 1 second cooldown
+
 function InvestmentIdeaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -109,6 +111,7 @@ function InvestmentIdeaContent() {
 
   const [initialAnalysis, setInitialAnalysis] = useState<{title: string; summary: string} | null>(null);
   const [sections, setSections] = useState<AnalysisSection[]>(() => sectionConfig.map(s => ({ ...s, content: null, status: 'pending' })));
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -117,6 +120,7 @@ function InvestmentIdeaContent() {
   const {toast} = useToast();
   
   const {translations} = useLanguage();
+  const isGeneratingRef = useRef(false);
 
   const handleBuildDpr = () => {
     if (!isSaved) {
@@ -181,7 +185,8 @@ function InvestmentIdeaContent() {
     },
     [user, toast, translations]
   );
-
+  
+  // Effect for initial analysis (title and summary)
   useEffect(() => {
     const generateInitialAnalysis = async () => {
       if (!idea) {
@@ -200,8 +205,7 @@ function InvestmentIdeaContent() {
         
         if (result.success) {
             setInitialAnalysis({ title: result.data.title, summary: result.data.summary });
-            // After getting title/summary, kick off parallel generation for all other sections
-            generateAllSections(idea);
+            // This will trigger the next useEffect to start section generation
         } else {
             throw new Error(result.error || 'Failed to generate initial analysis.');
         }
@@ -209,49 +213,66 @@ function InvestmentIdeaContent() {
         setError(err.message);
       }
     };
+    generateInitialAnalysis();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idea, user, router]);
 
-    const generateAllSections = (idea: string) => {
-        setSections(prev => prev.map(s => ({...s, status: 'loading'})));
 
-        const generationPromises = sectionConfig.map(sectionConf => 
-            generateIdeaSectionAction({
-                idea: idea,
+  // Effect for sequential section generation
+  useEffect(() => {
+    // Stop if there's no initial analysis, if we're done, or if already generating
+    if (!initialAnalysis || currentSectionIndex >= sections.length || isGeneratingRef.current) {
+        return;
+    }
+
+    const generateSection = async () => {
+        isGeneratingRef.current = true;
+        const sectionConf = sections[currentSectionIndex];
+
+        setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, status: 'loading' } : s));
+
+        try {
+            const result = await generateIdeaSectionAction({
+                idea: idea!,
                 section: sectionConf.key,
                 basePrompt: sectionConf.prompt,
-            }).then(result => {
-                if (result.success && result.data.content) {
-                    setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, content: result.data.content, status: 'done' } : s));
-                } else {
-                    setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, status: 'error' } : s));
-                }
-            })
-        );
-        
-        // After all sections are generated (or failed), save the result
-        Promise.allSettled(generationPromises).then(() => {
-            // This 'updater' function form of setState ensures we get the most recent state
-            setSections(currentSections => {
-                // We depend on the initialAnalysis state, so we use an outer scope variable
-                // that is set before this runs.
-                if (initialAnalysis) {
-                    const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = currentSections.reduce((acc, section) => {
-                        if (section.content) {
-                            (acc as any)[section.key] = section.content;
-                        }
-                        return acc;
-                    }, { title: initialAnalysis.title, summary: initialAnalysis.summary } as any);
-
-                    if (!isSaved) {
-                        saveAnalysis(fullAnalysis);
-                    }
-                }
-                return currentSections;
             });
-        });
+
+            if (result.success && result.data.content) {
+                setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, content: result.data.content, status: 'done' } : s));
+            } else {
+                throw new Error(result.error || `Failed to generate content for ${sectionConf.title}`);
+            }
+        } catch (err) {
+             setSections(prev => prev.map(s => s.key === sectionConf.key ? { ...s, status: 'error' } : s));
+        } finally {
+            // Cooldown and move to next section
+            setTimeout(() => {
+                isGeneratingRef.current = false;
+                setCurrentSectionIndex(prev => prev + 1);
+            }, COOLDOWN_PERIOD);
+        }
     };
 
-    generateInitialAnalysis();
-  }, [idea, user, router, translations.investmentIdea.errorNoIdea, isSaved, saveAnalysis, initialAnalysis]);
+    generateSection();
+
+  }, [initialAnalysis, sections, currentSectionIndex, idea]);
+
+
+  // Effect to save analysis when all sections are done
+  useEffect(() => {
+    const allDone = sections.every(s => s.status === 'done' || s.status === 'error');
+    if (allDone && initialAnalysis && !isSaved) {
+        const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = sections.reduce((acc, section) => {
+            if (section.content) {
+                (acc as any)[section.key] = section.content;
+            }
+            return acc;
+        }, { title: initialAnalysis.title, summary: initialAnalysis.summary } as any);
+        saveAnalysis(fullAnalysis);
+    }
+  }, [sections, initialAnalysis, isSaved, saveAnalysis]);
+
 
   if (error) {
     return (
@@ -322,6 +343,11 @@ function InvestmentIdeaContent() {
                         </div>
                       ) : section.status === 'error' ? (
                          <div className="text-destructive font-semibold">Failed to generate this section.</div>
+                      ) : section.status === 'pending' ? (
+                          <div className="flex items-center justify-center flex-col text-muted-foreground gap-2 h-24">
+                             <Timer className="h-8 w-8" />
+                             <span>Waiting to generate...</span>
+                         </div>
                       ) : (
                         <FormattedText text={section.content || ''} />
                       )}
@@ -387,3 +413,4 @@ export default function CustomInvestmentIdeaPage() {
     </Suspense>
   );
 }
+
