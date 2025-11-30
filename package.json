@@ -58,6 +58,7 @@
     "lucide-react": "^0.475.0",
     "next": "latest",
     "node-fetch": "^2.6.7",
+    "pdf-parse": "^1.1.1",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -70,6 +71,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "@types/node-fetch": "^2.6.11",
+    "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8",
