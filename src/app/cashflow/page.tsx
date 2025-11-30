@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -14,6 +15,8 @@ import { Loader2, AlertCircle, TrendingUp, TrendingDown, AreaChart } from 'lucid
 import { cn } from '@/lib/utils';
 import { addMonths, startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+
+const db = getFirestore(app);
 
 type DailyData = {
   date: Date;
