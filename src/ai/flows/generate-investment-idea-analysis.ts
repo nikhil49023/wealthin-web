@@ -11,6 +11,7 @@ import type {
   GenerateInvestmentIdeaAnalysisOutput,
 } from '@/ai/schemas/investment-idea-analysis';
 import { GenerateInvestmentIdeaAnalysisOutputSchema } from '@/ai/schemas/investment-idea-analysis';
+import { cleanAndParseJSON } from '@/lib/cleanJson';
 
 export async function generateInvestmentIdeaAnalysis(
   input: GenerateInvestmentIdeaAnalysisInput
@@ -28,8 +29,7 @@ Structure your response as a valid JSON object:
 
   try {
     const responseText = await catalystService.generateText(userPrompt, systemPrompt);
-    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleanedText);
+    const parsed = cleanAndParseJSON(responseText);
     
     // We only expect title and summary here. The rest will be populated by the sectional generator.
     const partialSchema = GenerateInvestmentIdeaAnalysisOutputSchema.pick({ title: true, summary: true });

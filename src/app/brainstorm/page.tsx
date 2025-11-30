@@ -43,10 +43,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { Textarea } from '@/components/ui/textarea';
 import Autoplay from "embla-carousel-autoplay"
 import React from 'react';
-import { doc, getFirestore, setDoc } from 'firebase/firestore';
+import { doc, getFirestore, setDoc, updateDoc } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { generateInvestmentIdeaAnalysisAction } from '@/app/actions';
 
 const db = getFirestore(app);
 
@@ -174,18 +175,33 @@ export default function BrainstormPage() {
       setShowLimitAlert(true);
       return;
     }
+    
+    // First, generate the initial analysis to ensure it works before deducting credits.
+    const initialAnalysisResult = await generateInvestmentIdeaAnalysisAction({ idea: ideaToAnalyze });
 
+    if (!initialAnalysisResult.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Analysis Failed',
+        description: initialAnalysisResult.error,
+      });
+      return;
+    }
+
+    // If initial analysis is successful, *then* deduct credits.
     const userDocRef = doc(db, 'users', user.uid);
     const newCredits = (userProfile.credits ?? 0) - IDEA_ANALYSIS_COST;
 
-    try {
-        await setDoc(userDocRef, { credits: newCredits }, { merge: true });
+    updateDoc(userDocRef, { credits: newCredits })
+      .then(() => {
         toast({
             title: 'Credits Deducted',
             description: `You have been charged ${IDEA_ANALYSIS_COST} credits. Remaining: ${newCredits}`,
         });
+        // Now navigate to the analysis page
         router.push(`/investment-ideas/custom?idea=${encodeURIComponent(ideaToAnalyze)}`);
-    } catch (e) {
+      })
+      .catch((e) => {
         console.error("Failed to deduct credits:", e);
         const permissionError = new FirestorePermissionError({
             path: userDocRef.path,
@@ -198,7 +214,7 @@ export default function BrainstormPage() {
             title: 'Error',
             description: 'Could not deduct credits. Please try again.',
         });
-    }
+    });
   };
 
   return (
