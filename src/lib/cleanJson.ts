@@ -5,30 +5,28 @@ export function cleanAndParseJSON(llmOutput: string) {
     throw new Error("Invalid input to JSON parser.");
   }
   
-  try {
-    // Attempt to parse directly first, in case the output is already perfect JSON
-    return JSON.parse(llmOutput);
-  } catch (e) {
-    // If direct parsing fails, proceed with cleaning
-    try {
-      // 1. Find the first '{' and the last '}' to isolate the JSON object
-      // This is a more robust way to strip leading/trailing text than regex.
-      const firstBrace = llmOutput.indexOf("{");
-      const lastBrace = llmOutput.lastIndexOf("}");
+  let jsonString = llmOutput.trim();
 
-      if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
-        throw new Error("No valid JSON object found in the AI response.");
-      }
+  // 1. Try to find a JSON block within markdown ```json ... ```
+  const markdownMatch = jsonString.match(/```json\s*([\s\S]*?)\s*```/);
+  if (markdownMatch && markdownMatch[1]) {
+    jsonString = markdownMatch[1];
+  } else {
+    // 2. If no markdown, fall back to finding the first '{' and last '}'
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
 
-      const jsonString = llmOutput.substring(firstBrace, lastBrace + 1);
-
-      // 2. Parse the cleaned string
-      return JSON.parse(jsonString);
-
-    } catch (error: any) {
-      console.error("Failed to parse LLM JSON after cleaning:", error.message);
-      console.error("Original AI Output:", llmOutput);
-      throw new Error("AI returned an invalid or malformed JSON structure.");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonString = jsonString.substring(firstBrace, lastBrace + 1);
     }
+  }
+
+  try {
+    // 3. Parse the cleaned string
+    return JSON.parse(jsonString);
+  } catch (error: any) {
+    console.error("Failed to parse LLM JSON after cleaning:", error.message);
+    console.error("Original AI Output that failed parsing:", llmOutput);
+    throw new Error("AI returned an invalid or malformed JSON structure.");
   }
 }

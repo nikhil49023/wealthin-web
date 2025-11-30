@@ -14,8 +14,10 @@ import { cleanAndParseJSON } from '@/lib/cleanJson';
 import pdf from 'pdf-parse';
 
 async function processWithVisionModel(base64Images: string[]): Promise<ExtractTransactionsOutput> {
+  const vlmSystemPrompt = `You are an expert financial data analyst. You MUST return ONLY a valid JSON object. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.`;
+
   const vlmUserPrompt = `
-You are an expert financial data analyst. Analyze the provided image(s) of a financial document (like a bank statement or transaction list).
+Analyze the provided image(s) of a financial document (like a bank statement or transaction list).
 Your task is to extract all transactions and return them as a valid JSON object.
 
 The JSON object must conform to this exact schema:
@@ -34,8 +36,6 @@ The JSON object must conform to this exact schema:
 - The 'date' and 'time' fields MUST be strings containing the values exactly as seen in the document. Do not reformat them.
 - If no time is available for a transaction, omit the 'time' field.
 - The 'amount' field MUST be a raw number (e.g., 1234.56).
-
-Your response MUST be ONLY the JSON object. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.
 `;
 
   const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, base64Images);
@@ -44,9 +44,10 @@ Your response MUST be ONLY the JSON object. Do not include any other text, markd
 }
 
 async function processWithTextModel(text: string): Promise<ExtractTransactionsOutput> {
+  const textSystemPrompt = `You are an expert financial data analyst. Your response MUST be ONLY a valid JSON object. Do NOT include any other text, markdown, or explanations.`;
+  
   const textUserPrompt = `
-You are an expert financial data analyst. Analyze the provided text from a financial document.
-Your task is to extract all transactions and return them as a valid JSON object.
+Analyze the provided text from a financial document. Your task is to extract all transactions and return them as a valid JSON object.
 
 The JSON object must conform to this exact schema:
 {
@@ -69,11 +70,9 @@ Here is the document text to analyze:
 ---
 ${text}
 ---
-
-Your response MUST be ONLY the JSON object. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.
 `;
 
-  const jsonResponseText = await catalystService.generateText(textUserPrompt);
+  const jsonResponseText = await catalystService.generateText(textUserPrompt, textSystemPrompt);
   const parsedData = cleanAndParseJSON(jsonResponseText);
   return ExtractTransactionsOutputSchema.parse(parsedData);
 }
