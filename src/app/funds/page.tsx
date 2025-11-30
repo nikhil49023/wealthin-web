@@ -89,6 +89,8 @@ import {
 import { cn } from '@/lib/utils';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 import { extractTransactionsAction } from '@/app/actions';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const db = getFirestore(app);
 
@@ -307,6 +309,18 @@ export default function FundManagementPage() {
   
   const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
 
+  const formatDate = (dateString: string | Date) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    }).format(date);
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Fund Management</h1>
@@ -444,7 +458,7 @@ export default function FundManagementPage() {
                     <TableRow key={t.id}>
                       <TableCell>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(t.datetime).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(t.datetime)}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
                       <TableCell className="text-right font-mono">₹{t.amount.toLocaleString('en-IN')}</TableCell>

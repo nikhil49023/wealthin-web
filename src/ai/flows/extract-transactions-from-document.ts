@@ -49,7 +49,7 @@ The JSON object must conform to this exact schema:
 }
 
 - For debits, withdrawals, or payments, the 'type' must be 'expense'.
-- For credits, deposits, or fund transfers in, the 'type' must be 'income'.
+- For credits,deposits, or fund transfers in, the 'type' must be 'income'.
 - The 'datetime' field MUST be a valid ISO 8601 string (YYYY-MM-DDTHH:mm:ss). This is the most important rule.
 - The 'amount' field MUST be a raw number (e.g., 1234.56).
 
