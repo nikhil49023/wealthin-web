@@ -187,6 +187,10 @@ export default function FundManagementPage() {
     const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
     const totalInvestments = investments.reduce((sum, i) => sum + i.amount, 0);
     const totalDebt = debts.reduce((sum, d) => sum + (d.totalAmount - d.amountPaid), 0);
+    
+    if (transactions.length === 0) {
+      return { score: 0, feedback: 'Add transactions to see your score.' };
+    }
 
     if (totalIncome === 0 && totalExpenses > 0) return { score: 10, feedback: 'Start tracking your income to get a more accurate score.' };
     if (totalIncome === 0) return { score: 0, feedback: 'Add income to calculate score.' };
@@ -378,7 +382,7 @@ export default function FundManagementPage() {
                 className="stroke-current text-muted"
                 d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none" strokeWidth="2" />
-              {financialHealth.score !== null && (
+              {(financialHealth.score !== null && !isNaN(financialHealth.score)) && (
                 <path
                   className="stroke-current text-primary"
                   strokeDasharray={`${financialHealth.score}, 100`}
@@ -387,7 +391,9 @@ export default function FundManagementPage() {
               )}
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl font-bold">{financialHealth.score}</span>
+              <span className="text-3xl font-bold">
+                {financialHealth.score !== null && !isNaN(financialHealth.score) ? financialHealth.score : <Loader2 className="h-6 w-6 animate-spin" />}
+              </span>
             </div>
           </div>
           <div className="flex-1 text-center sm:text-left">
@@ -543,6 +549,7 @@ export default function FundManagementPage() {
                           type: newTransaction.type,
                           date: newTransaction.date,
                           time: newTransaction.time,
+                          createdAt: serverTimestamp(),
                         };
                         handleAdd('transactions', dataToSave, setAddTransactionDialogOpen);
                     }}>
@@ -702,6 +709,3 @@ export default function FundManagementPage() {
     </div>
   );
 }
-
-
-    
