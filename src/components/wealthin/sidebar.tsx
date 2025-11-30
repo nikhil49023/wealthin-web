@@ -10,6 +10,7 @@ import {
   Globe,
   MessagesSquare,
   DollarSign,
+  AreaChart,
 } from 'lucide-react';
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
@@ -63,6 +64,11 @@ export default function Sidebar({
       href: '/funds',
       label: 'Funds',
       icon: DollarSign,
+    },
+    {
+      href: '/cashflow',
+      label: 'Cashflow',
+      icon: AreaChart,
     },
     {
       href: '/brainstorm',
