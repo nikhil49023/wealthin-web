@@ -105,7 +105,7 @@ export async function extractTransactionsFromDocument(
         }
     }
 
-    // Process images individually
+    // Process images individually using VLM
     for (const imageBase64 of imageUris) {
         const imageTransactions = await processWithVisionModel(imageBase64);
         allTransactions.push(...imageTransactions);
