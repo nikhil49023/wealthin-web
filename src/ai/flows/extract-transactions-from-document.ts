@@ -38,7 +38,7 @@ The JSON object must conform to this exact schema:
 - The 'amount' field MUST be a raw number (e.g., 1234.56).
 `;
 
-  const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, base64Images);
+  const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, base64Images, vlmSystemPrompt);
   const parsedData = cleanAndParseJSON(jsonResponseText);
   return ExtractTransactionsOutputSchema.parse(parsedData);
 }
@@ -105,7 +105,7 @@ export async function extractTransactionsFromDocument(
         result = await processWithTextModel(textBuffer.toString('utf-8'));
       } else {
         // As a fallback for unknown types that might be text, try vision
-        console.warn(`Unsupported MIME type: ${mimeType}. Falling back to Vision model.`);
+        console.warn('Unsupported MIME type: ' + mimeType + '. Falling back to Vision model.');
         result = await processWithVisionModel([base64Data]);
       }
       
