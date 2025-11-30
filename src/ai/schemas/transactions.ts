@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Zod schemas and TypeScript types for transaction extraction.
  *
@@ -12,10 +13,7 @@ export const ExtractedTransactionSchema = z.object({
   description: z.string().describe('The description of the transaction.'),
   date: z
     .string()
-    .describe('The date of the transaction in DD/MM/YYYY format.'),
-  datetime: z.coerce
-    .date()
-    .describe('The full date and time of the transaction in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If time is not present, default to 00:00:00.'),
+    .describe('The date and time of the transaction, extracted exactly as it appears in the document.'),
   type: z
     .enum(['income', 'expense'])
     .describe('The type of transaction (income or expense).'),

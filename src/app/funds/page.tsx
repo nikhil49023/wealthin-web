@@ -125,7 +125,7 @@ export default function FundManagementPage() {
   // Form states
   const [newInvestment, setNewInvestment] = useState({ name: '', type: 'Stocks', amount: '' });
   const [newDebt, setNewDebt] = useState({ name: '', type: 'Personal Loan', totalAmount: '', amountPaid: '0' });
-  const [newTransaction, setNewTransaction] = useState({ description: '', datetime: '', type: 'expense' as 'income' | 'expense', amount: '' });
+  const [newTransaction, setNewTransaction] = useState({ description: '', date: '', type: 'expense' as 'income' | 'expense', amount: '' });
 
   // File Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,15 +146,7 @@ export default function FundManagementPage() {
       const ref = collection(db, 'users', user.uid, col);
       return onSnapshot(ref, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if (col === 'transactions') {
-            const sortedData = data.sort((a, b) => {
-                const dateA = a.datetime?.toDate ? a.datetime.toDate() : new Date(a.datetime);
-                const dateB = b.datetime?.toDate ? b.datetime.toDate() : new Date(b.datetime);
-                if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
-                return dateB.getTime() - dateA.getTime();
-            });
-            setTransactions(sortedData);
-        }
+        if (col === 'transactions') setTransactions(data);
         if (col === 'investments') setInvestments(data);
         if (col === 'debts') setDebts(data);
         setter(false);
@@ -282,7 +274,6 @@ export default function FundManagementPage() {
                 const docRef = doc(transactionsRef);
                 const dataToSave = {
                   ...transaction,
-                  date: new Date(transaction.datetime).toLocaleDateString('en-GB')
                 };
                 batch.set(docRef, dataToSave);
             });
@@ -313,21 +304,6 @@ export default function FundManagementPage() {
   };
   
   const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
-
-  const formatDate = (dateValue: string | Date) => {
-    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
-    if (isNaN(date.getTime())) {
-        return "Invalid Date";
-    }
-    return new Intl.DateTimeFormat('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-    }).format(date);
-  };
 
   return (
     <div className="space-y-6">
@@ -420,7 +396,7 @@ export default function FundManagementPage() {
                   <DialogHeader><DialogTitle>Add New Transaction</DialogTitle></DialogHeader>
                   <div className="grid gap-4 py-4">
                     <Input placeholder="Description" value={newTransaction.description} onChange={e => setNewTransaction({...newTransaction, description: e.target.value})}/>
-                    <Input type="datetime-local" value={newTransaction.datetime} onChange={e => setNewTransaction({...newTransaction, datetime: e.target.value})}/>
+                    <Input type="text" placeholder="Date (e.g., 20/07/2024 10:30 AM)" value={newTransaction.date} onChange={e => setNewTransaction({...newTransaction, date: e.target.value})}/>
                     <Select value={newTransaction.type} onValueChange={(v: 'income' | 'expense') => setNewTransaction({...newTransaction, type: v})}>
                       <SelectTrigger><SelectValue/></SelectTrigger>
                       <SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent>
@@ -430,17 +406,11 @@ export default function FundManagementPage() {
                   <DialogFooter>
                     <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
                     <Button disabled={isAdding} onClick={() => {
-                        if (!newTransaction.datetime) {
-                            toast({ variant: 'destructive', title: 'Error', description: 'Please select a date and time.' });
-                            return;
-                        }
-                        const date = new Date(newTransaction.datetime);
                         const dataToSave = {
                           description: newTransaction.description,
                           amount: parseFloat(newTransaction.amount),
                           type: newTransaction.type,
-                          date: date.toLocaleDateString('en-GB'),
-                          datetime: date.toISOString()
+                          date: newTransaction.date,
                         };
                         handleAdd('transactions', dataToSave, setAddTransactionDialogOpen);
                     }}>
@@ -466,7 +436,7 @@ export default function FundManagementPage() {
                     <TableRow key={t.id}>
                       <TableCell>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(t.datetime)}</p>
+                        <p className="text-xs text-muted-foreground">{t.date}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
                       <TableCell className="text-right font-mono">₹{t.amount.toLocaleString('en-IN')}</TableCell>
