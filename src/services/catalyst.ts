@@ -69,7 +69,7 @@ class CatalystService {
       "top_k": 50,
       "best_of": 1,
       "temperature": 0.7,
-      "max_tokens": 1024 // Using a higher token limit for potentially long DPR sections
+      "max_tokens": 2048 // Increased token limit for complex generation
     };
 
     const apiResponse = await fetch(chatApiUrl, {
@@ -90,7 +90,12 @@ class CatalystService {
     }
 
     const responseData: any = await apiResponse.json();
-    return responseData?.response;
+    // Correctly return the 'response' field from the API payload
+    if (responseData && responseData.response) {
+      return responseData.response;
+    } else {
+      throw new Error('AI response did not contain a "response" field.');
+    }
   }
 
   public async generateTextFromImage(prompt: string, base64Images: string[], system_prompt: string): Promise<any> {
@@ -126,7 +131,12 @@ class CatalystService {
     }
     
     const responseData: any = await apiResponse.json();
-    return responseData?.response;
+    // Correctly return the 'response' field from the API payload
+    if (responseData && responseData.response) {
+        return responseData.response;
+    } else {
+        throw new Error('AI vision response did not contain a "response" field.');
+    }
   }
 }
 
