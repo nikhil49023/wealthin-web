@@ -3,7 +3,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { AlertTriangle, CheckCircle, TrendingDown, Calendar, PlusCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, TrendingDown, Calendar, PlusCircle, RefreshCw, Loader2 } from 'lucide-react';
+import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 
 // --- Types ---
 type RecurringBill = {
@@ -24,79 +25,72 @@ type DailyForecast = {
   status: 'safe' | 'warning' | 'danger';
 };
 
-// --- Mock Data (Replace with Props or API Data) ---
-const INITIAL_BALANCE = 25000;
-const DAILY_BURN_RATE = 400; // Food, Travel, etc.
-const LOW_BALANCE_THRESHOLD = 5000;
+type CashflowForecastProps = {
+    transactions: (ExtractedTransaction & { id: string })[];
+    isLoading: boolean;
+};
 
-const MOCK_RECURRING: RecurringBill[] = [
-  { id: '1', name: 'Rent', amount: 12000, dayOfMonth: 5, type: 'expense' },
-  { id: '2', name: 'SIP Investment', amount: 2000, dayOfMonth: 10, type: 'expense' },
-  { id: '3', name: 'Netflix', amount: 199, dayOfMonth: 15, type: 'expense' },
-  { id: '4', name: 'Client Retainer', amount: 30000, dayOfMonth: 28, type: 'income' },
-];
-
-export default function CashflowForecast() {
+export default function CashflowForecast({ transactions, isLoading }: CashflowForecastProps) {
+  const LOW_BALANCE_THRESHOLD = 5000;
+  
   // State for "What-If" Simulation
   const [simulationAmount, setSimulationAmount] = useState<string>('');
   const [simulationDate, setSimulationDate] = useState<string>('');
   const [isSimulating, setIsSimulating] = useState(false);
 
   // --- Core Forecasting Logic ---
-  const forecastData = useMemo(() => {
-    let currentBalance = INITIAL_BALANCE;
+  const { forecastData, initialBalance, averageDailyBurn } = useMemo(() => {
+    if (transactions.length === 0) {
+        return { forecastData: [], initialBalance: 0, averageDailyBurn: 0 };
+    }
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const initialBalance = transactions.reduce((acc, t) => {
+        return t.type === 'income' ? acc + Number(t.amount) : acc - Number(t.amount);
+    }, 0);
+    
+    const recentExpenses = transactions
+        .filter(t => t.type === 'expense' && new Date(t.date) >= thirtyDaysAgo)
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const averageDailyBurn = recentExpenses > 0 ? recentExpenses / 30 : 0;
+
+    let currentBalance = initialBalance;
     const forecast: DailyForecast[] = [];
     const today = new Date();
 
-    // Generate next 30 days
     for (let i = 0; i < 30; i++) {
       const date = new Date();
       date.setDate(today.getDate() + i);
-      const dayOfMonth = date.getDate();
       
       let dailyIncome = 0;
       let dailyExpense = 0;
       let dailyEvents: string[] = [];
 
-      // 1. Apply Daily Burn (Variable Spend)
-      dailyExpense += DAILY_BURN_RATE;
+      dailyExpense += averageDailyBurn;
 
-      // 2. Apply Recurring Bills
-      const todaysBills = MOCK_RECURRING.filter(bill => bill.dayOfMonth === dayOfMonth);
-      todaysBills.forEach(bill => {
-        if (bill.type === 'expense') {
-          dailyExpense += bill.amount;
-          dailyEvents.push(`-${bill.amount} (${bill.name})`);
-        } else {
-          dailyIncome += bill.amount;
-          dailyEvents.push(`+${bill.amount} (${bill.name})`);
-        }
-      });
-
-      // 3. Apply Simulation (If Active)
       if (isSimulating && simulationDate && simulationAmount) {
         const simDateObj = new Date(simulationDate);
-        if (
-          date.getDate() === simDateObj.getDate() &&
-          date.getMonth() === simDateObj.getMonth()
-        ) {
+        if (date.toDateString() === simDateObj.toDateString()) {
           const amt = parseFloat(simulationAmount);
-          dailyExpense += amt;
-          dailyEvents.push(`-${amt} (Planned Purchase)`);
+          if (!isNaN(amt)) {
+              dailyExpense += amt;
+              dailyEvents.push(`-${amt} (Planned Purchase)`);
+          }
         }
       }
 
-      // Update Running Balance
       currentBalance = currentBalance + dailyIncome - dailyExpense;
 
-      // Determine Health Status
       let status: 'safe' | 'warning' | 'danger' = 'safe';
       if (currentBalance < 0) status = 'danger';
       else if (currentBalance < LOW_BALANCE_THRESHOLD) status = 'warning';
 
       forecast.push({
         date,
-        dayOfMonth,
+        dayOfMonth: date.getDate(),
         balance: currentBalance,
         income: dailyIncome,
         expense: dailyExpense,
@@ -104,8 +98,8 @@ export default function CashflowForecast() {
         status,
       });
     }
-    return forecast;
-  }, [simulationAmount, simulationDate, isSimulating]);
+    return { forecastData, initialBalance, averageDailyBurn };
+  }, [transactions, simulationAmount, simulationDate, isSimulating]);
 
   // --- Helper to format currency ---
   const formatINR = (amount: number) => {
@@ -121,25 +115,40 @@ export default function CashflowForecast() {
     return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
   };
 
-  // Find the lowest balance point
-  const lowestPoint = forecastData.reduce((min, p) => (p.balance < min.balance ? p : min), forecastData[0]);
+  const lowestPoint = forecastData.reduce((min, p) => (p.balance < min.balance ? p : min), forecastData[0] || { balance: 0, date: new Date(), status: 'safe' });
+
+  if (isLoading) {
+      return (
+          <div className="flex flex-col justify-center items-center h-64 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mb-4" />
+              <h2 className="text-xl font-semibold">Loading Cashflow Data...</h2>
+          </div>
+      )
+  }
+
+  if (transactions.length === 0) {
+      return (
+          <div className="text-center py-10">
+              <h3 className="text-lg font-semibold">No transactions to forecast.</h3>
+              <p className="text-muted-foreground mt-2">Add some income and expenses to see your cashflow projection.</p>
+          </div>
+      )
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Cashflow Forecast</h2>
-          <p className="text-slate-500 text-sm">Projecting your balance for the next 30 days based on recurring bills & average spend.</p>
+          <p className="text-slate-500 text-sm">Projecting your balance for the next 30 days.</p>
         </div>
         <div className="bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
           <span className="text-xs text-slate-500 uppercase font-semibold">Current Balance</span>
-          <div className="text-xl font-bold text-emerald-600">{formatINR(INITIAL_BALANCE)}</div>
+          <div className="text-xl font-bold text-emerald-600">{formatINR(initialBalance)}</div>
         </div>
       </div>
 
-      {/* Insight Card */}
       <div className={`p-4 rounded-xl border-l-4 shadow-sm ${lowestPoint.status === 'danger' ? 'bg-red-50 border-red-500' : lowestPoint.status === 'warning' ? 'bg-amber-50 border-amber-500' : 'bg-emerald-50 border-emerald-500'}`}>
         <div className="flex items-start gap-3">
           {lowestPoint.status === 'danger' && <AlertTriangle className="text-red-500 w-6 h-6 mt-1" />}
@@ -151,14 +160,13 @@ export default function CashflowForecast() {
               {lowestPoint.status === 'danger' ? 'Critical Cashflow Warning' : lowestPoint.status === 'warning' ? 'Tight Cashflow Ahead' : 'Cashflow Looks Healthy'}
             </h3>
             <p className="text-sm text-slate-600 mt-1">
-              Your balance hits a low of <span className="font-bold">{formatINR(lowestPoint.balance)}</span> on <strong>{formatDate(lowestPoint.date)}</strong>.
-              {lowestPoint.status !== 'safe' && " Consider delaying big purchases or asking for early payments."}
+              Your balance is projected to hit a low of <span className="font-bold">{formatINR(lowestPoint.balance)}</span> on <strong>{formatDate(lowestPoint.date)}</strong>.
+              {lowestPoint.status !== 'safe' && " Consider delaying any large purchases."}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Simulator Section */}
       <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-2 mb-4">
           <RefreshCw className="w-5 h-5 text-indigo-600" />
@@ -198,7 +206,6 @@ export default function CashflowForecast() {
         </div>
       </div>
 
-      {/* Chart Section */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={forecastData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -213,7 +220,6 @@ export default function CashflowForecast() {
               formatter={(value: number) => [formatINR(value), "Balance"]}
               labelFormatter={(label) => formatDate(new Date(label))}
             />
-            {/* Danger Line */}
             <ReferenceLine y={0} stroke="red" strokeDasharray="3 3" />
             <ReferenceLine y={LOW_BALANCE_THRESHOLD} stroke="orange" strokeDasharray="3 3" label="Low Funds" />
             
@@ -229,7 +235,6 @@ export default function CashflowForecast() {
         </ResponsiveContainer>
       </div>
 
-      {/* Detailed Calendar List */}
       <div className="space-y-3">
         <h3 className="font-semibold text-slate-700 flex items-center gap-2">
           <Calendar className="w-4 h-4" /> 30-Day Breakdown
@@ -252,7 +257,6 @@ export default function CashflowForecast() {
                 </span>
               </div>
               
-              {/* Daily Events Badge */}
               <div className="space-y-1">
                 {day.events.length > 0 ? (
                   day.events.map((event, i) => (
@@ -268,9 +272,8 @@ export default function CashflowForecast() {
                 ) : (
                   <div className="text-xs text-slate-400 italic">No major bills</div>
                 )}
-                {/* Daily Burn Note */}
                 <div className="text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
-                  - {formatINR(DAILY_BURN_RATE)} daily spend
+                  - {formatINR(day.expense)} avg. daily spend
                 </div>
               </div>
             </div>

@@ -675,7 +675,7 @@ export default function FundManagementPage() {
 
          {/* Cashflow Tab */}
         <TabsContent value="cashflow">
-          <CashflowForecast />
+            <CashflowForecast transactions={transactions} isLoading={loadingTransactions} />
         </TabsContent>
 
       </Tabs>
