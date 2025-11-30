@@ -1,15 +1,14 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { AlertTriangle, CheckCircle, Calendar, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Calendar, Loader2 } from 'lucide-react';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 
 // --- Types ---
-type DailyForecast = {
+type DailyData = {
   date: Date;
-  dayOfMonth: number;
   balance: number;
   income: number;
   expense: number;
@@ -24,74 +23,81 @@ type CashflowForecastProps = {
 
 export default function CashflowForecast({ transactions, isLoading }: CashflowForecastProps) {
   const LOW_BALANCE_THRESHOLD = 5000;
-  
-  // State for "What-If" Simulation
-  const [simulationAmount, setSimulationAmount] = useState<string>('');
-  const [simulationDate, setSimulationDate] = useState<string>('');
-  const [isSimulating, setIsSimulating] = useState(false);
 
   // --- Core Forecasting Logic ---
-  const { forecastData, initialBalance, averageDailyBurn } = useMemo(() => {
+  const { historicalData, lowestPoint } = useMemo(() => {
     if (transactions.length === 0) {
-        return { forecastData: [], initialBalance: 0, averageDailyBurn: 0 };
+      return { historicalData: [], lowestPoint: null };
     }
 
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    // 1. Find the latest transaction date
+    const latestDate = new Date(
+      Math.max(
+        ...transactions.map(t => new Date(t.date).getTime())
+      )
+    );
 
-    const initialBalanceValue = transactions.reduce((acc, t) => {
-        return t.type === 'income' ? acc + Number(t.amount) : acc - Number(t.amount);
-    }, 0);
-    
-    const recentExpenses = transactions
-        .filter(t => t.type === 'expense' && new Date(t.date) >= thirtyDaysAgo)
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+    // 2. Set the 30-day window
+    const endDate = new Date(latestDate);
+    const startDate = new Date(latestDate);
+    startDate.setDate(startDate.getDate() - 29); // 30 days total including end date
 
-    const averageDailyBurnValue = recentExpenses > 0 ? recentExpenses / 30 : 0;
+    // 3. Calculate initial balance before the window starts
+    let runningBalance = transactions
+      .filter(t => new Date(t.date) < startDate)
+      .reduce((acc, t) => {
+        const amount = Number(t.amount);
+        return t.type === 'income' ? acc + amount : acc - amount;
+      }, 0);
 
-    let currentBalance = initialBalanceValue;
-    const forecast: DailyForecast[] = [];
-    const today = new Date();
+    const data: DailyData[] = [];
+    const tempDate = new Date(startDate);
 
-    for (let i = 0; i < 30; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() + i);
+    // 4. Iterate through the 30-day window
+    while (tempDate <= endDate) {
+      const currentDateString = tempDate.toISOString().split('T')[0];
       
+      const todaysTransactions = transactions.filter(
+        t => new Date(t.date).toISOString().split('T')[0] === currentDateString
+      );
+
       let dailyIncome = 0;
       let dailyExpense = 0;
       let dailyEvents: string[] = [];
-
-      dailyExpense += averageDailyBurnValue;
-
-      if (isSimulating && simulationDate && simulationAmount) {
-        const simDateObj = new Date(simulationDate);
-        if (date.toDateString() === simDateObj.toDateString()) {
-          const amt = parseFloat(simulationAmount);
-          if (!isNaN(amt)) {
-              dailyExpense += amt;
-              dailyEvents.push(`-${amt} (Planned Purchase)`);
+      
+      todaysTransactions.forEach(t => {
+          const amount = Number(t.amount);
+          if (t.type === 'income') {
+              dailyIncome += amount;
+              dailyEvents.push(`+${amount} (${t.description})`);
+          } else {
+              dailyExpense += amount;
+              dailyEvents.push(`-${amount} (${t.description})`);
           }
-        }
-      }
+      });
 
-      currentBalance = currentBalance + dailyIncome - dailyExpense;
+      runningBalance += dailyIncome - dailyExpense;
 
       let status: 'safe' | 'warning' | 'danger' = 'safe';
-      if (currentBalance < 0) status = 'danger';
-      else if (currentBalance < LOW_BALANCE_THRESHOLD) status = 'warning';
+      if (runningBalance < 0) status = 'danger';
+      else if (runningBalance < LOW_BALANCE_THRESHOLD) status = 'warning';
 
-      forecast.push({
-        date,
-        dayOfMonth: date.getDate(),
-        balance: currentBalance,
+      data.push({
+        date: new Date(tempDate),
+        balance: runningBalance,
         income: dailyIncome,
         expense: dailyExpense,
         events: dailyEvents,
         status,
       });
+
+      tempDate.setDate(tempDate.getDate() + 1);
     }
-    return { forecastData: forecast, initialBalance: initialBalanceValue, averageDailyBurn: averageDailyBurnValue };
-  }, [transactions, simulationAmount, simulationDate, isSimulating]);
+    
+    const finalLowestPoint = data.reduce((min, p) => (p.balance < min.balance ? p : min), data[0] || null);
+
+    return { historicalData: data, lowestPoint: finalLowestPoint };
+  }, [transactions]);
 
   // --- Helper to format currency ---
   const formatINR = (amount: number) => {
@@ -107,8 +113,6 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
   };
 
-  const lowestPoint = forecastData.reduce((min, p) => (p.balance < min.balance ? p : min), forecastData[0] || { balance: 0, date: new Date(), status: 'safe' });
-
   if (isLoading) {
       return (
           <div className="flex flex-col justify-center items-center h-64 text-center">
@@ -121,8 +125,8 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
   if (transactions.length === 0) {
       return (
           <div className="text-center py-10">
-              <h3 className="text-lg font-semibold">No transactions to forecast.</h3>
-              <p className="text-muted-foreground mt-2">Add some income and expenses to see your cashflow projection.</p>
+              <h3 className="text-lg font-semibold">No transactions to analyze.</h3>
+              <p className="text-muted-foreground mt-2">Add some income and expenses to see your cashflow history.</p>
           </div>
       )
   }
@@ -132,82 +136,40 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Cashflow Forecast</h2>
-          <p className="text-slate-500 text-sm">Projecting your balance for the next 30 days.</p>
-        </div>
-        <div className="bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
-          <span className="text-xs text-slate-500 uppercase font-semibold">Current Balance</span>
-          <div className="text-xl font-bold text-emerald-600">{formatINR(initialBalance)}</div>
+          <h2 className="text-2xl font-bold text-slate-800">Cashflow Analysis</h2>
+          <p className="text-slate-500 text-sm">Reviewing your balance over the last 30 days of activity.</p>
         </div>
       </div>
 
-      <div className={`p-4 rounded-xl border-l-4 shadow-sm ${lowestPoint.status === 'danger' ? 'bg-red-50 border-red-500' : lowestPoint.status === 'warning' ? 'bg-amber-50 border-amber-500' : 'bg-emerald-50 border-emerald-500'}`}>
-        <div className="flex items-start gap-3">
-          {lowestPoint.status === 'danger' && <AlertTriangle className="text-red-500 w-6 h-6 mt-1" />}
-          {lowestPoint.status === 'warning' && <AlertTriangle className="text-amber-500 w-6 h-6 mt-1" />}
-          {lowestPoint.status === 'safe' && <CheckCircle className="text-emerald-500 w-6 h-6 mt-1" />}
-          
-          <div>
-            <h3 className="font-semibold text-slate-800">
-              {lowestPoint.status === 'danger' ? 'Critical Cashflow Warning' : lowestPoint.status === 'warning' ? 'Tight Cashflow Ahead' : 'Cashflow Looks Healthy'}
-            </h3>
-            <p className="text-sm text-slate-600 mt-1">
-              Your balance is projected to hit a low of <span className="font-bold">{formatINR(lowestPoint.balance)}</span> on <strong>{formatDate(lowestPoint.date)}</strong>.
-              {lowestPoint.status !== 'safe' && " Consider delaying any large purchases."}
-            </p>
+      {lowestPoint && (
+        <div className={`p-4 rounded-xl border-l-4 shadow-sm ${lowestPoint.status === 'danger' ? 'bg-red-50 border-red-500' : lowestPoint.status === 'warning' ? 'bg-amber-50 border-amber-500' : 'bg-emerald-50 border-emerald-500'}`}>
+          <div className="flex items-start gap-3">
+            {lowestPoint.status === 'danger' && <AlertTriangle className="text-red-500 w-6 h-6 mt-1" />}
+            {lowestPoint.status === 'warning' && <AlertTriangle className="text-amber-500 w-6 h-6 mt-1" />}
+            {lowestPoint.status === 'safe' && <CheckCircle className="text-emerald-500 w-6 h-6 mt-1" />}
+            
+            <div>
+              <h3 className="font-semibold text-slate-800">
+                {lowestPoint.status === 'danger' ? 'Critical Cashflow Event' : lowestPoint.status === 'warning' ? 'Low Balance Recorded' : 'Historical Snapshot'}
+              </h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Your balance hit a low of <span className="font-bold">{formatINR(lowestPoint.balance)}</span> on <strong>{formatDate(lowestPoint.date)}</strong> during this period.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-2 mb-4">
-          <RefreshCw className="w-5 h-5 text-indigo-600" />
-          <h3 className="font-semibold text-slate-800">"What-If" Simulator</h3>
-        </div>
-        
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Expense Name (Optional)</label>
-            <input type="text" placeholder="e.g. New Phone" className="w-full p-2 text-sm border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none" />
-          </div>
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Amount (₹)</label>
-            <input 
-              type="number" 
-              value={simulationAmount}
-              onChange={(e) => setSimulationAmount(e.target.value)}
-              placeholder="20000" 
-              className="w-full p-2 text-sm border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none" 
-            />
-          </div>
-          <div className="flex-1 w-full">
-            <label className="block text-xs font-medium text-slate-500 mb-1">Date</label>
-            <input 
-              type="date" 
-              value={simulationDate}
-              onChange={(e) => setSimulationDate(e.target.value)}
-              className="w-full p-2 text-sm border rounded-md focus:ring-2 focus:ring-indigo-500 outline-none" 
-            />
-          </div>
-          <button 
-            onClick={() => setIsSimulating(!isSimulating)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${isSimulating ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
-          >
-            {isSimulating ? 'Clear' : 'Simulate'}
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={forecastData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+          <LineChart data={historicalData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
             <XAxis 
               dataKey="date" 
               tickFormatter={formatDate} 
               tick={{fontSize: 12}} 
               minTickGap={30}
             />
-            <YAxis tick={{fontSize: 12}} />
+            <YAxis tick={{fontSize: 12}} tickFormatter={(val) => formatINR(val).replace('₹', '')} />
             <Tooltip 
               formatter={(value: number) => [formatINR(value), "Balance"]}
               labelFormatter={(label) => formatDate(new Date(label))}
@@ -233,7 +195,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {forecastData.map((day, idx) => (
+          {historicalData.map((day, idx) => (
             <div 
               key={idx} 
               className={`p-3 rounded-lg border text-sm transition-all hover:shadow-md ${
@@ -251,22 +213,20 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
               
               <div className="space-y-1">
                 {day.events.length > 0 ? (
-                  day.events.map((event, i) => (
+                  day.events.slice(0, 2).map((event, i) => ( // Show max 2 events
                     <div key={i} className="flex items-center gap-1 text-xs">
                       {event.startsWith('+') ? (
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
                       ) : (
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 flex-shrink-0"></span>
                       )}
-                      <span className="truncate">{event}</span>
+                      <span className="truncate" title={event}>{event}</span>
                     </div>
                   ))
                 ) : (
-                  <div className="text-xs text-slate-400 italic">No major bills</div>
+                  <div className="text-xs text-slate-400 italic">No transactions</div>
                 )}
-                <div className="text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-100">
-                  - {formatINR(day.expense)} avg. daily spend
-                </div>
+                {day.events.length > 2 && <div className="text-xs text-slate-400 italic">...and {day.events.length - 2} more</div>}
               </div>
             </div>
           ))}
