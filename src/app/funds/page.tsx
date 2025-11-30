@@ -358,7 +358,9 @@ export default function FundManagementPage() {
     return daysInMonth.map(day => {
       const dayTransactions = transactions.filter(t => {
         try {
-          const transactionDate = new Date(t.date);
+          // Handle various possible date string formats from documents
+          const transactionDateStr = t.date.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1');
+          const transactionDate = new Date(transactionDateStr);
           return isSameDay(transactionDate, day);
         } catch {
           return false;
@@ -385,6 +387,18 @@ export default function FundManagementPage() {
 
   const selectedDayData = monthlyForecast.find(d => isSameDay(d.date, selectedDay || new Date()));
 
+  const formatDate = (dateString: string): string => {
+    if (!dateString || isNaN(new Date(dateString).getTime())) {
+      return "Invalid Date";
+    }
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).format(date);
+  };
+
   const DayWithContent = ({ date }: { date: Date }) => {
     const dayData = monthlyForecast.find(d => isSameDay(d.date, date));
     if (!dayData) return <div className="p-1 text-center text-sm">{format(date, 'd')}</div>;
@@ -393,16 +407,16 @@ export default function FundManagementPage() {
 
     return (
       <div className={cn(
-        "h-full w-full p-2 flex flex-col justify-between text-left text-sm",
+        "h-full w-full p-2 flex flex-col justify-between text-left",
         isNegativeBalance ? "bg-red-100/50 dark:bg-red-900/30" : 
         dayData.net > 0 ? "bg-green-100/30 dark:bg-green-900/20" :
         dayData.net < 0 ? "bg-amber-100/30 dark:bg-amber-900/20" :
         ""
       )}>
-        <span className="font-semibold text-foreground">{format(date, 'd')}</span>
-        <div className="text-xs text-right mt-auto">
-          {dayData.net > 0 && <span className="font-bold text-green-600">+{formatCurrency(dayData.net)}</span>}
-          {dayData.net < 0 && <span className="font-bold text-red-600">{formatCurrency(dayData.net)}</span>}
+        <span className="font-semibold text-sm text-foreground">{format(date, 'd')}</span>
+        <div className="text-xs text-right mt-auto space-y-1">
+          {dayData.net > 0 && <span className="font-bold text-green-600 block">+{formatCurrency(dayData.net)}</span>}
+          {dayData.net < 0 && <span className="font-bold text-red-600 block">{formatCurrency(dayData.net)}</span>}
         </div>
       </div>
     );
@@ -607,7 +621,7 @@ export default function FundManagementPage() {
                     <TableRow key={t.id}>
                       <TableCell>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.date} {t.time}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(t.date)} {t.time}</p>
                       </TableCell>
                       <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
                       <TableCell className="text-right font-mono">₹{Number(t.amount).toLocaleString('en-IN')}</TableCell>
@@ -755,7 +769,7 @@ export default function FundManagementPage() {
                         <Button variant="outline" onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}>Next</Button>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0 sm:p-2 md:p-4">
                     <Calendar
                         mode="single"
                         selected={selectedDay}
@@ -767,7 +781,7 @@ export default function FundManagementPage() {
                         }}
                         className="p-0"
                         classNames={{
-                            day: 'h-24 w-full p-0 text-left align-top',
+                            day: 'h-28 w-full p-0 text-left align-top',
                             head_cell: 'w-full'
                         }}
                     />
@@ -840,3 +854,4 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
