@@ -65,9 +65,9 @@
 
         <!-- Expense Breakdown Chart -->
         <section class="mb-8 card bg-white">
-            <div class="px-6 py-5 border-b border-gray-100"><h2 class="text-lg font-bold text-gray-800">Expense Breakdown by Category</h2></div>
+            <div class="px-6 py-5 border-b border-gray-100"><h2 class="text-lg font-bold text-gray-800">Spending vs. Budget</h2></div>
             <div class="p-6">
-                <div class="h-80"><canvas id="expenseChart"></canvas></div>
+                <div class="h-96"><canvas id="expenseChart"></canvas></div>
             </div>
         </section>
 
@@ -91,35 +91,71 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const expenseData = JSON.parse('{{expenseChartData}}');
+            const chartData = JSON.parse('{{expenseChartData}}');
             
+            const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+
             new Chart(document.getElementById('expenseChart'), {
                 type: 'bar',
                 data: {
-                    labels: expenseData.map(d => d.name),
-                    datasets: [{
-                        label: 'Amount Spent',
-                        data: expenseData.map(d => d.value),
-                        backgroundColor: 'hsl(259, 39%, 33%, 0.8)',
-                        borderColor: 'hsl(259, 39%, 33%)',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                    }]
+                    labels: chartData.map(d => d.name),
+                    datasets: [
+                        {
+                            label: 'Spent',
+                            data: chartData.map(d => [0, d.spent]),
+                            backgroundColor: chartData.map(d => d.spent > d.limit ? 'rgba(239, 68, 68, 0.8)' : 'hsla(259, 39%, 33%, 0.8)'), // Red if over budget
+                            borderColor: chartData.map(d => d.spent > d.limit ? 'rgb(239, 68, 68)' : 'hsl(259, 39%, 33%)'),
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        },
+                        {
+                            label: 'Budget',
+                            data: chartData.map(d => [0, d.limit]),
+                            backgroundColor: 'rgba(226, 232, 240, 0.7)', // bg-slate-200
+                            borderColor: 'rgb(203, 213, 225)', // border-slate-300
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     indexAxis: 'y',
                     scales: {
-                        x: { beginAtZero: true, grid: { display: false } },
-                        y: { grid: { display: false } }
+                        x: { 
+                            stacked: false, 
+                            beginAtZero: true, 
+                            grid: { display: false },
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 100000) return '₹' + (value/100000) + 'L';
+                                    if (value >= 1000) return '₹' + (value/1000) + 'k';
+                                    return '₹' + value;
+                                }
+                            }
+                        },
+                        y: { 
+                            stacked: false,
+                            grid: { display: false } 
+                        }
                     },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return 'Spent: ' + new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.raw);
+                                    const raw = context.raw;
+                                    const spent = Array.isArray(raw) ? raw[1] : 0;
+                                    const limit = chartData[context.dataIndex].limit;
+                                    const remaining = limit - spent;
+                                    
+                                    let lines = [`Spent: ${formatCurrency(spent)}`];
+                                    lines.push(`Budget: ${formatCurrency(limit)}`);
+                                    lines.push(remaining >= 0 ? `Remaining: ${formatCurrency(remaining)}` : `Over by: ${formatCurrency(Math.abs(remaining))}`);
+                                    return lines;
                                 }
                             }
                         }

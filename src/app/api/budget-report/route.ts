@@ -44,8 +44,13 @@ export async function POST(req: Request) {
     template = template.replace('{{aiSummary}}', result.summary);
     template = template.replace('{{aiSuggestions}}', result.suggestions.map(s => `<li>${s}</li>`).join(''));
     
-    // Inject Chart Data
-    template = template.replace('{{expenseChartData}}', JSON.stringify(result.expenseBreakdown));
+    // Inject Chart Data (for the new floating bar chart)
+    const chartData = result.budgetStatus.map(b => ({
+      name: b.name,
+      spent: b.spent,
+      limit: b.limit,
+    }));
+    template = template.replace('{{expenseChartData}}', JSON.stringify(chartData));
 
     // Inject Savings Goals Status
     const savingsGoalRows = result.savingsGoalStatus.map(goal => `
