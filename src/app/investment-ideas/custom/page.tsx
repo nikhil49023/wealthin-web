@@ -229,16 +229,21 @@ function InvestmentIdeaContent() {
         
         // After all sections are generated (or failed), save the result
         Promise.allSettled(generationPromises).then(() => {
+            // This 'updater' function form of setState ensures we get the most recent state
             setSections(currentSections => {
-                const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = currentSections.reduce((acc, section) => {
-                    if (section.content) {
-                        (acc as any)[section.key] = section.content;
-                    }
-                    return acc;
-                }, { title: initialAnalysis!.title, summary: initialAnalysis!.summary } as any);
+                // We depend on the initialAnalysis state, so we use an outer scope variable
+                // that is set before this runs.
+                if (initialAnalysis) {
+                    const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = currentSections.reduce((acc, section) => {
+                        if (section.content) {
+                            (acc as any)[section.key] = section.content;
+                        }
+                        return acc;
+                    }, { title: initialAnalysis.title, summary: initialAnalysis.summary } as any);
 
-                if (!isSaved) {
-                  saveAnalysis(fullAnalysis);
+                    if (!isSaved) {
+                        saveAnalysis(fullAnalysis);
+                    }
                 }
                 return currentSections;
             });
@@ -382,5 +387,3 @@ export default function CustomInvestmentIdeaPage() {
     </Suspense>
   );
 }
-
-
