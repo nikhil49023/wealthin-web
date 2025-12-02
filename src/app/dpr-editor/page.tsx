@@ -52,7 +52,7 @@ export default function DPREditorPage() {
                 ...prev,
                 formData: {
                     ...prev.formData,
-                    projectName: analysis.title,
+                    projectName: analysis.title, // Correctly assign the title string
                     projectDescription: analysis.summary,
                     targetMarket: analysis.targetAudience,
                     competitiveAdvantage: analysis.roi, // ROI can be part of competitive advantage
@@ -208,8 +208,9 @@ export default function DPREditorPage() {
                      id={`step${i + 1}`}>
                     <div className="quiz-section">
                         <h3 className="section-title">{`Step ${i + 1} Content`}</h3>
-                        <p>Fields for step {i + 1} go here.</p>
+                        
                         {i === 0 && (
+                            <>
                             <div className="form-group">
                                 <label className="form-label">Project Name <span className="required">*</span></label>
                                 <input type="text"
@@ -219,8 +220,6 @@ export default function DPREditorPage() {
                                        defaultValue={state.formData.projectName || ''}
                                        required/>
                             </div>
-                        )}
-                         {i === 0 && (
                             <div className="form-group">
                                 <label className="form-label">Project Description <span className="required">*</span></label>
                                 <textarea
@@ -231,6 +230,7 @@ export default function DPREditorPage() {
                                        rows={5}
                                        required></textarea>
                             </div>
+                            </>
                         )}
                         {i === 5 && (
                              <>
