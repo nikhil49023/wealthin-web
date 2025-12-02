@@ -21,6 +21,8 @@ import type {
 import {
   generateDprAction
 } from '@/app/actions';
+import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
+
 
 // This is the new, consolidated DPR Editor page that includes the quiz and the editor.
 
@@ -40,6 +42,27 @@ export default function DPREditorPage() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const storedAnalysis = localStorage.getItem('dprAnalysis');
+    if (storedAnalysis) {
+        try {
+            const analysis = JSON.parse(storedAnalysis) as GenerateInvestmentIdeaAnalysisOutput;
+            setState(prev => ({
+                ...prev,
+                formData: {
+                    ...prev.formData,
+                    projectName: analysis.title,
+                    projectDescription: analysis.summary,
+                    targetMarket: analysis.targetAudience,
+                    competitiveAdvantage: analysis.roi, // ROI can be part of competitive advantage
+                }
+            }));
+        } catch (e) {
+            console.error("Failed to parse DPR analysis from localStorage", e);
+        }
+    }
+  }, []);
 
   // Handlers for quiz navigation
   const nextStep = () => {
@@ -102,7 +125,7 @@ export default function DPREditorPage() {
     inputs.forEach(input => {
       const el = input as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
       if (el.name) {
-        newFormData[el.name as keyof GenerateDprInput] = el.value;
+        (newFormData as any)[el.name] = el.value;
       }
     });
     setState(prev => ({ ...prev,
@@ -193,8 +216,45 @@ export default function DPREditorPage() {
                                        className="form-input"
                                        name="projectName"
                                        placeholder="e.g., Textile Manufacturing Unit"
+                                       defaultValue={state.formData.projectName || ''}
                                        required/>
                             </div>
+                        )}
+                         {i === 0 && (
+                            <div className="form-group">
+                                <label className="form-label">Project Description <span className="required">*</span></label>
+                                <textarea
+                                       className="form-input"
+                                       name="projectDescription"
+                                       placeholder="e.g., A brief summary of your business idea"
+                                       defaultValue={state.formData.projectDescription || ''}
+                                       rows={5}
+                                       required></textarea>
+                            </div>
+                        )}
+                        {i === 5 && (
+                             <>
+                             <div className="form-group">
+                                 <label className="form-label">Target Market <span className="required">*</span></label>
+                                 <textarea
+                                        className="form-input"
+                                        name="targetMarket"
+                                        placeholder="e.g., Describe your ideal customer"
+                                        defaultValue={state.formData.targetMarket || ''}
+                                        rows={5}
+                                        required></textarea>
+                             </div>
+                              <div className="form-group">
+                                 <label className="form-label">Competitive Advantage <span className="required">*</span></label>
+                                 <textarea
+                                        className="form-input"
+                                        name="competitiveAdvantage"
+                                        placeholder="e.g., What is your unique selling proposition?"
+                                        defaultValue={state.formData.competitiveAdvantage || ''}
+                                        rows={5}
+                                        required></textarea>
+                             </div>
+                             </>
                         )}
                     </div>
                 </div>
@@ -311,18 +371,7 @@ export default function DPREditorPage() {
           </div>
 
           <form id="quizForm">
-              <!-- STEP 1 -->
-              <div class="quiz-step" style="display: ${state.currentStep === 1 ? 'block' : 'none'};" id="step1">
-                  <div class="section-title">Project Basics</div>
-                  <div class="form-group">
-                      <label class="form-label">Project Name <span class="required">*</span></label>
-                      <input type="text" class="form-input" name="projectName" placeholder="e.g., Textile Manufacturing Unit" required>
-                  </div>
-              </div>
-              <!-- STEP 2 -->
-              <div class="quiz-step" style="display: ${state.currentStep === 2 ? 'block' : 'none'};" id="step2">
-                  <div class="section-title">Location & Registration</div>
-              </div>
+             ${renderQuizStep()}
           </form>
       </div>`;
 
@@ -354,7 +403,8 @@ export default function DPREditorPage() {
         .edit-field-content { background: var(--neutral-50); padding: 12px; border-radius: 6px; border: 1px solid var(--neutral-200); font-size: 14px; min-height: 100px;}
         .hidden { display: none; }
         `}</style>
-            <div dangerouslySetInnerHTML={{__html: quizHtml}}/>
+            <div dangerouslySetInnerHTML={{__html: quizHtml.replace(/<p>.*<\/p>/g, '')}}/>
+
             <div className="btn-group" style={{display: 'flex', justifyContent: 'space-between', marginTop: '20px'}}>
                 <Button variant="secondary"
                         onClick={prevStep}
