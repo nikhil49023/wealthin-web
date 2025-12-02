@@ -43,18 +43,18 @@ import {
   Paperclip,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { DprQuizData } from '@/ai/schemas/dpr';
-import { generateDpr } from '@/ai/flows/generate-dpr'; // Assuming the action is exported from here
+import type { DprQuizData, GenerateDprOutput } from '@/ai/schemas/dpr';
+import { generateDpr } from '@/ai/flows/generate-dpr';
 import RichTextEditor from '@/components/financify/rich-text-editor';
 import { dprSectionConfig } from '@/lib/dpr-config';
 
 // Helper function for currency formatting
 const formatIndianCurrency = (value: number) => {
   if (value >= 10000000) {
-    return `₹${(value / 10000000).toFixed(2)} Crore`;
+    return `₹${(value / 10000000).toFixed(2)} Cr`;
   }
   if (value >= 100000) {
-    return `₹${(value / 100000).toFixed(2)} Lakh`;
+    return `₹${(value / 100000).toFixed(2)} L`;
   }
   if (value >= 1000) {
       return `₹${(value / 1000).toFixed(0)}k`;
@@ -149,7 +149,7 @@ export default function DPREditorPage() {
   const [formData, setFormData] = useState<DprQuizData>(initialFormData);
   const [direction, setDirection] = useState(1);
   const [view, setView] = useState<'quiz' | 'loading' | 'editor'>('quiz');
-  const [generatedDpr, setGeneratedDpr] = useState<any>(null);
+  const [generatedDpr, setGeneratedDpr] = useState<GenerateDprOutput | null>(null);
   const [activeEditorSection, setActiveEditorSection] = useState('executiveSummary');
 
 
@@ -182,6 +182,11 @@ export default function DPREditorPage() {
     try {
       const result = await generateDpr(formData);
       setGeneratedDpr(result);
+      // Store the generated DPR in local storage
+      localStorage.setItem('generatedDpr', JSON.stringify(result));
+      // Store the base idea for refinement context
+      localStorage.setItem('dprAnalysis', JSON.stringify({ title: formData.projectName, summary: formData.businessDescription }));
+
       setView('editor');
       toast({
         title: 'DPR Generated Successfully!',
@@ -198,13 +203,18 @@ export default function DPREditorPage() {
     }
   };
   
-  const handleSectionContentChange = (sectionKey: string, newContent: string) => {
-    setGeneratedDpr((prev: any) => (prev ? { ...prev, [sectionKey]: newContent } : null));
+  const handleSectionContentChange = (sectionKey: string, newContent: any) => {
+      setGeneratedDpr((prev: any) => {
+          if (!prev) return null;
+          const updatedDpr = { ...prev, [sectionKey]: newContent };
+          // Also update local storage when a section is edited
+          localStorage.setItem('generatedDpr', JSON.stringify(updatedDpr));
+          return updatedDpr;
+      });
   };
 
-
   const renderQuizStep = () => {
-    const { key, fields } = quizSteps[currentStep];
+    const { key } = quizSteps[currentStep];
 
     switch (key) {
       case 'projectInfo':
@@ -334,51 +344,17 @@ export default function DPREditorPage() {
   }
 
   if (view === 'editor' && generatedDpr) {
-    const activeSectionData = dprSectionConfig.find(s => s.key === activeEditorSection);
+    // Navigate to the new page instead of rendering here
+    router.push('/dpr-report');
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Review Your DPR</h1>
-             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <aside className="lg:col-span-1">
-                <Card className="sticky top-6">
-                    <CardHeader><CardTitle>DPR Sections</CardTitle></CardHeader>
-                    <CardContent>
-                    <nav className="flex flex-col gap-1">
-                        {dprSectionConfig.map(section => (
-                        <Button
-                            key={section.key}
-                            variant={activeEditorSection === section.key ? 'secondary' : 'ghost'}
-                            onClick={() => setActiveEditorSection(section.key)}
-                            className="justify-start"
-                        >
-                            <section.icon className="mr-3 h-5 w-5" />
-                            {section.title}
-                        </Button>
-                        ))}
-                    </nav>
-                    </CardContent>
-                </Card>
-                </aside>
-                <main className="lg:col-span-3 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-3">
-                            {activeSectionData?.icon && <activeSectionData.icon className="text-primary"/>}
-                            {activeSectionData?.title}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <RichTextEditor
-                            content={generatedDpr[activeEditorSection] || ''}
-                            onChange={(newContent) => handleSectionContentChange(activeEditorSection, newContent)}
-                        />
-                    </CardContent>
-                </Card>
-                </main>
-            </div>
+        <div className="flex flex-col justify-center items-center h-full text-center py-20">
+            <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
+            <h2 className="text-2xl font-semibold">Loading Editor...</h2>
         </div>
     );
   }
+
+  const Icon = quizSteps[currentStep].icon;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -387,12 +363,12 @@ export default function DPREditorPage() {
           <Progress value={((currentStep + 1) / quizSteps.length) * 100} className="mb-4 h-2" />
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-md">
-                {quizSteps[currentStep].icon && <quizSteps[currentStep].icon className="h-6 w-6 text-primary" />}
+                {Icon && <Icon className="h-6 w-6 text-primary" />}
             </div>
             <CardTitle>{quizSteps[currentStep].title}</CardTitle>
           </div>
         </CardHeader>
-        <div className="relative h-64 px-6">
+        <div className="relative min-h-[250px] px-6">
           <AnimatePresence initial={false} custom={direction}>
             <motion.div
               key={currentStep}
@@ -402,7 +378,7 @@ export default function DPREditorPage() {
               animate="center"
               exit="exit"
               transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
-              className="absolute w-full px-6"
+              className="absolute w-full px-6 left-0"
             >
               {renderQuizStep()}
             </motion.div>
