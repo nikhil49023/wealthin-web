@@ -50,6 +50,14 @@
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
 
+    <!-- Floating Print Button -->
+    <div class="no-print fixed bottom-6 right-6 z-50">
+        <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-5 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2' 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            Print / Download PDF
+        </button>
+    </div>
+
     <main class="w-full flex justify-center p-4">
         <div class="a4-paper print-container" id="document-content">
             
@@ -179,8 +187,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const costData = '{{COST_BREAKDOWN_DATA}}';
-            const yearlyData = '{{YEARLY_PROJECTIONS_DATA}}';
+            const costData = {{COST_BREAKDOWN_DATA}};
+            const yearlyData = {{YEARLY_PROJECTIONS_DATA}};
 
             const formatCurrencyForChart = (value) => {
                 if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
@@ -189,7 +197,7 @@
             };
 
             // Cost Breakdown Pie Chart
-            if (document.getElementById('costBreakdownChart') && costData) {
+            if (document.getElementById('costBreakdownChart') && Array.isArray(costData) && costData.length > 0) {
                 const pieCtx = document.getElementById('costBreakdownChart').getContext('2d');
                 new Chart(pieCtx, {
                     type: 'pie',
@@ -209,7 +217,7 @@
             }
 
             // Yearly Projections Bar Chart
-            if (document.getElementById('yearlyProjectionsChart') && yearlyData) {
+            if (document.getElementById('yearlyProjectionsChart') && Array.isArray(yearlyData) && yearlyData.length > 0) {
                 const barCtx = document.getElementById('yearlyProjectionsChart').getContext('2d');
                 new Chart(barCtx, {
                     type: 'bar',
