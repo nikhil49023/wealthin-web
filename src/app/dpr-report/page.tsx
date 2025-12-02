@@ -13,7 +13,7 @@ import { useSearchParams } from 'next/navigation';
 import { dprSectionConfig } from '@/lib/dpr-config';
 import type { DprQuizData } from '@/ai/schemas/dpr';
 import { generateDprSectionAction } from '../actions';
-import { useToast } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FinancialProjectionsBarChart, ProjectCostPieChart } from '@/components/wealthin/dpr-charts';
 
