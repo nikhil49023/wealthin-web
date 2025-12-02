@@ -87,11 +87,11 @@ export default function DPREditorPage() {
                     <p className="font-semibold text-lg">{quizData.projectName}</p>
                 </div>
                 <p className="text-muted-foreground max-w-sm mx-auto">
-                    You can now proceed to generate the full, formatted DPR document with our AI.
+                    You can now proceed to generate the full, formatted DPR document with our AI. This may take a minute.
                 </p>
                 <Button onClick={handleStartGeneration} size="lg">
                     <FileText className="mr-2"/>
-                    Start AI Generation
+                    Generate Full DPR
                 </Button>
             </CardContent>
         </Card>
