@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
@@ -52,6 +53,7 @@ function DPRReportContent() {
   const [generationIndex, setGenerationIndex] = useState(-1);
 
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   
   let cropper: any = null;
   let currentImgWrapper: HTMLElement | null = null;
@@ -270,27 +272,19 @@ function DPRReportContent() {
         const reader = new FileReader();
         currentImgWrapper = input.closest('.img-wrapper');
         reader.onload = (e) => {
-          if (cropperImageRef.current && e.target?.result) {
-            cropperImageRef.current.src = e.target.result as string;
-            openModal();
-          }
+            if(e.target?.result) {
+                setImageToCrop(e.target.result as string);
+            }
         };
         reader.readAsDataURL(input.files[0]);
       }
       input.value = '';
     };
     
-    const openModal = () => {
-      if (cropperModalRef.current && cropperImageRef.current) {
-          cropperModalRef.current.style.display = 'flex';
-          if (cropper) cropper.destroy();
-          cropper = new Cropper(cropperImageRef.current, { viewMode: 1 });
-      }
-    };
-
     window.closeModal = () => {
       if (cropperModalRef.current) cropperModalRef.current.style.display = 'none';
       if (cropper) cropper.destroy();
+      setImageToCrop(null);
     };
     
     window.saveCrop = () => {
@@ -325,9 +319,20 @@ function DPRReportContent() {
       document.querySelectorAll('.rev-input, .exp-input').forEach(input => {
         input.removeEventListener('input', window.updateCharts);
       });
+      if (cropper) {
+          cropper.destroy();
+      }
     }
 
-  }, []); // Run only once on mount
+  }, []);
+
+  useEffect(() => {
+    if (imageToCrop && cropperModalRef.current && cropperImageRef.current) {
+        cropperModalRef.current.style.display = 'flex';
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropperImageRef.current, { viewMode: 1 });
+    }
+  }, [imageToCrop, cropper]);
 
   if (!quizData) {
     return <div className="flex flex-col justify-center items-center h-full text-center">
@@ -397,8 +402,8 @@ function DPRReportContent() {
                         </div>
                         <div class="w-full md:w-1/4 text-left md:text-right flex flex-row md:flex-col justify-between md:justify-end items-center md:items-end">
                             <div class="img-wrapper relative inline-block">
-                                <input type="file" accept="image/*" class="hidden img-input" onchange="handleImageUpload(this)">
-                                <div class="img-holder w-20 h-20 bg-gray-50 border border-dashed border-indigo-200 rounded flex items-center justify-center text-xs text-indigo-400 cursor-pointer hover:bg-indigo-50" onclick="triggerUpload(this)">
+                                <input type="file" accept="image/*" class="hidden img-input" onchange="window.handleImageUpload(this)">
+                                <div class="img-holder w-20 h-20 bg-gray-50 border border-dashed border-indigo-200 rounded flex items-center justify-center text-xs text-indigo-400 cursor-pointer hover:bg-indigo-50" onclick="window.triggerUpload(this)">
                                     [Logo]
                                 </div>
                                 <img class="img-preview hidden w-20 h-20 object-contain" src="">
@@ -426,7 +431,7 @@ function DPRReportContent() {
             <div className="bg-white p-4 rounded shadow-lg max-w-lg w-full m-4">
                 <h3 className="font-bold text-lg mb-4">Crop Image</h3>
                 <div className="h-64 bg-gray-200 mb-4 overflow-hidden relative">
-                    <img id="cropperImage" ref={cropperImageRef} src="" className="max-w-full block"/>
+                    {imageToCrop && <img id="cropperImage" ref={cropperImageRef} src={imageToCrop} className="max-w-full block"/>}
                 </div>
                 <div className="flex justify-end gap-2">
                     <Button variant="ghost" onClick={() => window.closeModal()}>Cancel</Button>
