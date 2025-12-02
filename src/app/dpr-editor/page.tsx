@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -31,11 +32,11 @@ export default function DPREditorPage() {
   const [state, setState] = useState({
     currentStep: 1,
     totalSteps: 8,
-    formData: {},
+    formData: {} as Partial<GenerateDprInput>,
     dprData: null as GenerateDprOutput | null,
     images: {} as Record < string, string > ,
     view: 'quiz' as 'quiz' | 'editor' | 'loading',
-    activeEditorSection: 'executive-summary',
+    activeEditorSection: 'executiveSummary',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +60,8 @@ export default function DPREditorPage() {
         top: 0,
         behavior: 'smooth'
       });
+    } else {
+        generateDPR();
     }
   };
 
@@ -78,13 +81,14 @@ export default function DPREditorPage() {
     const stepEl = document.getElementById(`step${stepNum}`);
     if (!stepEl) return false;
     const inputs = stepEl.querySelectorAll('input[required], textarea[required], select[required]');
-    for (let input of inputs) {
-      if (!(input as HTMLInputElement).value.trim()) {
-        (input as HTMLInputElement).style.borderColor = 'var(--error)';
-        return false;
-      } else {
-        (input as HTMLInputElement).style.borderColor = '';
-      }
+    for (let i = 0; i < inputs.length; i++) {
+        const input = inputs[i] as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+        if (!input.value.trim()) {
+            input.style.borderColor = 'var(--error)';
+            return false;
+        } else {
+            input.style.borderColor = '';
+        }
     }
     return true;
   };
@@ -96,9 +100,9 @@ export default function DPREditorPage() {
     const newFormData = { ...state.formData
     };
     inputs.forEach(input => {
-      const el = input as HTMLInputElement;
+      const el = input as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
       if (el.name) {
-        newFormData[el.name] = el.value;
+        newFormData[el.name as keyof GenerateDprInput] = el.value;
       }
     });
     setState(prev => ({ ...prev,
@@ -132,7 +136,7 @@ export default function DPREditorPage() {
   };
 
   const generateDPR = async () => {
-    saveStepData(state.totalSteps);
+    saveStepData(state.currentStep);
     setIsLoading(true);
     setState(prev => ({ ...prev,
       view: 'loading'
@@ -173,53 +177,29 @@ export default function DPREditorPage() {
 
 
   const renderQuizStep = () => {
-    // This is a simplified version of the quiz HTML for brevity in this example.
-    // The full structure from your design would be here.
-    return ( <
-      div > {
-        [...Array(8)].map((_, i) => ( <
-          div key = {
-            i + 1
-          }
-          className = {
-            `quiz-step ${state.currentStep === i + 1 ? '' : 'hidden'}`
-          }
-          id = {
-            `step${i + 1}`
-          } >
-          <
-          div className = "quiz-section" >
-          <
-          h3 className = "section-title" > {
-            `Step ${i + 1} Content`
-          } < /h3> <
-          p > Fields for step {
-            i + 1
-          }
-          go here. < /p> {
-            /* Example: */ } {
-            i === 0 && ( <
-              >
-              <
-              div className = "form-group" >
-              <
-              label className = "form-label" > Project Name < span className = "required" > * < /span></label >
-              <
-              input type = "text"
-              className = "form-input"
-              name = "projectName"
-              placeholder = "e.g., Textile Manufacturing Unit"
-              required / >
-              <
-              /div> <
-              />
-            )
-          } <
-          /div> <
-          /div>
-        ))
-      } <
-      /div>
+    return (
+        <div>
+            {[...Array(8)].map((_, i) => (
+                <div key={i + 1}
+                     className={`quiz-step ${state.currentStep === i + 1 ? '' : 'hidden'}`}
+                     id={`step${i + 1}`}>
+                    <div className="quiz-section">
+                        <h3 className="section-title">{`Step ${i + 1} Content`}</h3>
+                        <p>Fields for step {i + 1} go here.</p>
+                        {i === 0 && (
+                            <div className="form-group">
+                                <label className="form-label">Project Name <span className="required">*</span></label>
+                                <input type="text"
+                                       className="form-input"
+                                       name="projectName"
+                                       placeholder="e.g., Textile Manufacturing Unit"
+                                       required/>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
     );
   };
 
@@ -228,105 +208,84 @@ export default function DPREditorPage() {
     if (!state.dprData) return null;
 
     const sections = [{
-      id: 'executive-summary',
+      id: 'executiveSummary',
       title: 'Executive Summary',
       content: state.dprData.executiveSummary
     }, {
-      id: 'project-description',
+      id: 'projectIntroduction',
       title: 'Project Description',
       content: state.dprData.projectIntroduction
     }, {
-      id: 'promoter-details',
+      id: 'promoterDetails',
       title: 'Promoter Details',
       content: state.dprData.promoterDetails
     }, {
-      id: 'technical-details',
+      id: 'technicalFeasibility',
       title: 'Technical Details',
       content: state.dprData.technicalFeasibility
     }, {
-      id: 'financial-details',
+      id: 'financialProjections',
       title: 'Financial Details',
       content: JSON.stringify(state.dprData.financialProjections, null, 2)
     }, {
-      id: 'market-analysis',
+      id: 'marketAnalysis',
       title: 'Market Analysis',
       content: state.dprData.marketAnalysis
     }, {
-      id: 'risk-analysis',
+      id: 'swotAnalysis',
+      title: 'SWOT Analysis',
+      content: state.dprData.swotAnalysis
+    },
+    {
+      id: 'regulatoryCompliance',
+      title: 'Regulatory Compliance',
+      content: state.dprData.regulatoryCompliance,
+    },
+    {
+      id: 'riskAssessment',
       title: 'Risk Analysis',
       content: state.dprData.riskAssessment
     }, ];
 
-    return ( <
-      div className = "dpr-editor active" >
-      <
-      div className = "editor-sidebar" >
-      <
-      div className = "sidebar-section" >
-      <
-      div className = "sidebar-title" > DPR Sections < /div> {
-        sections.map(sec => ( <
-          div key = {
-            sec.id
-          }
-          className = {
-            `sidebar-item ${state.activeEditorSection === sec.id ? 'active' : ''}`
-          }
-          onClick = {
-            () => setState(prev => ({ ...prev,
-              activeEditorSection: sec.id
-            }))
-          } >
-          {
-            sec.title
-          } <
-          /div>
-        ))
-      } <
-      /div> <
-      div className = "sidebar-section" >
-      <
-      div className = "sidebar-title" > Tools < /div> <
-      Button className = "toolbar-btn" > + Table < /Button> <
-      Button className = "toolbar-btn" > + Graph < /Button> <
-      Button className = "toolbar-btn" > ⬇️ Download < /Button> <
-      /div> <
-      /div> <
-      div className = "editor-panel" >
-      <
-      div className = "editor-main" > {
-        sections.map(sec => ( <
-          div key = {
-            sec.id
-          }
-          className = {
-            `dpr-section ${state.activeEditorSection === sec.id ? 'active' : ''}`
-          }
-          id = {
-            sec.id
-          } >
-          <
-          h2 className = "dpr-section-title" > {
-            sec.title
-          } < /h2> <
-          div className = "edit-field" >
-          <
-          div className = "edit-field-content"
-          contentEditable = "true"
-          suppressContentEditableWarning = {
-            true
-          } >
-          {
-            sec.content
-          } <
-          /div> <
-          /div> <
-          /div>
-        ))
-      } <
-      /div> <
-      /div> <
-      /div>
+    return (
+        <div className="dpr-editor active">
+            <div className="editor-sidebar">
+                <div className="sidebar-section">
+                    <div className="sidebar-title">DPR Sections</div>
+                    {sections.map(sec => (
+                        <div key={sec.id}
+                             className={`sidebar-item ${state.activeEditorSection === sec.id ? 'active' : ''}`}
+                             onClick={() => setState(prev => ({...prev, activeEditorSection: sec.id}))}>
+                            {sec.title}
+                        </div>
+                    ))}
+                </div>
+                <div className="sidebar-section">
+                    <div className="sidebar-title">Tools</div>
+                    <Button className="toolbar-btn">+ Table</Button>
+                    <Button className="toolbar-btn">+ Graph</Button>
+                    <Button className="toolbar-btn">⬇️ Download</Button>
+                </div>
+            </div>
+            <div className="editor-panel">
+                <div className="editor-main">
+                    {sections.map(sec => (
+                        <div key={sec.id}
+                             className={`dpr-section ${state.activeEditorSection === sec.id ? 'active' : ''}`}
+                             id={sec.id}>
+                            <h2 className="dpr-section-title">{sec.title}</h2>
+                            <div className="edit-field">
+                                <div className="edit-field-content"
+                                     contentEditable="true"
+                                     suppressContentEditableWarning={true}>
+                                    {sec.content}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
   };
 
@@ -359,52 +318,17 @@ export default function DPREditorPage() {
                       <label class="form-label">Project Name <span class="required">*</span></label>
                       <input type="text" class="form-input" name="projectName" placeholder="e.g., Textile Manufacturing Unit" required>
                   </div>
-                  <div class="form-group">
-                      <label class="form-label">Project Category <span class="required">*</span></label>
-                      <select class="form-select" name="projectCategory" required>
-                          <option value="">Select Category</option>
-                          <option value="manufacturing">Manufacturing</option>
-                          <option value="service">Service</option>
-                      </select>
-                  </div>
-                  <div class="form-group">
-                      <label class="form-label">Project Description <span class="required">*</span></label>
-                      <textarea class="form-textarea" name="projectDescription" placeholder="Describe your project in detail..." required></textarea>
-                  </div>
               </div>
               <!-- STEP 2 -->
               <div class="quiz-step" style="display: ${state.currentStep === 2 ? 'block' : 'none'};" id="step2">
                   <div class="section-title">Location & Registration</div>
-                  <div class="form-group">
-                      <label class="form-label">State <span class="required">*</span></label>
-                      <input type="text" class="form-input" name="state" required placeholder="e.g. Andhra Pradesh">
-                  </div>
-              </div>
-              <!-- ... other steps truncated for brevity ... -->
-               <!-- STEP 8 -->
-              <div class="quiz-step" id="step8" style="display: ${state.currentStep === 8 ? 'block' : 'none'};">
-                  <div class="quiz-section">
-                      <div class="section-title">Project Images</div>
-                      <p style="color: var(--neutral-500); margin-bottom: 20px; font-size: 13px;">Upload project images: proposed site, equipment, team, etc.</p>
-                      <div class="image-card-container">
-                          <div class="image-card" id="uploadCard1">
-                              <input type="file" style="display: none;" accept="image/*" class="image-input" data-card-id="uploadCard1">
-                              <div style="text-align: center; color: var(--neutral-500);">
-                                  <div style="font-size: 24px; margin-bottom: 8px;">📷</div>
-                                  <div style="font-size: 12px;">Site Photo</div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
               </div>
           </form>
       </div>`;
 
-    return ( <
-      div >
-      <
-      style > {
-        `
+    return (
+        <div>
+            <style>{`
         :root { --primary: #1a7f7e; --primary-dark: #0d5554; --primary-light: #2d9d9c; --accent: #ff6b35; --success: #06d6a0; --warning: #f0ad4e; --error: #e74c3c; --neutral-900: #1a1a1a; --neutral-700: #404040; --neutral-500: #808080; --neutral-300: #d4d4d8; --neutral-200: #e4e4e7; --neutral-100: #f4f4f5; --neutral-50: #fafafa; }
         .quiz-container { background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); padding: 40px; }
         .quiz-header { margin-bottom: 32px; }
@@ -429,50 +353,29 @@ export default function DPREditorPage() {
         .dpr-section-title { font-size: 22px; font-weight: 700; color: var(--primary); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 3px solid var(--primary); }
         .edit-field-content { background: var(--neutral-50); padding: 12px; border-radius: 6px; border: 1px solid var(--neutral-200); font-size: 14px; min-height: 100px;}
         .hidden { display: none; }
-        `
-      } < /style> <
-      div dangerouslySetInnerHTML = {
-        {
-          __html: quizHtml
-        }
-      }
-      /> <
-      div className = "btn-group" >
-      <
-      Button variant = "secondary"
-      onClick = {
-        prevStep
-      }
-      className = {
-        state.currentStep > 1 ? '' : 'hidden'
-      } > ←Previous < /Button> <
-      Button onClick = {
-        nextStep
-      }
-      className = {
-        state.currentStep < state.totalSteps ? '' : 'hidden'
-      } > Next→ < /Button> <
-      Button onClick = {
-        generateDPR
-      }
-      className = {
-        state.currentStep === state.totalSteps ? '' : 'hidden'
-      } > 🎯Generate DPR < /Button> <
-      /div> <
-      /div>
+        `}</style>
+            <div dangerouslySetInnerHTML={{__html: quizHtml}}/>
+            <div className="btn-group" style={{display: 'flex', justifyContent: 'space-between', marginTop: '20px'}}>
+                <Button variant="secondary"
+                        onClick={prevStep}
+                        className={state.currentStep > 1 ? '' : 'hidden'}>← Previous
+                </Button>
+                <Button onClick={nextStep}>
+                    {state.currentStep < state.totalSteps ? 'Next →' : '🎯 Generate DPR'}
+                </Button>
+            </div>
+        </div>
     );
   };
 
 
   if (state.view === 'loading') {
-    return ( <
-      div className = "flex flex-col justify-center items-center h-full text-center" >
-      <
-      Loader2 className = "h-12 w-12 animate-spin mb-4 text-primary" / >
-      <
-      h2 className = "text-2xl font-semibold" > AI is Building Your DPR... < /h2> <
-      p className = "text-muted-foreground" > This may take a moment.Please do not refresh. < /p> <
-      /div>
+    return (
+        <div className="flex flex-col justify-center items-center h-full text-center">
+            <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary"/>
+            <h2 className="text-2xl font-semibold">AI is Building Your DPR...</h2>
+            <p className="text-muted-foreground">This may take a moment. Please do not refresh.</p>
+        </div>
     );
   }
 
