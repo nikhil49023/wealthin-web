@@ -8,9 +8,6 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -27,7 +24,6 @@
                 padding: 0;
             }
             .page-break { page-break-before: always; }
-            .avoid-break { page-break-inside: avoid; }
         }
 
         /* Editor Paper Styles */
@@ -135,6 +131,16 @@
             
             <section id="financialProjections" class="page-break mb-8">
                 <h3 class="section-header">9. Financial Projections</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                    <div>
+                        <h4 class="font-semibold text-center mb-2">Cost Breakdown</h4>
+                        <div class="h-64"><canvas id="costBreakdownChart"></canvas></div>
+                    </div>
+                     <div>
+                        <h4 class="font-semibold text-center mb-2">Yearly Projections</h4>
+                        <div class="h-64"><canvas id="yearlyProjectionsChart"></canvas></div>
+                    </div>
+                </div>
                 <div class="prose max-w-none text-gray-700">
                     {{FINANCIAL_PROJECTIONS}}
                 </div>
@@ -171,5 +177,67 @@
         </div>
     </main>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const costData = '{{COST_BREAKDOWN_DATA}}';
+            const yearlyData = '{{YEARLY_PROJECTIONS_DATA}}';
+
+            const formatCurrencyForChart = (value) => {
+                if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
+                if (value >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+                return `₹${(value / 1000).toFixed(0)}k`;
+            };
+
+            // Cost Breakdown Pie Chart
+            if (document.getElementById('costBreakdownChart') && costData) {
+                const pieCtx = document.getElementById('costBreakdownChart').getContext('2d');
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: costData.map(d => d.name),
+                        datasets: [{
+                            data: costData.map(d => d.value),
+                            backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // Yearly Projections Bar Chart
+            if (document.getElementById('yearlyProjectionsChart') && yearlyData) {
+                const barCtx = document.getElementById('yearlyProjectionsChart').getContext('2d');
+                new Chart(barCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: yearlyData.map(d => d.year),
+                        datasets: [
+                            {
+                                label: 'Sales',
+                                data: yearlyData.map(d => d.sales),
+                                backgroundColor: '#3b82f6',
+                            },
+                            {
+                                label: 'Profit',
+                                data: yearlyData.map(d => d.profit),
+                                backgroundColor: '#10b981',
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { ticks: { callback: formatCurrencyForChart } }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
