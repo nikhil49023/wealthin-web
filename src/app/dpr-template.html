@@ -190,7 +190,7 @@
                                 <i class="fas fa-user text-3xl mb-1"></i>
                                 <span class="text-xs">Upload Photo</span>
                             </div>
-                            <img class="img-preview hidden w-full h-full object-cover rounded shadow" src="{{PRODUCT_IMAGE_URL}}">
+                            <img class="img-preview hidden w-full h-full object-cover rounded shadow" src="{{PROMOTER_IMAGE_URL}}">
                             <div class="img-controls hidden absolute top-1 right-1 no-print">
                                 <button onclick="resetImage(this)" class="bg-red-500 text-white w-6 h-6 rounded-full text-xs shadow hover:bg-red-600"><i class="fas fa-times"></i></button>
                             </div>
@@ -243,10 +243,24 @@
             </section>
 
             <!-- 9. Financial Projections -->
-            <section id="financialProjections" class="dpr-section page-break">
+            <section id="financialProjections" class="dpr-section page-break avoid-break">
                 <h3 class="section-header">9. Financial Projections</h3>
                 <div class="prose max-w-none text-gray-700 outline-none" contenteditable="true">
                     {{FINANCIAL_PROJECTIONS}}
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                    <div>
+                        <h5 class="text-center font-bold text-gray-600 mb-2">Cost Breakdown</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="costPieChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="text-center font-bold text-gray-600 mb-2">Yearly Projections (Sales vs Profit)</h5>
+                        <div class="chart-wrapper">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -284,6 +298,85 @@
         </div>
     </main>
 
-    <!-- Modal and Script logic can be added later if interactivity is needed in the final draft -->
+    <!-- Cropper Modal -->
+    <div id="cropperModal" style="display: none;">
+        <!-- ... cropper modal html ... -->
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- 1. Text Editor ---
+        function execCmd(command, value = null) {
+            document.execCommand(command, false, value);
+        }
+
+        // --- 2. Financial Charts Logic ---
+        let trendChart, costPieChart;
+
+        function initCharts() {
+            const yearlyProjectionsData = JSON.parse('{{YEARLY_PROJECTIONS_DATA}}');
+            const costBreakdownData = JSON.parse('{{COST_BREAKDOWN_DATA}}');
+
+            // Trend Chart
+            if (yearlyProjectionsData && yearlyProjectionsData.length > 0) {
+                const ctxTrend = document.getElementById('trendChart')?.getContext('2d');
+                if (ctxTrend) {
+                    trendChart = new Chart(ctxTrend, {
+                        type: 'bar',
+                        data: {
+                            labels: yearlyProjectionsData.map(d => d.year),
+                            datasets: [
+                                { label: 'Sales', data: yearlyProjectionsData.map(d => d.sales), backgroundColor: 'rgba(59, 130, 246, 0.7)',  },
+                                { label: 'Profit', data: yearlyProjectionsData.map(d => d.profit), backgroundColor: 'rgba(22, 163, 74, 0.7)', }
+                            ]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                    });
+                }
+            }
+            
+            // Pie Chart
+            if (costBreakdownData && costBreakdownData.length > 0) {
+                 const ctxPie = document.getElementById('costPieChart')?.getContext('2d');
+                if (ctxPie) {
+                    costPieChart = new Chart(ctxPie, {
+                        type: 'doughnut',
+                        data: {
+                            labels: costBreakdownData.map(d => d.name),
+                            datasets: [{
+                                data: costBreakdownData.map(d => d.value),
+                                backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#6b7280', '#ef4444', '#8b5cf6'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                    });
+                }
+            }
+        }
+        
+        // --- 3. Image Logic ---
+        function setupImage(imgSrc, imgContainerSelector) {
+            if (!imgSrc) return;
+            const container = document.querySelector(imgContainerSelector);
+            if (container) {
+                const preview = container.querySelector('.img-preview');
+                const holder = container.querySelector('.img-holder');
+                if (preview && holder) {
+                    preview.src = imgSrc;
+                    preview.classList.remove('hidden');
+                    holder.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Init
+        window.addEventListener('load', () => {
+            initCharts();
+            setupImage("{{LOGO_URL}}", "header");
+            setupImage("{{PROMOTER_IMAGE_URL}}", "#promoterDetails");
+        });
+
+    </script>
 </body>
 </html>
