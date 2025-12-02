@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
@@ -12,8 +13,6 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { generateDprSectionAction } from '@/app/actions';
-import { dprSectionConfig } from '@/lib/dpr-config';
 import type { DprQuizData } from '@/ai/schemas/dpr';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -21,93 +20,60 @@ function DPRReportContent() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [quizData, setQuizData] = useState<DprQuizData | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [reportHtml, setReportHtml] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const iframeRef = useState<HTMLIFrameElement | null>(null);
 
-
-  const generateFullReport = useCallback(async (data: DprQuizData) => {
-    setIsGenerating(true);
-    setError(null);
-    setReportHtml(null);
-
+  const constructReport = useCallback(async (
+      sectionsContent: { key: string; content: any }[],
+      quizData: DprQuizData
+    ) => {
+    setIsLoading(true);
     try {
-      // Generate all sections in parallel
-      const sectionPromises = dprSectionConfig.map(sectionConf => 
-        generateDprSectionAction({
-            idea: data,
-            section: sectionConf.key,
-            basePrompt: sectionConf.prompt,
-        })
-      );
+        const response = await fetch('/api/generate-dpr-html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sections: sectionsContent, quizData: quizData }),
+        });
 
-      const results = await Promise.all(sectionPromises);
-      
-      const sectionsContent: { key: string; content: any }[] = [];
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        if (result.success && result.data.content) {
-            sectionsContent.push({
-                key: dprSectionConfig[i].key,
-                content: result.data.content,
-            });
-        } else {
-             // Push an error message into the content
-            sectionsContent.push({
-                key: dprSectionConfig[i].key,
-                content: `<p class="text-red-500">Error generating this section.</p>`,
-            });
-            console.error(`Failed to generate section ${dprSectionConfig[i].title}:`, result.error);
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.message || 'Failed to construct final DPR document.');
         }
-      }
       
-      // Now, call the API to construct the final HTML
-      const response = await fetch('/api/generate-dpr-html', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections: sectionsContent, quizData: data }),
-      });
-
-      if (!response.ok) {
-        const errorResult = await response.json();
-        throw new Error(errorResult.message || 'Failed to construct final DPR document.');
-      }
-      
-      const html = await response.text();
-      setReportHtml(html);
-
+        const html = await response.text();
+        setReportHtml(html);
     } catch (err: any) {
-      setError(err.message || 'An unknown error occurred during DPR generation.');
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: err.message,
-      });
+        setError(err.message);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not construct the final report.' });
     } finally {
-      setIsGenerating(false);
+        setIsLoading(false);
     }
-
   }, [toast]);
 
-  // Load quiz data and start generation on mount
+
+  // Load generated data from localStorage on mount
   useEffect(() => {
     const storedQuizData = localStorage.getItem('dprQuizData');
-    if (storedQuizData) {
+    const storedSections = localStorage.getItem('dprGeneratedContent');
+
+    if (storedQuizData && storedSections) {
       try {
-        const data = JSON.parse(storedQuizData);
-        setQuizData(data);
-        generateFullReport(data);
+        const quizData = JSON.parse(storedQuizData);
+        const sectionsContent = JSON.parse(storedSections);
+        constructReport(sectionsContent, quizData);
       } catch (e) {
-        toast({ variant: 'destructive', description: 'Corrupted quiz data.' });
-        router.push('/dpr-editor');
+        setError('Failed to load generated report data. It might be corrupted.');
+        toast({ variant: 'destructive', description: 'Corrupted report data.' });
+        setIsLoading(false);
       }
     } else {
-      toast({ variant: 'destructive', description: 'No quiz data found.' });
-      router.push('/dpr-editor');
+      setError('No generated report data found. Please generate the report first.');
+      toast({ variant: 'destructive', description: 'No report data found.' });
+      setIsLoading(false);
     }
-  }, [router, toast, generateFullReport]);
+  }, [router, toast, constructReport]);
   
   const handlePrint = () => {
     const iframe = iframeRef[0];
@@ -137,30 +103,30 @@ function DPRReportContent() {
             </Button>
         </div>
 
-        {isGenerating && (
+        {isLoading && (
              <Card className="text-center py-16">
                 <CardContent className="space-y-4">
                     <Loader2 className="h-16 w-16 mx-auto animate-spin text-primary" />
-                    <h3 className="text-xl font-semibold">Generating Your DPR...</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">The AI is analyzing your data and building your report. This may take a minute.</p>
+                    <h3 className="text-xl font-semibold">Constructing Your Report...</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">Please wait while we assemble the final document.</p>
                 </CardContent>
             </Card>
         )}
 
-        {error && !isGenerating && (
+        {error && !isLoading && (
              <Card className="text-center py-16 bg-red-50 border-red-200">
                 <CardContent className="space-y-4">
                     <AlertTriangle className="h-16 w-16 mx-auto text-destructive" />
-                    <h3 className="text-xl font-semibold text-destructive">Generation Failed</h3>
+                    <h3 className="text-xl font-semibold text-destructive">Failed to Load Report</h3>
                     <p className="text-red-700 max-w-md mx-auto">{error}</p>
-                    <Button variant="destructive" onClick={() => quizData && generateFullReport(quizData)}>
-                        Retry Generation
+                    <Button variant="outline" onClick={() => router.push('/dpr-editor')}>
+                        Go Back
                     </Button>
                 </CardContent>
             </Card>
         )}
 
-        {reportHtml && !isGenerating && (
+        {reportHtml && !isLoading && (
              <Card>
                 <CardHeader className="flex flex-row justify-between items-center">
                     <CardTitle>Generated Report Preview</CardTitle>
@@ -171,10 +137,10 @@ function DPRReportContent() {
                 </CardHeader>
                 <CardContent>
                     <iframe
-                    ref={iframeRef[1]}
-                    srcDoc={reportHtml}
-                    className="w-full h-[80vh] border rounded-md bg-white"
-                    title="DPR Preview"
+                        ref={iframeRef[1]}
+                        srcDoc={reportHtml}
+                        className="w-full h-[80vh] border rounded-md bg-white"
+                        title="DPR Preview"
                     />
                 </CardContent>
             </Card>
