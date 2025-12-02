@@ -16,36 +16,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import {
   ArrowLeft,
   ArrowRight,
-  Loader2,
   FileText,
   User,
   Building,
   Banknote,
   TrendingUp,
   Shield,
-  Lightbulb,
-  Check,
-  MapPin,
   FlaskConical,
-  Paperclip,
+  Calendar,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { DprQuizData, GenerateDprOutput } from '@/ai/schemas/dpr';
-import { dprSectionConfig } from '@/lib/dpr-config';
-import { generateDprSectionAction } from '@/app/actions';
-
+import type { DprQuizData } from '@/ai/schemas/dpr';
 
 // Helper function for currency formatting
 const formatIndianCurrency = (value: number) => {
@@ -84,7 +70,7 @@ const quizSteps = [
     key: 'technicalInfo',
     title: 'Technical & Location',
     icon: FlaskConical,
-    fields: ['location', 'siteDetails'],
+    fields: ['location', 'siteDetails', 'registrationType'],
   },
   {
     key: 'financials',
@@ -104,33 +90,33 @@ const quizSteps = [
     icon: Shield,
     fields: ['risks', 'mitigation'],
   },
+   {
+    key: 'schedule',
+    title: 'Project Schedule',
+    icon: Calendar,
+    fields: [],
+  },
 ];
 
 const initialFormData: DprQuizData = {
   projectName: '',
-  businessType: 'Manufacturing',
-  companyName: '',
+  businessType: 'Textile Manufacturing',
   businessDescription: '',
   location: '',
-  siteDetails: 'Leased',
-  registrationType: 'Sole Proprietorship',
+  siteDetails: '',
+  registrationType: 'Fully automatic',
   promoterName: '',
   education: '',
   experience: '',
-  projectCost: 1000000,
-  workingCapital: 200000,
-  loanAmount: 700000,
-  promoterContribution: 300000,
-  revenueY1: 2500000,
+  projectCost: 15000000,
+  loanAmount: 10000000,
+  revenueY1: 5000000,
   profitMargin: 20,
-  growthRate: 15,
   targetMarket: '',
   competitors: '',
-  marketingStrategy: 'Digital marketing and local partnerships',
-  risks: 'Market competition, supply chain disruption',
+  marketingStrategy: '12% CAGR',
+  risks: '',
   mitigation: '',
-  logoUrl: '',
-  productImageUrl: '',
 };
 
 export default function DPREditorPage() {
@@ -168,13 +154,8 @@ export default function DPREditorPage() {
   };
 
   const handleGenerateDpr = async () => {
-    // Store the quiz data in local storage
     localStorage.setItem('dprQuizData', JSON.stringify(formData));
-    
-    // Clear any previously generated DPR from storage to ensure a fresh start
     localStorage.removeItem('generatedDpr');
-    
-    // Redirect to the new report page which will handle the generation
     router.push('/dpr-report');
   };
 
@@ -187,8 +168,8 @@ export default function DPREditorPage() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Let's start with the basics of your new venture.</p>
             <Input placeholder="Project Title (e.g., Automated Textile Unit)" value={formData.projectName} onChange={(e) => handleQuizChange('projectName', e.target.value)} />
-            <Input placeholder="Industry/Sector (e.g., Textile Manufacturing)" value={formData.businessType} onChange={(e) => handleQuizChange('businessType', e.target.value)} />
-            <Textarea placeholder="Objective & Rationale (e.g., To establish a 500 TPA garment unit to bridge local supply gaps...)" value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
+            <Input placeholder="Industry/Sector (e.g., SaaS, Agro-processing)" value={formData.businessType} onChange={(e) => handleQuizChange('businessType', e.target.value)} />
+            <Textarea placeholder='Objective & Rationale (e.g., To establish a 500 TPA garment unit to bridge local supply gaps...)' value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
           </div>
         );
       case 'promoterInfo':
@@ -197,14 +178,14 @@ export default function DPREditorPage() {
              <p className="text-sm text-muted-foreground">Tell us about the entrepreneur(s) behind the project.</p>
             <Input placeholder="Promoter Name(s)" value={formData.promoterName} onChange={(e) => handleQuizChange('promoterName', e.target.value)} />
             <Input placeholder="Education & Qualification (e.g., MBA, Finance)" value={formData.education} onChange={(e) => handleQuizChange('education', e.target.value)} />
-            <Textarea placeholder="Relevant industry experience and track record..." value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
+            <Textarea placeholder="Relevant industry experience and track record (e.g., 10+ years in textile industry, managed previous units...)" value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
           </div>
         );
       case 'marketInfo':
           return (
             <div className="space-y-4">
                <p className="text-sm text-muted-foreground">Describe your market and business model.</p>
-              <Textarea placeholder="Target Audience (e.g., Wholesale distributors, retail chains...)" value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
+              <Textarea placeholder="Target Audience (e.g., Wholesale distributors, Retail chains...)" value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
               <Textarea placeholder="Value Proposition & Competitors (e.g., Better quality at lower price compared to X & Y...)" value={formData.competitors} onChange={(e) => handleQuizChange('competitors', e.target.value)} />
               <Input placeholder="Market Trends (e.g., Market is growing at 12% CAGR...)" value={formData.marketingStrategy} onChange={(e) => handleQuizChange('marketingStrategy', e.target.value)} />
             </div>
@@ -224,11 +205,11 @@ export default function DPREditorPage() {
               <p className="text-sm text-muted-foreground">Let's talk numbers. Use the sliders to estimate your financial needs.</p>
               <div>
                   <Label>Total Project Cost: {formatIndianCurrency(formData.projectCost)}</Label>
-                  <Slider value={[formData.projectCost]} onValueChange={([v]) => handleQuizChange('projectCost', v)} max={10000000} step={50000} />
+                  <Slider value={[formData.projectCost]} onValueChange={([v]) => handleQuizChange('projectCost', v)} max={100000000} step={100000} />
               </div>
               <div>
                   <Label>Bank Loan Required: {formatIndianCurrency(formData.loanAmount)}</Label>
-                  <Slider value={[formData.loanAmount]} onValueChange={([v]) => handleQuizChange('loanAmount', v)} max={formData.projectCost} step={50000} />
+                  <Slider value={[formData.loanAmount]} onValueChange={([v]) => handleQuizChange('loanAmount', v)} max={formData.projectCost} step={100000} />
               </div>
                <div>
                   <Label>Promoter's Contribution: {formatIndianCurrency(formData.projectCost - formData.loanAmount)}</Label>
@@ -242,7 +223,7 @@ export default function DPREditorPage() {
               <p className="text-sm text-muted-foreground">Estimate your performance for the first year.</p>
               <div>
                   <Label>Projected First Year Revenue: {formatIndianCurrency(formData.revenueY1)}</Label>
-                  <Slider value={[formData.revenueY1]} onValueChange={([v]) => handleQuizChange('revenueY1', v)} max={50000000} step={100000} />
+                  <Slider value={[formData.revenueY1]} onValueChange={([v]) => handleQuizChange('revenueY1', v)} max={500000000} step={500000} />
               </div>
               <div>
                   <Label>Expected Profit Margin: {formData.profitMargin}%</Label>
@@ -259,6 +240,20 @@ export default function DPREditorPage() {
               <Textarea placeholder="Mitigation plan for the identified risks..." value={formData.mitigation} onChange={(e) => handleQuizChange('mitigation', e.target.value)} />
             </div>
           );
+      case 'schedule':
+        return (
+            <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Finally, let's set a timeline.</p>
+                <div className="space-y-2">
+                    <Label>When do you plan to start land acquisition?</Label>
+                    <Input type="date" />
+                </div>
+                <div className="space-y-2">
+                    <Label>How many months after starting will commercial production begin?</Label>
+                    <Input type="number" placeholder="e.g., 6" />
+                </div>
+            </div>
+        );
       default:
         return null;
     }
@@ -317,7 +312,7 @@ export default function DPREditorPage() {
             </Button>
           ) : (
             <Button onClick={handleGenerateDpr}>
-              <Check className="mr-2" /> Start Generation
+              Start Generation
             </Button>
           )}
         </CardFooter>
@@ -325,3 +320,5 @@ export default function DPREditorPage() {
     </div>
   );
 }
+
+    
