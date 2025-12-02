@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
@@ -80,7 +79,6 @@ function DPRReportContent() {
       const ideaAnalysis = JSON.parse(localStorage.getItem('dprAnalysis') || '{}');
       const existingContent = dprData[activeSection];
       
-      // Find the base prompt from the config for the active section
       const sectionConf = dprSectionConfig.find(s => s.key === activeSection);
       if (!sectionConf) {
           toast({ variant: 'destructive', title: 'Error', description: 'Could not find configuration for this section.'});
@@ -92,7 +90,7 @@ function DPRReportContent() {
           const result = await generateDprSectionAction({
               idea: ideaAnalysis,
               section: activeSection,
-              basePrompt: sectionConf.prompt, // Pass the correct, specific prompt
+              basePrompt: sectionConf.prompt,
               existingContent: existingContent,
               refinementPrompt: refinementPrompt
           });

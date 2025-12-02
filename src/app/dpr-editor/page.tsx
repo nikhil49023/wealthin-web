@@ -158,6 +158,12 @@ export default function DPREditorPage() {
     }
   }, [userProfile]);
 
+  useEffect(() => {
+    if (view === 'editor') {
+        router.push('/dpr-report');
+    }
+  }, [view, router]);
+
   const handleQuizChange = (field: keyof DprQuizData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -209,8 +215,7 @@ export default function DPREditorPage() {
         description: 'Redirecting you to the report editor...',
       });
       
-      // Redirect to the editor page
-      router.push('/dpr-report');
+      setView('editor');
 
     } catch (e: any) {
       console.error('DPR Generation Error:', e);
@@ -351,16 +356,6 @@ export default function DPREditorPage() {
         <p className="text-muted-foreground mt-2 max-w-md">{generationStatus}</p>
         <Progress value={generationProgress} className="w-full max-w-sm mt-4" />
       </div>
-    );
-  }
-
-  if (view === 'editor') {
-    // This state is now effectively a loading state before redirect
-    return (
-        <div className="flex flex-col justify-center items-center h-full text-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
-            <h2 className="text-2xl font-semibold">Finalizing Report...</h2>
-        </div>
     );
   }
 
