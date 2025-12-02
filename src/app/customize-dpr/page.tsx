@@ -84,29 +84,29 @@ function CustomizeDPRContent() {
         <div className="text-center">
             <h1 className="text-3xl font-bold">Launch the DPR Wizard</h1>
             <p className="text-muted-foreground mt-2">
-            The wizard will guide you through building a bank-ready DPR.
+            The wizard will now generate your report section by section.
             </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card 
-                className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={handleNavigateToReport}
-            >
-                <Banknote className="h-12 w-12 text-primary" />
-                <h3 className="font-semibold text-lg">Bank Loan DPR</h3>
-                <p className="text-xs text-muted-foreground">Start building your report optimized for bank loan applications.</p>
-            </Card>
-             <Card 
-                className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
-                onClick={handleNavigateToReport}
-             >
-                <FileText className="h-12 w-12 text-primary" />
-                <h3 className="font-semibold text-lg">General Purpose DPR</h3>
-                 <p className="text-xs text-muted-foreground">Create a comprehensive report for legal and general business planning.</p>
-            </Card>
-        </div>
         
-        {isNavigating && (
+        {!isNavigating ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card 
+                    className="p-6 text-center cursor-pointer hover:border-primary transition-colors flex flex-col items-center justify-center gap-4"
+                    onClick={handleNavigateToReport}
+                >
+                    <Banknote className="h-12 w-12 text-primary" />
+                    <h3 className="font-semibold text-lg">Generate DPR</h3>
+                    <p className="text-xs text-muted-foreground">Start the automated AI generation process for your report.</p>
+                </Card>
+                 <Card 
+                    className="p-6 text-center cursor-not-allowed bg-muted/50"
+                 >
+                    <FileText className="h-12 w-12 text-muted-foreground" />
+                    <h3 className="font-semibold text-lg text-muted-foreground">General Purpose DPR</h3>
+                     <p className="text-xs text-muted-foreground">Coming soon</p>
+                </Card>
+            </div>
+        ) : (
              <Card className="text-center py-10">
                 <CardContent className="space-y-4">
                     <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />

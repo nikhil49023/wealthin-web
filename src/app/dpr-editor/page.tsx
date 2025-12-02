@@ -1,28 +1,22 @@
 
 'use client';
 
-import {
-  useState,
-  useEffect,
-  useCallback,
-  Suspense
-} from 'react';
-import {
-  Button
-} from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 import {
   Card,
   CardContent,
+  CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription
 } from '@/components/ui/card';
-import {
-  Input
-} from '@/components/ui/input';
-import {
-  Label
-} from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -30,424 +24,405 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 import {
-  Progress
-} from '@/components/ui/progress';
-import {
-  Loader2,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  FileText,
+  User,
+  Building,
+  Banknote,
+  TrendingUp,
+  Shield,
+  Lightbulb,
+  Check,
+  MapPin,
+  FlaskConical,
+  Paperclip,
 } from 'lucide-react';
-import {
-  useToast
-} from '@/hooks/use-toast';
-import {
-  generateDprAction
-} from '@/app/actions';
-import type {
-  GenerateDprOutput,
-  GenerateDprInput
-} from '@/ai/schemas/dpr';
-import {
-  useRouter,
-  useSearchParams
-} from 'next/navigation';
-import type {
-  GenerateInvestmentIdeaAnalysisOutput
-} from '@/ai/schemas/investment-idea-analysis';
-import { Textarea } from '@/components/ui/textarea';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { DprQuizData } from '@/ai/schemas/dpr';
+import { generateDpr } from '@/ai/flows/generate-dpr'; // Assuming the action is exported from here
+import RichTextEditor from '@/components/financify/rich-text-editor';
+import { dprSectionConfig } from '@/lib/dpr-config';
 
-const msmeServiceCategories = [
-  'IT / Software Services',
-  'Retail / E-commerce',
-  'Construction / Real Estate',
-  'Manufacturing',
-  'Food & Agro Processing',
-  'Hospitality & Tourism',
-  'Healthcare & Pharma',
-  'Logistics & Supply Chain',
-  'Professional Services (Accounting, Legal, etc.)',
-  'Textiles & Apparel',
-  'Other',
+// Helper function for currency formatting
+const formatIndianCurrency = (value: number) => {
+  if (value >= 10000000) {
+    return `₹${(value / 10000000).toFixed(2)} Crore`;
+  }
+  if (value >= 100000) {
+    return `₹${(value / 100000).toFixed(2)} Lakh`;
+  }
+  if (value >= 1000) {
+      return `₹${(value / 1000).toFixed(0)}k`;
+  }
+  return `₹${value}`;
+};
+
+const quizSteps = [
+  {
+    key: 'projectInfo',
+    title: 'Project Information',
+    icon: FileText,
+    fields: ['projectName', 'businessType', 'companyName', 'businessDescription'],
+  },
+  {
+    key: 'locationInfo',
+    title: 'Location & Registration',
+    icon: MapPin,
+    fields: ['location', 'siteDetails', 'registrationType'],
+  },
+  {
+    key: 'promoterInfo',
+    title: 'Promoter Details',
+    icon: User,
+    fields: ['promoterName', 'education', 'experience'],
+  },
+  {
+    key: 'financials',
+    title: 'Financial Requirements',
+    icon: Banknote,
+    fields: ['projectCost', 'workingCapital', 'loanAmount', 'promoterContribution'],
+  },
+  {
+    key: 'projections',
+    title: 'Financial Projections',
+    icon: TrendingUp,
+    fields: ['revenueY1', 'profitMargin', 'growthRate'],
+  },
+  {
+    key: 'market',
+    title: 'Market & Competition',
+    icon: Building,
+    fields: ['targetMarket', 'competitors', 'marketingStrategy'],
+  },
+  {
+    key: 'risks',
+    title: 'Risk Assessment',
+    icon: Shield,
+    fields: ['risks', 'mitigation'],
+  },
+  {
+    key: 'media',
+    title: 'Supporting Documents',
+    icon: Paperclip,
+    fields: ['logoUrl', 'productImageUrl'],
+  },
 ];
 
-function DPREditorComponent() {
-  const {
-    toast
-  } = useToast();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+const initialFormData: DprQuizData = {
+  projectName: '',
+  businessType: 'Manufacturing',
+  companyName: '',
+  businessDescription: '',
+  location: '',
+  siteDetails: 'Leased',
+  registrationType: 'Sole Proprietorship',
+  promoterName: '',
+  education: '',
+  experience: '',
+  projectCost: 1000000,
+  workingCapital: 200000,
+  loanAmount: 700000,
+  promoterContribution: 300000,
+  revenueY1: 2500000,
+  profitMargin: 20,
+  growthRate: 15,
+  targetMarket: '',
+  competitors: '',
+  marketingStrategy: 'Digital marketing and local partnerships',
+  risks: 'Market competition, supply chain disruption',
+  mitigation: '',
+  logoUrl: '',
+  productImageUrl: '',
+};
 
-  const [formData, setFormData] = useState < Partial < GenerateDprInput >> ({
-    idea: '',
-    promoterName: '',
-    projectDescription: '',
-    projectCategory: '',
-    state: '',
-    city: '',
-    udyam: '',
-    promoterExperience: '',
-    promoterQualification: '',
-    totalProjectCost: '',
-    promoterContribution: '',
-    loanRequired: '',
-    expectedRevenue: '',
-    profitMargin: '',
-    targetMarket: '',
-    competitiveAdvantage: '',
-    identifiedRisks: '',
-    mitigationStrategies: '',
-    businessModel: '',
-    locationAndSite: '',
-    technicalFeasibility: '',
-    implementationSchedule: '',
-    swotAnalysis: '',
-    regulatoryCompliance: '',
-    riskAssessment: '',
-    annexures: '',
-    financialProjections: { // Initialize with empty values
-      isMock: true,
-      summaryText: '',
-      projectCost: '',
-      meansOfFinance: '',
-      costBreakdown: [],
-      yearlyProjections: [],
-      profitabilityAnalysis: '',
-      cashFlowStatement: '',
-      loanRepaymentSchedule: '',
-      breakEvenAnalysis: ''
-    }
-  });
+export default function DPREditorPage() {
+  const router = useRouter();
+  const { user, userProfile } = useAuth();
+  const { toast } = useToast();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [dprData, setDprData] = useState < GenerateDprOutput | null > (null);
-  const [view, setView] = useState < 'quiz' | 'editor' | 'loading' > ('quiz');
+  const [formData, setFormData] = useState<DprQuizData>(initialFormData);
+  const [direction, setDirection] = useState(1);
+  const [view, setView] = useState<'quiz' | 'loading' | 'editor'>('quiz');
+  const [generatedDpr, setGeneratedDpr] = useState<any>(null);
+  const [activeEditorSection, setActiveEditorSection] = useState('executiveSummary');
+
 
   useEffect(() => {
-    const ideaTitle = searchParams.get('idea');
-    const promoterName = searchParams.get('name');
-    const storedAnalysisJSON = localStorage.getItem('dprAnalysis');
-
-    let analysis: GenerateInvestmentIdeaAnalysisOutput | null = null;
-    if (storedAnalysisJSON) {
-      try {
-        analysis = JSON.parse(storedAnalysisJSON);
-      } catch (e) {
-        console.error("Failed to parse dprAnalysis from localStorage", e);
-      }
+    if (userProfile?.displayName) {
+      setFormData(prev => ({...prev, promoterName: userProfile.displayName || ''}));
     }
+  }, [userProfile]);
 
-    setFormData(prev => ({
-      ...prev,
-      idea: analysis || { title: ideaTitle || '' },
-      promoterName: promoterName || '',
-      projectDescription: analysis?.summary || '',
-      targetMarket: analysis?.targetAudience || '',
-      competitiveAdvantage: analysis?.roi || '', // ROI can be part of competitive advantage
-    }));
-  }, [searchParams]);
-
-  const steps = [{
-      field: 'projectName',
-      title: 'Project Information',
-      description: 'Tell us about your MSME project.'
-    },
-    {
-      field: 'location',
-      title: 'Location & Registration',
-      description: 'Provide your business location and registration details.'
-    },
-    {
-      field: 'promoterDetails',
-      title: 'Promoter Details',
-      description: 'Tell us about the entrepreneur.'
-    },
-    {
-      field: 'financials',
-      title: 'Financial Requirements',
-      description: 'Outline your project costs and funding needs.'
-    },
-    {
-      field: 'projections',
-      title: 'Financial Projections',
-      description: 'Provide your revenue and profitability estimates.'
-    },
-    {
-      field: 'market',
-      title: 'Market & Competition',
-      description: 'Describe your target market and unique advantages.'
-    },
-    {
-      field: 'risks',
-      title: 'Risk Assessment',
-      description: 'Identify potential risks and how you will mitigate them.'
-    },
-    {
-      field: 'media',
-      title: 'Final Details',
-      description: 'Final details before generating the report.'
-    },
-  ];
-
-  const currentStepData = steps[currentStep];
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  const handleQuizChange = (field: keyof DprQuizData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep < quizSteps.length - 1) {
+      setDirection(1);
+      setCurrentStep(prev => prev + 1);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setDirection(-1);
+      setCurrentStep(prev => prev - 1);
     }
   };
 
-  const handleChange = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleGenerateDPR = async () => {
-    setIsLoading(true);
+  const handleGenerateDpr = async () => {
     setView('loading');
-    toast({
-      title: 'Generating Your DPR...',
-      description: 'The AI is building your report. This may take a minute.',
-    });
-
     try {
-      const result = await generateDprAction(formData as GenerateDprInput);
-      if (result.success) {
-        setDprData(result.data);
-        localStorage.setItem('generatedDpr', JSON.stringify(result.data));
-        router.push('/dpr-report');
-
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error: any) {
+      const result = await generateDpr(formData);
+      setGeneratedDpr(result);
+      setView('editor');
+      toast({
+        title: 'DPR Generated Successfully!',
+        description: 'You can now review and edit your report.',
+      });
+    } catch (e: any) {
+      console.error('DPR Generation Error:', e);
       toast({
         variant: 'destructive',
         title: 'Generation Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: e.message,
       });
-      setView('quiz');
-    } finally {
-      setIsLoading(false);
+      setView('quiz'); // Go back to quiz on failure
+    }
+  };
+  
+  const handleSectionContentChange = (sectionKey: string, newContent: string) => {
+    setGeneratedDpr((prev: any) => (prev ? { ...prev, [sectionKey]: newContent } : null));
+  };
+
+
+  const renderQuizStep = () => {
+    const { key, fields } = quizSteps[currentStep];
+
+    switch (key) {
+      case 'projectInfo':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Tell us about your business idea.</p>
+            <Input placeholder="Project Name (e.g., Organic Farm)" value={formData.projectName} onChange={(e) => handleQuizChange('projectName', e.target.value)} />
+            <Textarea placeholder="Describe your business in one or two sentences." value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
+            <Select value={formData.businessType} onValueChange={(v) => handleQuizChange('businessType', v)}>
+                <SelectTrigger><SelectValue placeholder="Select Business Type" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
+                    <SelectItem value="Services">Services</SelectItem>
+                    <SelectItem value="Trading">Trading</SelectItem>
+                    <SelectItem value="Agri-business">Agri-business</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
+        );
+      case 'locationInfo':
+        return (
+          <div className="space-y-4">
+             <p className="text-sm text-muted-foreground">Where will your business operate from?</p>
+            <Input placeholder="Location (e.g., Visakhapatnam, AP)" value={formData.location} onChange={(e) => handleQuizChange('location', e.target.value)} />
+            <div className="grid grid-cols-2 gap-2">
+                <Button variant={formData.siteDetails === 'Owned' ? 'secondary': 'outline'} onClick={() => handleQuizChange('siteDetails', 'Owned')}>Owned</Button>
+                <Button variant={formData.siteDetails === 'Leased' ? 'secondary': 'outline'} onClick={() => handleQuizChange('siteDetails', 'Leased')}>Leased</Button>
+            </div>
+          </div>
+        );
+      case 'promoterInfo':
+         return (
+          <div className="space-y-4">
+             <p className="text-sm text-muted-foreground">Tell us a bit about yourself, the entrepreneur.</p>
+            <Input placeholder="Your Full Name" value={formData.promoterName} onChange={(e) => handleQuizChange('promoterName', e.target.value)} />
+            <Input placeholder="Highest Qualification (e.g., B.Tech)" value={formData.education} onChange={(e) => handleQuizChange('education', e.target.value)} />
+            <Textarea placeholder="Your relevant experience (e.g., 5 years in marketing...)" value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
+          </div>
+        );
+      case 'financials':
+          return (
+            <div className="space-y-6">
+              <p className="text-sm text-muted-foreground">Let's talk numbers. Use the sliders to estimate your financial needs.</p>
+              <div>
+                  <Label>Total Project Cost: {formatIndianCurrency(formData.projectCost)}</Label>
+                  <Slider value={[formData.projectCost]} onValueChange={([v]) => handleQuizChange('projectCost', v)} max={10000000} step={50000} />
+              </div>
+              <div>
+                  <Label>Loan Amount Required: {formatIndianCurrency(formData.loanAmount)}</Label>
+                  <Slider value={[formData.loanAmount]} onValueChange={([v]) => handleQuizChange('loanAmount', v)} max={formData.projectCost} step={50000} />
+              </div>
+               <div>
+                  <Label>Your Contribution: {formatIndianCurrency(formData.projectCost - formData.loanAmount)}</Label>
+                   <p className="text-xs text-muted-foreground">This is automatically calculated based on the total cost and loan amount.</p>
+              </div>
+            </div>
+          );
+       case 'projections':
+          return (
+            <div className="space-y-6">
+              <p className="text-sm text-muted-foreground">Estimate your performance for the first year.</p>
+              <div>
+                  <Label>Projected First Year Revenue: {formatIndianCurrency(formData.revenueY1)}</Label>
+                  <Slider value={[formData.revenueY1]} onValueChange={([v]) => handleQuizChange('revenueY1', v)} max={50000000} step={100000} />
+              </div>
+              <div>
+                  <Label>Expected Profit Margin: {formData.profitMargin}%</Label>
+                  <Slider value={[formData.profitMargin]} onValueChange={([v]) => handleQuizChange('profitMargin', v)} max={80} step={1} />
+              </div>
+            </div>
+          );
+      case 'market':
+          return (
+            <div className="space-y-4">
+               <p className="text-sm text-muted-foreground">Who are your customers and competitors?</p>
+              <Textarea placeholder="Describe your ideal customer (e.g., small businesses, urban families)." value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
+              <Textarea placeholder="List 1-2 main competitors and what makes you different." value={formData.competitors} onChange={(e) => handleQuizChange('competitors', e.target.value)} />
+            </div>
+          );
+      case 'risks':
+          return (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">What are the potential challenges?</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant={formData.risks.includes('Market competition') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Market competition')}>Market Competition</Button>
+                <Button variant={formData.risks.includes('Supply chain') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Supply chain')}>Supply Chain Issues</Button>
+                <Button variant={formData.risks.includes('Regulatory changes') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Regulatory changes')}>Regulatory Changes</Button>
+                <Button variant={formData.risks.includes('Economic downturn') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Economic downturn')}>Economic Downturn</Button>
+              </div>
+              <Textarea placeholder="Describe how you will handle these risks." value={formData.mitigation} onChange={(e) => handleQuizChange('mitigation', e.target.value)} />
+            </div>
+          );
+       case 'media':
+          return (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Add links to your logo or product images (optional).</p>
+              <Input placeholder="URL for your business logo" value={formData.logoUrl} onChange={(e) => handleQuizChange('logoUrl', e.target.value)} />
+              <Input placeholder="URL for a product image" value={formData.productImageUrl} onChange={(e) => handleQuizChange('productImageUrl', e.target.value)} />
+            </div>
+          );
+      default:
+        return null;
     }
   };
 
-  const renderQuizStep = () => {
-    return steps.map((step, i) => (
-      <div key={step.field} className={currentStep === i ? 'block' : 'hidden'}>
-        <Card>
-          <CardContent className="p-6">
-            {i === 0 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="projectName">Project Name</Label>
-                  <Input
-                    id="projectName"
-                    value={((formData.idea as GenerateInvestmentIdeaAnalysisOutput)?.title) || ''}
-                    readOnly
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="projectCategory">Project Category</Label>
-                  <Select onValueChange={value => handleChange('projectCategory' as any, value)} defaultValue={(formData as any).projectCategory}>
-                    <SelectTrigger id="projectCategory">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {msmeServiceCategories.map(cat => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="projectDescription">Project Description</Label>
-                  <Textarea
-                    id="projectDescription"
-                    value={(formData as any).projectDescription || ''}
-                    onChange={e => handleChange('projectDescription' as any, e.target.value)}
-                    rows={4}
-                  />
-                </div>
-              </div>
-            )}
-            {i === 1 && (
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input id="state" value={(formData as any).state || ''} onChange={e => handleChange('state' as any, e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="city">City</Label>
-                        <Input id="city" value={(formData as any).city || ''} onChange={e => handleChange('city' as any, e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="udyam">UDYAM Registration No. (if any)</Label>
-                        <Input id="udyam" value={(formData as any).udyam || ''} onChange={e => handleChange('udyam' as any, e.target.value)} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="locationAndSite">Site/Location Details</Label>
-                        <Textarea id="locationAndSite" value={(formData as any).locationAndSite || ''} onChange={e => handleChange('locationAndSite' as any, e.target.value)} placeholder="e.g., Leased space in an industrial area, address, size..."/>
-                    </div>
-                </div>
-            )}
-             {i === 2 && (
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="promoterName">Promoter Name</Label>
-                        <Input id="promoterName" value={formData.promoterName || ''} onChange={e => handleChange('promoterName', e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="promoterExperience">Experience (in years)</Label>
-                        <Input type="number" id="promoterExperience" value={(formData as any).promoterExperience || ''} onChange={e => handleChange('promoterExperience' as any, e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="promoterQualification">Qualification</Label>
-                        <Input id="promoterQualification" value={(formData as any).promoterQualification || ''} onChange={e => handleChange('promoterQualification' as any, e.target.value)} />
-                    </div>
-                </div>
-            )}
-             {i === 3 && (
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="totalProjectCost">Total Project Cost (INR)</Label>
-                        <Input type="number" id="totalProjectCost" value={(formData as any).totalProjectCost || ''} onChange={e => handleChange('totalProjectCost' as any, e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="promoterContribution">Promoter's Contribution (INR)</Label>
-                        <Input type="number" id="promoterContribution" value={(formData as any).promoterContribution || ''} onChange={e => handleChange('promoterContribution' as any, e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="loanRequired">Loan Required (INR)</Label>
-                        <Input type="number" id="loanRequired" value={(formData as any).loanRequired || ''} onChange={e => handleChange('loanRequired' as any, e.target.value)} />
-                    </div>
-                </div>
-            )}
-             {i === 4 && (
-                 <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="expectedRevenue">Expected Annual Revenue (Year 1, INR)</Label>
-                        <Input type="number" id="expectedRevenue" value={(formData as any).expectedRevenue || ''} onChange={e => handleChange('expectedRevenue' as any, e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="profitMargin">Expected Profit Margin (%)</Label>
-                        <Input type="number" id="profitMargin" value={(formData as any).profitMargin || ''} onChange={e => handleChange('profitMargin' as any, e.target.value)} />
-                    </div>
-                </div>
-            )}
-            {i === 5 && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="targetMarket">Target Market</Label>
-                  <Textarea
-                    id="targetMarket"
-                    value={(formData as any).targetMarket || ''}
-                    onChange={e => handleChange('targetMarket' as any, e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="competitiveAdvantage">Competitive Advantage</Label>
-                  <Textarea
-                    id="competitiveAdvantage"
-                    value={(formData as any).competitiveAdvantage || ''}
-                    onChange={e => handleChange('competitiveAdvantage' as any, e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-             {i === 6 && (
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="identifiedRisks">Identified Risks</Label>
-                        <Textarea id="identifiedRisks" value={(formData as any).identifiedRisks || ''} onChange={e => handleChange('identifiedRisks' as any, e.target.value)} placeholder="e.g., Market competition, supply chain disruption..."/>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="mitigationStrategies">Mitigation Strategies</Label>
-                        <Textarea id="mitigationStrategies" value={(formData as any).mitigationStrategies || ''} onChange={e => handleChange('mitigationStrategies' as any, e.target.value)} placeholder="e.g., Diversify suppliers, focus on a niche market..."/>
-                    </div>
-                </div>
-            )}
-            {i === 7 && (
-                 <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="businessModel">Business Model</Label>
-                        <Textarea id="businessModel" value={(formData as any).businessModel || ''} onChange={e => handleChange('businessModel' as any, e.target.value)} placeholder="e.g., B2B sales to local restaurants, direct to consumer via website..."/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="technicalFeasibility">Technical Implementation</Label>
-                        <Textarea id="technicalFeasibility" value={(formData as any).technicalFeasibility || ''} onChange={e => handleChange('technicalFeasibility' as any, e.target.value)} placeholder="Describe the machinery, technology, and process flow..."/>
-                    </div>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    ));
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 30 : -30,
+      opacity: 0,
+    }),
+    center: { zIndex: 1, x: 0, opacity: 1 },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 30 : -30,
+      opacity: 0,
+    }),
   };
-
 
   if (view === 'loading') {
     return (
-      <div className="flex flex-col justify-center items-center h-full text-center">
+      <div className="flex flex-col justify-center items-center h-full text-center py-20">
         <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
-        <h2 className="text-2xl font-semibold">AI is Building Your DPR...</h2>
-        <p className="text-muted-foreground">This may take a moment. Please do not refresh.</p>
+        <h2 className="text-2xl font-semibold">Generating Your DPR...</h2>
+        <p className="text-muted-foreground mt-2 max-w-md">The AI is analyzing your data and writing your report. This might take a minute.</p>
       </div>
     );
   }
 
-  if (view === 'editor' && dprData) {
-    // This view is now handled by the /dpr-report page
-    return null;
+  if (view === 'editor' && generatedDpr) {
+    const activeSectionData = dprSectionConfig.find(s => s.key === activeEditorSection);
+    return (
+        <div className="space-y-6">
+            <h1 className="text-3xl font-bold">Review Your DPR</h1>
+             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <aside className="lg:col-span-1">
+                <Card className="sticky top-6">
+                    <CardHeader><CardTitle>DPR Sections</CardTitle></CardHeader>
+                    <CardContent>
+                    <nav className="flex flex-col gap-1">
+                        {dprSectionConfig.map(section => (
+                        <Button
+                            key={section.key}
+                            variant={activeEditorSection === section.key ? 'secondary' : 'ghost'}
+                            onClick={() => setActiveEditorSection(section.key)}
+                            className="justify-start"
+                        >
+                            <section.icon className="mr-3 h-5 w-5" />
+                            {section.title}
+                        </Button>
+                        ))}
+                    </nav>
+                    </CardContent>
+                </Card>
+                </aside>
+                <main className="lg:col-span-3 space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3">
+                            {activeSectionData?.icon && <activeSectionData.icon className="text-primary"/>}
+                            {activeSectionData?.title}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <RichTextEditor
+                            content={generatedDpr[activeEditorSection] || ''}
+                            onChange={(newContent) => handleSectionContentChange(activeEditorSection, newContent)}
+                        />
+                    </CardContent>
+                </Card>
+                </main>
+            </div>
+        </div>
+    );
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="space-y-4 mb-8">
-        <Progress value={progress} />
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">{currentStepData.title}</h1>
-          <p className="text-muted-foreground">{currentStepData.description}</p>
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <Progress value={((currentStep + 1) / quizSteps.length) * 100} className="mb-4 h-2" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-md">
+                {quizSteps[currentStep].icon && <quizSteps[currentStep].icon className="h-6 w-6 text-primary" />}
+            </div>
+            <CardTitle>{quizSteps[currentStep].title}</CardTitle>
+          </div>
+        </CardHeader>
+        <div className="relative h-64 px-6">
+          <AnimatePresence initial={false} custom={direction}>
+            <motion.div
+              key={currentStep}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }}
+              className="absolute w-full px-6"
+            >
+              {renderQuizStep()}
+            </motion.div>
+          </AnimatePresence>
         </div>
-      </div>
-
-      {renderQuizStep()}
-
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={handleBack} disabled={currentStep === 0}>
-          <ArrowLeft className="mr-2" /> Back
-        </Button>
-        {currentStep < steps.length - 1 ? (
-          <Button onClick={handleNext}>
-            Next <ArrowRight className="ml-2" />
+        <CardFooter className="flex justify-between border-t pt-4 mt-8">
+          <Button variant="ghost" onClick={handleBack} disabled={currentStep === 0}>
+            <ArrowLeft className="mr-2" /> Back
           </Button>
-        ) : (
-          <Button onClick={handleGenerateDPR} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 animate-spin" /> : null}
-            Generate DPR
-          </Button>
-        )}
-      </div>
+          {currentStep < quizSteps.length - 1 ? (
+            <Button onClick={handleNext}>
+              Next <ArrowRight className="ml-2" />
+            </Button>
+          ) : (
+            <Button onClick={handleGenerateDpr}>
+              <Check className="mr-2" /> Generate DPR
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
     </div>
-  );
-}
-
-export default function DPREditorPage() {
-  return (
-    <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-      <DPREditorComponent />
-    </Suspense>
   );
 }

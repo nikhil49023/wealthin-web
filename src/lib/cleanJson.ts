@@ -12,39 +12,43 @@ export function cleanAndParseJSON(llmOutput: string) {
   if (markdownMatch && markdownMatch[1]) {
     jsonString = markdownMatch[1];
   } else {
-    // 2. If no markdown, find the first '{' or '[' and last '}' or ']'
+    // 2. If no markdown, aggressively find the main JSON object/array
     const firstBrace = jsonString.indexOf('{');
     const firstBracket = jsonString.indexOf('[');
     
     let firstIndex = -1;
     if (firstBrace > -1 && firstBracket > -1) {
         firstIndex = Math.min(firstBrace, firstBracket);
-    } else if (firstBrace > -1) {
-        firstIndex = firstBrace;
     } else {
-        firstIndex = firstBracket;
+        firstIndex = Math.max(firstBrace, firstBracket);
     }
 
     const lastBrace = jsonString.lastIndexOf('}');
     const lastBracket = jsonString.lastIndexOf(']');
     
-    let lastIndex = -1;
-    if (lastBrace > -1 && lastBracket > -1) {
-        lastIndex = Math.max(lastBrace, lastBracket);
-    } else if (lastBrace > -1) {
-        lastIndex = lastBrace;
-    } else {
-        lastIndex = lastBracket;
-    }
-
+    let lastIndex = Math.max(lastBrace, lastBracket);
 
     if (firstIndex !== -1 && lastIndex !== -1 && lastIndex > firstIndex) {
       jsonString = jsonString.substring(firstIndex, lastIndex + 1);
     }
   }
 
+  // 3. Handle cases where the initial brace might be missing
+  if (!jsonString.startsWith('{') && jsonString.includes(':')) {
+    const firstColon = jsonString.indexOf(':');
+    const braceBeforeColon = jsonString.lastIndexOf('{', firstColon);
+    if (braceBeforeColon === -1) {
+      jsonString = '{' + jsonString;
+      // Attempt to add a closing brace if it seems to be missing
+      if (jsonString.lastIndexOf('}') < jsonString.length - 2) {
+          jsonString += '}';
+      }
+    }
+  }
+
+
   try {
-    // 3. Parse the cleaned string
+    // 4. Parse the cleaned string
     return JSON.parse(jsonString);
   } catch (error: any) {
     console.error("Failed to parse LLM JSON after cleaning:", error.message);

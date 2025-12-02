@@ -20,8 +20,8 @@ import type {
   GenerateRagAnswerOutput,
 } from '@/ai/schemas/rag-answer';
 import type {
-    GenerateDprInput,
-    GenerateDprOutput
+    GenerateDprSectionInput,
+    GenerateDprSectionOutput
 } from '@/ai/schemas/dpr';
 import {generateFinBite} from '@/ai/flows/generate-fin-bite';
 import type {GenerateFinBiteOutput} from '@/ai/schemas/fin-bite';
@@ -32,7 +32,7 @@ import type {
 } from '@/ai/schemas/budget-report';
 import {generateTts} from '@/ai/flows/generate-tts';
 import type {GenerateTtsInput, GenerateTtsOutput} from '@/ai/schemas/tts';
-import { generateDpr } from '@/ai/flows/generate-dpr';
+import { generateDprSection } from '@/ai/flows/generate-dpr-section';
 import { generateIdeaSection } from '@/ai/flows/generate-idea-section';
 
 
@@ -109,6 +109,24 @@ export async function generateIdeaSectionAction(
   }
 }
 
+export async function generateDprSectionAction(
+  input: GenerateDprSectionInput
+): Promise<
+  | {success: true; data: GenerateDprSectionOutput}
+  | {success: false; error: string}
+> {
+  try {
+    const result = await generateDprSection(input);
+    return {success: true, data: result};
+  } catch (error: any) {
+    console.error(error);
+    return {
+      success: false,
+      error: `Failed to generate DPR section: ${error.message}`,
+    };
+  }
+}
+
 
 export async function generateRagAnswerAction(
   input: GenerateRagAnswerInput
@@ -125,24 +143,6 @@ export async function generateRagAnswerAction(
     return {
       success: false,
       error: `Failed to get advice from AI: ${error.message}`,
-    };
-  }
-}
-
-export async function generateDprAction(
-  input: GenerateDprInput
-): Promise<
-  | {success: true; data: GenerateDprOutput}
-  | {success: false; error: string}
-> {
-  try {
-    const result = await generateDpr(input);
-    return {success: true, data: result};
-  } catch (error: any) {
-    console.error(error);
-    return {
-      success: false,
-      error: `Failed to generate DPR: ${error.message}`,
     };
   }
 }

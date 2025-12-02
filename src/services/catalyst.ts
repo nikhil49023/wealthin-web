@@ -1,4 +1,3 @@
-
 import type { GenerateRagAnswerInput } from '@/ai/schemas/rag-answer';
 import fetch from 'node-fetch';
 
@@ -57,13 +56,13 @@ class CatalystService {
     }
   }
 
-  public async generateText(prompt: string, system_prompt: string = "Be concise and factual"): Promise<any> {
+  public async generateText(prompt: string, system_prompt: string = "Be concise and factual", model: string = "crm-di-qwen_text_14b-fp8-it"): Promise<any> {
     const token = await this.getValidAccessToken();
     const chatApiUrl = `https://api.catalyst.zoho.in/quickml/v2/project/${this.projectId}/llm/chat`;
     
     const body = {
       "prompt": prompt,
-      "model": "crm-di-qwen_text_14b-fp8-it",
+      "model": model,
       "system_prompt": system_prompt,
       "top_p": 0.9,
       "top_k": 50,
