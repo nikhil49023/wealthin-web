@@ -57,13 +57,13 @@ class CatalystService {
     }
   }
 
-  public async generateText(prompt: string, system_prompt: string = "Be concise and factual", modelOverride?: string): Promise<any> {
+  public async generateText(prompt: string, system_prompt: string = "Be concise and factual"): Promise<any> {
     const token = await this.getValidAccessToken();
     const chatApiUrl = `https://api.catalyst.zoho.in/quickml/v2/project/${this.projectId}/llm/chat`;
     
     const body = {
       "prompt": prompt,
-      "model": modelOverride || "crm-di-qwen_text_14b-fp8-it", // Reverted to the reliable model
+      "model": "crm-di-qwen_text_14b-fp8-it",
       "system_prompt": system_prompt,
       "top_p": 0.9,
       "top_k": 50,
