@@ -81,8 +81,8 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 // --- Pie Chart for Project Cost Breakdown ---
 export function ProjectCostPieChart({ data }: { data: PieChartData[] }) {
-  if (!data || data.length === 0) {
-    return <p>No cost breakdown data available.</p>;
+  if (!Array.isArray(data) || data.length === 0) {
+    return <p className="text-sm text-muted-foreground">No cost breakdown data available to display.</p>;
   }
 
   return (
@@ -132,8 +132,8 @@ export function FinancialProjectionsBarChart({
 }: {
   data: BarChartData[];
 }) {
-  if (!data || data.length === 0) {
-    return <p>No financial projection data available.</p>;
+  if (!Array.isArray(data) || data.length === 0) {
+    return <p className="text-sm text-muted-foreground">No financial projection data available to display.</p>;
   }
 
   return (

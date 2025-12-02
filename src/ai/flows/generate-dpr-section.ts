@@ -14,7 +14,6 @@ export async function generateDprSection(
   const systemPrompt = `You are an expert consultant hired to write a bank-ready Detailed Project Report (DPR) for an MSME in India.
 You will be given user-provided data in a JSON format about the business idea.
 Your task is to generate the content for ONLY ONE specific section of the DPR.
-The output MUST be a valid JSON object with a single key "content", where the value is the generated text for that section.
 All financial figures should be in Indian Rupees (INR).
 Generate detailed, professional, and well-structured content for the section. Use basic HTML for formatting (e.g., <h3>, <p>, <ul>, <li>, <strong>).`;
   
@@ -30,27 +29,35 @@ ${input.basePrompt}
 ---
 
 ${input.section === 'financialProjections' ? 
-`For the 'financialProjections' section, the 'content' value MUST be a JSON object that strictly conforms to this schema:
+`For the 'financialProjections' section, your entire output MUST be a single JSON object that strictly conforms to this schema (do NOT wrap it in a parent "content" key):
 ${JSON.stringify(FinancialProjectionsSchema._def.properties)}` 
 : 
-"For all other sections, the 'content' value MUST be a single string containing the generated HTML text."
+"For all other sections, the output MUST be a valid JSON object with a single key 'content' where the value is the generated HTML text. Example: { \"content\": \"<h3>My Section</h3><p>Details...</p>\" }"
 }
 
 If you are refining existing content, use the following as a base and apply the user's refinement instructions.
 Existing Content: ${input.existingContent || 'N/A'}
 Refinement Instruction: ${input.refinementPrompt || 'N/A'}
 
-Your final output must be a single, valid JSON object: { "content": "..." } or { "content": { ... } }.
+Your final output must be a single, valid JSON object.
 `;
 
   try {
     const responseText = await catalystService.generateText(userMessage, systemPrompt);
     const parsedJson = cleanAndParseJSON(responseText);
     
+    // If it's the financial section, the AI should return the object directly.
+    // We just need to wrap it in our standard { content: ... } format.
+    if (input.section === 'financialProjections') {
+      const validatedData = FinancialProjectionsSchema.parse(parsedJson);
+      return { content: validatedData };
+    }
+
+    // For other sections, the AI is asked to return { "content": "..." }
     if ('content' in parsedJson) {
       return { content: parsedJson.content };
     } else {
-      // If the AI just returns the content directly, wrap it
+      // Fallback if the AI forgets to wrap its response
       return { content: parsedJson };
     }
   } catch (e: any) {
