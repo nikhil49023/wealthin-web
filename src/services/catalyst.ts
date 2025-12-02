@@ -57,13 +57,13 @@ class CatalystService {
     }
   }
 
-  public async generateText(prompt: string, system_prompt: string = "Be concise and factual"): Promise<any> {
+  public async generateText(prompt: string, system_prompt: string = "Be concise and factual", modelOverride?: string): Promise<any> {
     const token = await this.getValidAccessToken();
     const chatApiUrl = `https://api.catalyst.zoho.in/quickml/v2/project/${this.projectId}/llm/chat`;
     
     const body = {
       "prompt": prompt,
-      "model": "qwen-coder",
+      "model": modelOverride || "qwen-coder", // Use override or default to qwen-coder
       "system_prompt": system_prompt,
       "top_p": 0.9,
       "top_k": 50,

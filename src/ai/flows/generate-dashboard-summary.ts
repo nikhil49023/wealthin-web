@@ -73,7 +73,12 @@ ${transactionsSample}
 `;
 
   try {
-    const suggestion = await catalystService.generateText(userPrompt, systemPrompt);
+    // Override the model for this specific, conversational task
+    const suggestion = await catalystService.generateText(
+        userPrompt, 
+        systemPrompt,
+        'crm-di-qwen_text_14b-fp8-it' // Using a model better suited for this task
+    );
     // 3. Return combined result
     return {
       totalIncome,
