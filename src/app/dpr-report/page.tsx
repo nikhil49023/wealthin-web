@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
@@ -21,7 +22,7 @@ import RichTextEditor from '@/components/financify/rich-text-editor';
 import { ProjectCostPieChart, FinancialProjectionsBarChart } from '@/components/financify/dpr-charts';
 import { generateDprSectionAction } from '@/app/actions';
 import { useAuth } from '@/context/auth-provider';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { dprSectionConfig } from '@/lib/dpr-config';
 
@@ -300,3 +301,5 @@ export default function DPRReportPage() {
     </Suspense>
   );
 }
+
+    
