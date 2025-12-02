@@ -159,6 +159,12 @@ export default function DPREditorPage() {
     }
   }, [userProfile]);
 
+  useEffect(() => {
+    if (view === 'editor' && generatedDpr) {
+      router.push('/dpr-report');
+    }
+  }, [view, generatedDpr, router]);
+
   const handleQuizChange = (field: keyof DprQuizData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -344,8 +350,7 @@ export default function DPREditorPage() {
   }
 
   if (view === 'editor' && generatedDpr) {
-    // Navigate to the new page instead of rendering here
-    router.push('/dpr-report');
+    // A loading state is shown while the useEffect redirects
     return (
         <div className="flex flex-col justify-center items-center h-full text-center py-20">
             <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
