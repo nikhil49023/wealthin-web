@@ -31,7 +31,7 @@ ${input.basePrompt}
 
 ${input.section === 'financialProjections' ? 
 `For the 'financialProjections' section, the 'content' value MUST be a JSON object that strictly conforms to this schema:
-${JSON.stringify(FinancialProjectionsSchema.jsonSchema.properties)}` 
+${JSON.stringify(FinancialProjectionsSchema._def.properties)}` 
 : 
 "For all other sections, the 'content' value MUST be a single string containing the generated HTML text."
 }
