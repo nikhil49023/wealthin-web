@@ -50,49 +50,49 @@ const formatIndianCurrency = (value: number) => {
 const quizSteps = [
   {
     key: 'projectInfo',
-    title: 'Project Details',
+    title: 'Business Basics',
     icon: FileText,
     fields: ['projectName', 'businessType', 'businessDescription'],
   },
   {
     key: 'promoterInfo',
-    title: 'Promoter Information',
+    title: 'About You',
     icon: User,
     fields: ['promoterName', 'education', 'experience'],
   },
   {
     key: 'marketInfo',
-    title: 'Market & Business Model',
+    title: 'Your Customers & Competitors',
     icon: Building,
     fields: ['targetMarket', 'competitors', 'marketingStrategy'],
   },
   {
     key: 'technicalInfo',
-    title: 'Technical & Location',
+    title: 'Location & Technology',
     icon: FlaskConical,
     fields: ['location', 'siteDetails', 'registrationType'],
   },
   {
     key: 'financials',
-    title: 'Financial Requirements',
+    title: 'Money Required',
     icon: Banknote,
     fields: ['projectCost', 'loanAmount'],
   },
   {
     key: 'projections',
-    title: 'Financial Projections',
+    title: 'Future Earnings',
     icon: TrendingUp,
     fields: ['revenueY1', 'profitMargin'],
   },
   {
     key: 'risks',
-    title: 'Risks & SWOT',
+    title: 'Risks & Strengths',
     icon: Shield,
     fields: ['risks', 'mitigation'],
   },
    {
     key: 'schedule',
-    title: 'Project Schedule',
+    title: 'Project Timeline',
     icon: Calendar,
     fields: [],
   },
@@ -114,7 +114,7 @@ const initialFormData: DprQuizData = {
   profitMargin: 20,
   targetMarket: '',
   competitors: '',
-  marketingStrategy: '12% CAGR',
+  marketingStrategy: '12% year-on-year growth',
   risks: '',
   mitigation: '',
 };
@@ -166,90 +166,91 @@ export default function DPREditorPage() {
       case 'projectInfo':
         return (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Let's start with the basics of your new venture.</p>
-            <Input placeholder="Project Title (e.g., Automated Textile Unit)" value={formData.projectName} onChange={(e) => handleQuizChange('projectName', e.target.value)} />
-            <Input placeholder="Industry/Sector (e.g., SaaS, Agro-processing)" value={formData.businessType} onChange={(e) => handleQuizChange('businessType', e.target.value)} />
-            <Textarea placeholder='Objective & Rationale (e.g., To establish a 500 TPA garment unit to bridge local supply gaps...)' value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
+            <p className="text-sm text-muted-foreground">Let's start with the basics of your new business.</p>
+            <Input placeholder="What will you call your business? (e.g., Rama Textiles)" value={formData.projectName} onChange={(e) => handleQuizChange('projectName', e.target.value)} />
+            <Input placeholder="What kind of work will it do? (e.g., Making clothes)" value={formData.businessType} onChange={(e) => handleQuizChange('businessType', e.target.value)} />
+            <Textarea placeholder="In one sentence, what is the main aim? (e.g., 'To make and sell good quality clothes to local shops')" value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
           </div>
         );
       case 'promoterInfo':
          return (
           <div className="space-y-4">
-             <p className="text-sm text-muted-foreground">Tell us about the entrepreneur(s) behind the project.</p>
-            <Input placeholder="Promoter Name(s)" value={formData.promoterName} onChange={(e) => handleQuizChange('promoterName', e.target.value)} />
-            <Input placeholder="Education & Qualification (e.g., MBA, Finance)" value={formData.education} onChange={(e) => handleQuizChange('education', e.target.value)} />
-            <Textarea placeholder="Relevant industry experience and track record (e.g., 10+ years in textile industry, managed previous units...)" value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
+             <p className="text-sm text-muted-foreground">Tell us about the person starting the business.</p>
+            <Input placeholder="What is your full name?" value={formData.promoterName} onChange={(e) => handleQuizChange('promoterName', e.target.value)} />
+            <Input placeholder="What is your highest education? (e.g., 12th Pass, B.Com)" value={formData.education} onChange={(e) => handleQuizChange('education', e.target.value)} />
+            <Textarea placeholder="Tell us about your work experience. Have you done this kind of work before?" value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
           </div>
         );
       case 'marketInfo':
           return (
             <div className="space-y-4">
-               <p className="text-sm text-muted-foreground">Describe your market and business model.</p>
-              <Textarea placeholder="Target Audience (e.g., Wholesale distributors, Retail chains...)" value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
-              <Textarea placeholder="Value Proposition & Competitors (e.g., Better quality at lower price compared to X & Y...)" value={formData.competitors} onChange={(e) => handleQuizChange('competitors', e.target.value)} />
-              <Input placeholder="Market Trends (e.g., Market is growing at 12% CAGR...)" value={formData.marketingStrategy} onChange={(e) => handleQuizChange('marketingStrategy', e.target.value)} />
+               <p className="text-sm text-muted-foreground">Who will you sell to, and how?</p>
+              <Textarea placeholder="Who are your main customers? (e.g., 'People in my town', 'Other shops')" value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
+              <Textarea placeholder="Why will people choose you? (e.g., 'My price is lower', 'My quality is better')" value={formData.competitors} onChange={(e) => handleQuizChange('competitors', e.target.value)} />
+              <Input placeholder="How is the market for your product? (e.g., 'Demand is growing fast')" value={formData.marketingStrategy} onChange={(e) => handleQuizChange('marketingStrategy', e.target.value)} />
             </div>
           );
       case 'technicalInfo':
         return (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Details about the operational setup.</p>
-            <Input placeholder="Location (e.g., Industrial Park, Visakhapatnam, AP)" value={formData.location} onChange={(e) => handleQuizChange('location', e.target.value)} />
-            <Textarea placeholder="Location Advantage & Land Area (e.g., Near highway, 2 acres...)" value={formData.siteDetails} onChange={(e) => handleQuizChange('siteDetails', e.target.value)} />
-            <Input placeholder="Technology & Production Capacity (e.g., Fully automatic, 500 TPA...)" value={formData.registrationType} onChange={(e) => handleQuizChange('registrationType', e.target.value)} />
+            <p className="text-sm text-muted-foreground">Details about your workplace and machines.</p>
+            <Input placeholder="Where will your business be located? (Village/Town, District)" value={formData.location} onChange={(e) => handleQuizChange('location', e.target.value)} />
+            <Textarea placeholder="Why did you choose this place? (e.g., 'It is my own land', 'It is near the main road')" value={formData.siteDetails} onChange={(e) => handleQuizChange('siteDetails', e.target.value)} />
+            <Input placeholder="What kind of machines will you use? (e.g., 'Automatic machines')" value={formData.registrationType} onChange={(e) => handleQuizChange('registrationType', e.target.value)} />
           </div>
         );
       case 'financials':
           return (
             <div className="space-y-6">
-              <p className="text-sm text-muted-foreground">Let's talk numbers. Use the sliders to estimate your financial needs.</p>
+              <p className="text-sm text-muted-foreground">Let's talk about the money needed.</p>
               <div>
-                  <Label>Total Project Cost: {formatIndianCurrency(formData.projectCost)}</Label>
+                  <Label>Total Money to Start the Business: {formatIndianCurrency(formData.projectCost)}</Label>
                   <Slider value={[formData.projectCost]} onValueChange={([v]) => handleQuizChange('projectCost', v)} max={100000000} step={100000} />
               </div>
               <div>
-                  <Label>Bank Loan Required: {formatIndianCurrency(formData.loanAmount)}</Label>
+                  <Label>Loan Required from Bank: {formatIndianCurrency(formData.loanAmount)}</Label>
                   <Slider value={[formData.loanAmount]} onValueChange={([v]) => handleQuizChange('loanAmount', v)} max={formData.projectCost} step={100000} />
               </div>
                <div>
-                  <Label>Promoter's Contribution: {formatIndianCurrency(formData.projectCost - formData.loanAmount)}</Label>
-                   <p className="text-xs text-muted-foreground">This is automatically calculated based on the total cost and loan amount.</p>
+                  <Label>Your Own Investment: {formatIndianCurrency(formData.projectCost - formData.loanAmount)}</Label>
+                   <p className="text-xs text-muted-foreground">This is the money you are putting in from your own pocket.</p>
               </div>
             </div>
           );
        case 'projections':
           return (
             <div className="space-y-6">
-              <p className="text-sm text-muted-foreground">Estimate your performance for the first year.</p>
+              <p className="text-sm text-muted-foreground">Guess your earnings for the first year.</p>
               <div>
-                  <Label>Projected First Year Revenue: {formatIndianCurrency(formData.revenueY1)}</Label>
+                  <Label>Expected First Year Sales: {formatIndianCurrency(formData.revenueY1)}</Label>
                   <Slider value={[formData.revenueY1]} onValueChange={([v]) => handleQuizChange('revenueY1', v)} max={500000000} step={500000} />
               </div>
               <div>
-                  <Label>Expected Profit Margin: {formData.profitMargin}%</Label>
+                  <Label>Expected Profit (in %): {formData.profitMargin}%</Label>
                   <Slider value={[formData.profitMargin]} onValueChange={([v]) => handleQuizChange('profitMargin', v)} max={80} step={1} />
+                   <p className="text-xs text-muted-foreground">Out of every ₹100 in sales, how much will be your profit?</p>
               </div>
-               <Input placeholder="Major Expenses (e.g., Raw Materials: 40%, Labor: 30%)" value={formData.workingCapital?.toString()} onChange={(e) => handleQuizChange('workingCapital', e.target.value)} />
+               <Input placeholder="What are your main expenses? (e.g., 'Buying material', 'Paying workers')" value={formData.workingCapital?.toString()} onChange={(e) => handleQuizChange('workingCapital', e.target.value)} />
             </div>
           );
       case 'risks':
           return (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Identify potential strengths, weaknesses, and risks.</p>
-              <Textarea placeholder="Strengths, Weaknesses, Opportunities, Threats (SWOT)..." value={formData.risks} onChange={(e) => handleQuizChange('risks', e.target.value)} />
-              <Textarea placeholder="Mitigation plan for the identified risks..." value={formData.mitigation} onChange={(e) => handleQuizChange('mitigation', e.target.value)} />
+              <p className="text-sm text-muted-foreground">Let's think about good and bad things that can happen.</p>
+              <Textarea placeholder="What are your strengths? What are your weaknesses?" value={formData.risks} onChange={(e) => handleQuizChange('risks', e.target.value)} />
+              <Textarea placeholder="What problems might you face and how will you solve them?" value={formData.mitigation} onChange={(e) => handleQuizChange('mitigation', e.target.value)} />
             </div>
           );
       case 'schedule':
         return (
             <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Finally, let's set a timeline.</p>
+                <p className="text-sm text-muted-foreground">Finally, let's set a timeline for your project.</p>
                 <div className="space-y-2">
-                    <Label>When do you plan to start land acquisition?</Label>
+                    <Label>When do you plan to get the land?</Label>
                     <Input type="date" />
                 </div>
                 <div className="space-y-2">
-                    <Label>How many months after starting will commercial production begin?</Label>
+                    <Label>How many months until you can start selling?</Label>
                     <Input type="number" placeholder="e.g., 6" />
                 </div>
             </div>
@@ -320,5 +321,3 @@ export default function DPREditorPage() {
     </div>
   );
 }
-
-    
