@@ -1,4 +1,3 @@
-
 'use server';
 
 import {extractTransactionsFromDocument} from '@/ai/flows/extract-transactions-from-document';
@@ -20,8 +19,6 @@ import type {
   GenerateRagAnswerInput,
   GenerateRagAnswerOutput,
 } from '@/ai/schemas/rag-answer';
-import type { DprQuizData, GenerateDprOutput } from '@/ai/schemas/dpr';
-import {generateDpr} from '@/ai/flows/generate-dpr';
 
 import type {
     GenerateDprSectionInput,
@@ -199,24 +196,6 @@ export async function generateTtsAction(
     return {
       success: false,
       error: `Failed to generate audio: ${error.message}`,
-    };
-  }
-}
-
-export async function generateDprAction(
-  input: DprQuizData
-): Promise<
-  | {success: true; data: GenerateDprOutput}
-  | {success: false; error: string}
-> {
-  try {
-    const result = await generateDpr(input);
-    return {success: true, data: result};
-  } catch (error: any) {
-    console.error(error);
-    return {
-      success: false,
-      error: `Failed to generate DPR: ${error.message}`,
     };
   }
 }

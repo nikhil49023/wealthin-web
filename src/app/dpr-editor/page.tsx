@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -44,9 +43,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { DprQuizData, GenerateDprOutput } from '@/ai/schemas/dpr';
-import { generateDpr } from '@/ai/flows/generate-dpr';
-import RichTextEditor from '@/components/financify/rich-text-editor';
 import { dprSectionConfig } from '@/lib/dpr-config';
+import { generateDprSectionAction } from '@/app/actions';
+
 
 // Helper function for currency formatting
 const formatIndianCurrency = (value: number) => {
@@ -149,21 +148,15 @@ export default function DPREditorPage() {
   const [formData, setFormData] = useState<DprQuizData>(initialFormData);
   const [direction, setDirection] = useState(1);
   const [view, setView] = useState<'quiz' | 'loading' | 'editor'>('quiz');
-  const [generatedDpr, setGeneratedDpr] = useState<GenerateDprOutput | null>(null);
-  const [activeEditorSection, setActiveEditorSection] = useState('executiveSummary');
-
+  
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState('Starting...');
 
   useEffect(() => {
     if (userProfile?.displayName) {
       setFormData(prev => ({...prev, promoterName: userProfile.displayName || ''}));
     }
   }, [userProfile]);
-
-  useEffect(() => {
-    if (view === 'editor' && generatedDpr) {
-      router.push('/dpr-report');
-    }
-  }, [view, generatedDpr, router]);
 
   const handleQuizChange = (field: keyof DprQuizData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -185,19 +178,40 @@ export default function DPREditorPage() {
 
   const handleGenerateDpr = async () => {
     setView('loading');
+    const generatedContent: { [key: string]: any } = {};
+
     try {
-      const result = await generateDpr(formData);
-      setGeneratedDpr(result);
+      for (let i = 0; i < dprSectionConfig.length; i++) {
+        const section = dprSectionConfig[i];
+        setGenerationStatus(`Generating ${section.title}...`);
+        
+        const result = await generateDprSectionAction({
+            idea: formData,
+            section: section.key,
+            basePrompt: section.prompt,
+        });
+
+        if (result.success && result.data.content) {
+            generatedContent[section.key] = result.data.content;
+            setGenerationProgress(((i + 1) / dprSectionConfig.length) * 100);
+        } else {
+            throw new Error(result.error || `Failed to generate section: ${section.title}`);
+        }
+      }
+
       // Store the generated DPR in local storage
-      localStorage.setItem('generatedDpr', JSON.stringify(result));
+      localStorage.setItem('generatedDpr', JSON.stringify(generatedContent));
       // Store the base idea for refinement context
       localStorage.setItem('dprAnalysis', JSON.stringify({ title: formData.projectName, summary: formData.businessDescription }));
 
-      setView('editor');
       toast({
         title: 'DPR Generated Successfully!',
-        description: 'You can now review and edit your report.',
+        description: 'Redirecting you to the report editor...',
       });
+      
+      // Redirect to the editor page
+      router.push('/dpr-report');
+
     } catch (e: any) {
       console.error('DPR Generation Error:', e);
       toast({
@@ -207,16 +221,6 @@ export default function DPREditorPage() {
       });
       setView('quiz'); // Go back to quiz on failure
     }
-  };
-  
-  const handleSectionContentChange = (sectionKey: string, newContent: any) => {
-      setGeneratedDpr((prev: any) => {
-          if (!prev) return null;
-          const updatedDpr = { ...prev, [sectionKey]: newContent };
-          // Also update local storage when a section is edited
-          localStorage.setItem('generatedDpr', JSON.stringify(updatedDpr));
-          return updatedDpr;
-      });
   };
 
   const renderQuizStep = () => {
@@ -344,17 +348,18 @@ export default function DPREditorPage() {
       <div className="flex flex-col justify-center items-center h-full text-center py-20">
         <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
         <h2 className="text-2xl font-semibold">Generating Your DPR...</h2>
-        <p className="text-muted-foreground mt-2 max-w-md">The AI is analyzing your data and writing your report. This might take a minute.</p>
+        <p className="text-muted-foreground mt-2 max-w-md">{generationStatus}</p>
+        <Progress value={generationProgress} className="w-full max-w-sm mt-4" />
       </div>
     );
   }
 
-  if (view === 'editor' && generatedDpr) {
-    // A loading state is shown while the useEffect redirects
+  if (view === 'editor') {
+    // This state is now effectively a loading state before redirect
     return (
         <div className="flex flex-col justify-center items-center h-full text-center py-20">
             <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
-            <h2 className="text-2xl font-semibold">Loading Editor...</h2>
+            <h2 className="text-2xl font-semibold">Finalizing Report...</h2>
         </div>
     );
   }
