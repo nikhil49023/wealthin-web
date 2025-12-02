@@ -52,6 +52,7 @@ import {
 import type {
   GenerateInvestmentIdeaAnalysisOutput
 } from '@/ai/schemas/investment-idea-analysis';
+import { Textarea } from '@/components/ui/textarea';
 
 const msmeServiceCategories = [
   'IT / Software Services',
@@ -99,7 +100,7 @@ function DPREditorComponent() {
 
     setFormData(prev => ({
       ...prev,
-      projectName: analysis?.title || ideaTitle || '',
+      idea: analysis || { title: ideaTitle || '' },
       promoterName: promoterName || '',
       projectDescription: analysis?.summary || '',
       targetMarket: analysis?.targetAudience || '',
@@ -206,16 +207,17 @@ function DPREditorComponent() {
         <Card>
           <CardContent className="p-6">
             {i === 0 && (
-              <>
-                <div className="space-y-2 mb-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
                   <Label htmlFor="projectName">Project Name</Label>
                   <Input
                     id="projectName"
-                    value={(formData as any).projectName || ''}
-                    onChange={e => handleChange('projectName' as any, e.target.value)}
+                    value={((formData.idea as GenerateInvestmentIdeaAnalysisOutput)?.title) || ''}
+                    readOnly
+                    className="bg-muted"
                   />
                 </div>
-                <div className="space-y-2 mb-4">
+                <div className="space-y-2">
                   <Label htmlFor="projectCategory">Project Category</Label>
                   <Select onValueChange={value => handleChange('projectCategory' as any, value)} defaultValue={(formData as any).projectCategory}>
                     <SelectTrigger id="projectCategory">
@@ -230,33 +232,114 @@ function DPREditorComponent() {
                     </SelectContent>
                   </Select>
                 </div>
-              </>
+                 <div className="space-y-2">
+                  <Label htmlFor="projectDescription">Project Description</Label>
+                  <Textarea
+                    id="projectDescription"
+                    value={(formData as any).projectDescription || ''}
+                    onChange={e => handleChange('projectDescription' as any, e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </div>
             )}
-
+            {i === 1 && (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="state">State</Label>
+                        <Input id="state" value={(formData as any).state || ''} onChange={e => handleChange('state' as any, e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input id="city" value={(formData as any).city || ''} onChange={e => handleChange('city' as any, e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="udyam">UDYAM Registration No.</Label>
+                        <Input id="udyam" value={(formData as any).udyam || ''} onChange={e => handleChange('udyam' as any, e.target.value)} />
+                    </div>
+                </div>
+            )}
+             {i === 2 && (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="promoterName">Promoter Name</Label>
+                        <Input id="promoterName" value={formData.promoterName || ''} onChange={e => handleChange('promoterName', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="promoterExperience">Experience (in years)</Label>
+                        <Input type="number" id="promoterExperience" value={(formData as any).promoterExperience || ''} onChange={e => handleChange('promoterExperience' as any, e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="promoterQualification">Qualification</Label>
+                        <Input id="promoterQualification" value={(formData as any).promoterQualification || ''} onChange={e => handleChange('promoterQualification' as any, e.target.value)} />
+                    </div>
+                </div>
+            )}
+             {i === 3 && (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="totalProjectCost">Total Project Cost (INR)</Label>
+                        <Input type="number" id="totalProjectCost" value={(formData as any).totalProjectCost || ''} onChange={e => handleChange('totalProjectCost' as any, e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="promoterContribution">Promoter's Contribution (INR)</Label>
+                        <Input type="number" id="promoterContribution" value={(formData as any).promoterContribution || ''} onChange={e => handleChange('promoterContribution' as any, e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="loanRequired">Loan Required (INR)</Label>
+                        <Input type="number" id="loanRequired" value={(formData as any).loanRequired || ''} onChange={e => handleChange('loanRequired' as any, e.target.value)} />
+                    </div>
+                </div>
+            )}
+             {i === 4 && (
+                 <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="expectedRevenue">Expected Annual Revenue (INR)</Label>
+                        <Input type="number" id="expectedRevenue" value={(formData as any).expectedRevenue || ''} onChange={e => handleChange('expectedRevenue' as any, e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="profitMargin">Expected Profit Margin (%)</Label>
+                        <Input type="number" id="profitMargin" value={(formData as any).profitMargin || ''} onChange={e => handleChange('profitMargin' as any, e.target.value)} />
+                    </div>
+                </div>
+            )}
             {i === 5 && (
-              <>
-                <div className="space-y-2 mb-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
                   <Label htmlFor="targetMarket">Target Market</Label>
-                  <Input
+                  <Textarea
                     id="targetMarket"
                     value={(formData as any).targetMarket || ''}
                     onChange={e => handleChange('targetMarket' as any, e.target.value)}
                   />
                 </div>
-                <div className="space-y-2 mb-4">
+                <div className="space-y-2">
                   <Label htmlFor="competitiveAdvantage">Competitive Advantage</Label>
-                  <Input
+                  <Textarea
                     id="competitiveAdvantage"
                     value={(formData as any).competitiveAdvantage || ''}
                     onChange={e => handleChange('competitiveAdvantage' as any, e.target.value)}
                   />
                 </div>
-              </>
+              </div>
             )}
-            {![0, 5].includes(i) && (
-              <p className="text-sm text-muted-foreground">
-                More fields will be added based on quiz logic.
-              </p>
+             {i === 6 && (
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="identifiedRisks">Identified Risks</Label>
+                        <Textarea id="identifiedRisks" value={(formData as any).identifiedRisks || ''} onChange={e => handleChange('identifiedRisks' as any, e.target.value)} placeholder="e.g., Market competition, supply chain disruption..."/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="mitigationStrategies">Mitigation Strategies</Label>
+                        <Textarea id="mitigationStrategies" value={(formData as any).mitigationStrategies || ''} onChange={e => handleChange('mitigationStrategies' as any, e.target.value)} placeholder="e.g., Diversify suppliers, focus on a niche market..."/>
+                    </div>
+                </div>
+            )}
+            {i === 7 && (
+                 <div className="space-y-4 text-center">
+                    <Label>Project Images (Optional)</Label>
+                    <p className="text-sm text-muted-foreground">You can add images to your report in the editor after generation.</p>
+                </div>
             )}
           </CardContent>
         </Card>
@@ -322,3 +405,5 @@ export default function DPREditorPage() {
     </Suspense>
   );
 }
+
+    
