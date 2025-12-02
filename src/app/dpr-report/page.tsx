@@ -1,13 +1,29 @@
+
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { 
   Bold, Italic, List, Heading3, Printer, Wand2, 
-  Menu, X, Upload, ArrowLeft, Check, RotateCw, RotateCcw,
+  Menu, X, Upload, ArrowLeft,
   FileText, Building, User, Briefcase, TrendingUp, MapPin, 
-  Settings, Calendar, DollarSign, ShieldAlert, Gavel, AlertTriangle, Paperclip
+  Settings, Calendar, DollarSign, ShieldAlert, Gavel, AlertTriangle, Paperclip,
+  RotateCcw, RotateCw, Loader2
 } from 'lucide-react';
-import Script from 'next/script';
+import { useSearchParams } from 'next/navigation';
+import { dprSectionConfig } from '@/lib/dpr-config';
+import { DprQuizData } from '@/ai/schemas/dpr';
+import { generateDprSectionAction } from '../actions';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+
+
+// --- External Libraries (Simulated Imports for Single File) ---
+declare global {
+  interface Window {
+    Chart: any;
+    Cropper: any;
+  }
+}
 
 // --- Types & Interfaces ---
 
@@ -26,6 +42,14 @@ interface CropperState {
   imageSrc: string | null;
   targetId: string | null;
 }
+
+type SectionContent = {
+    [key: string]: {
+        content: string;
+        status: 'pending' | 'loading' | 'done' | 'error';
+    };
+};
+
 
 // --- Components ---
 
@@ -59,10 +83,10 @@ interface EditableProps {
   placeholder?: string;
   className?: string;
   tagName?: 'div' | 'h1' | 'h2' | 'p' | 'ul' | 'strong';
-  initialHtml?: string;
+  html: string;
 }
 
-const EditableBlock: React.FC<EditableProps> = ({ id, placeholder, className, tagName = 'div', initialHtml }) => {
+const EditableBlock: React.FC<EditableProps> = ({ id, placeholder, className, tagName = 'div', html }) => {
   const Tag = tagName as any;
   
   return (
@@ -72,7 +96,7 @@ const EditableBlock: React.FC<EditableProps> = ({ id, placeholder, className, ta
       suppressContentEditableWarning
       className={`outline-none border border-dashed border-transparent focus:border-indigo-400 focus:bg-indigo-50 rounded px-1 transition-colors empty:before:content-[attr(placeholder)] empty:before:text-gray-400 empty:before:italic ${className}`}
       placeholder={placeholder}
-      dangerouslySetInnerHTML={{ __html: initialHtml || '' }}
+      dangerouslySetInnerHTML={{ __html: html }}
     />
   );
 };
@@ -132,9 +156,18 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ id, currentImage, onUpload, o
   );
 };
 
-// --- Main App Component ---
 
-const DprApp: React.FC = () => {
+function DPRReportContent() {
+  const { toast } = useToast();
+  const [quizData, setQuizData] = useState<DprQuizData | null>(null);
+
+  const initialContentState = dprSectionConfig.reduce((acc, section) => {
+    acc[section.key] = { content: `<p>Loading content for ${section.title}...</p>`, status: 'loading' };
+    return acc;
+  }, {} as SectionContent);
+
+  const [sectionContents, setSectionContents] = useState<SectionContent>(initialContentState);
+
   // --- State ---
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('sec-executive');
@@ -149,32 +182,74 @@ const DprApp: React.FC = () => {
   
   const [cropperState, setCropperState] = useState<CropperState>({ isOpen: false, imageSrc: null, targetId: null });
   const cropperInstance = useRef<any>(null);
-  const cropperImgRef = useRef<HTMLImageElement>(null);
+  const cropperImageRef = useRef<HTMLImageElement>(null);
 
   const revChartRef = useRef<HTMLCanvasElement>(null);
   const costChartRef = useRef<HTMLCanvasElement>(null);
   const revChartInstance = useRef<any>(null);
   const costChartInstance = useRef<any>(null);
 
-  // --- Effects ---
+  useEffect(() => {
+    const storedData = localStorage.getItem('dprQuizData');
+    if (storedData) {
+        try {
+            setQuizData(JSON.parse(storedData));
+        } catch(e) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load project data.'});
+        }
+    }
+  }, [toast]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        (window as any).insertAIContent = (id: string, content: string) => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.style.backgroundColor = '#e0e7ff';
-            el.innerHTML = content;
-            setTimeout(() => { 
-                if(el) el.style.backgroundColor = 'transparent' 
-            }, 500);
-          } else {
-            console.warn(`Element with id ${id} not found`);
-          }
-        };
-    }
-  }, []);
+    if (!quizData) return;
 
+    const generateAllSections = async () => {
+      for (const section of dprSectionConfig) {
+        try {
+          const result = await generateDprSectionAction({
+            idea: quizData,
+            section: section.key,
+            basePrompt: section.prompt,
+          });
+
+          if (result.success) {
+            setSectionContents(prev => ({
+              ...prev,
+              [section.key]: { content: result.data.content, status: 'done' }
+            }));
+
+            // Special handling for financial projections to update chart data
+            if (section.key === 'financialProjections' && typeof result.data.content === 'object') {
+                const financialData = result.data.content as any;
+                 if (financialData.yearlyProjections && financialData.yearlyProjections.length > 0) {
+                     const updatedFinancials = financialData.yearlyProjections.map((p: any) => ({
+                         year: p.year,
+                         revenue: p.sales,
+                         expense: p.sales - p.profit, // Calculate expense
+                     }));
+                     setFinancials(updatedFinancials);
+                 }
+            }
+
+
+          } else {
+            throw new Error(result.error);
+          }
+        } catch (error: any) {
+          console.error(`Error generating ${section.key}:`, error);
+          setSectionContents(prev => ({
+            ...prev,
+            [section.key]: { content: `<p class="text-red-500">Error: ${error.message}</p>`, status: 'error' }
+          }));
+        }
+      }
+    };
+
+    generateAllSections();
+  }, [quizData]);
+
+
+  // Initialize/Update Charts
   useEffect(() => {
     if (!window.Chart || !revChartRef.current || !costChartRef.current) return;
 
@@ -196,14 +271,14 @@ const DprApp: React.FC = () => {
     });
 
     const yr1 = financials[0];
-    const profit = yr1.revenue - yr1.expense;
+    const profit = yr1 ? yr1.revenue - yr1.expense : 0;
     
     costChartInstance.current = new window.Chart(costChartRef.current, {
       type: 'doughnut',
       data: {
         labels: ['Expense', 'Net Profit'],
         datasets: [{
-          data: [yr1.expense, profit],
+          data: [yr1 ? yr1.expense: 0, profit],
           backgroundColor: ['#ef4444', '#10b981'],
           borderWidth: 0
         }]
@@ -213,17 +288,17 @@ const DprApp: React.FC = () => {
 
   }, [financials]);
 
+  // Initialize Cropper
   useEffect(() => {
-    if (cropperState.isOpen && cropperImgRef.current && window.Cropper) {
+    if (cropperState.isOpen && cropperImageRef.current && window.Cropper) {
       if (cropperInstance.current) cropperInstance.current.destroy();
-      cropperInstance.current = new window.Cropper(cropperImgRef.current, {
+      cropperInstance.current = new window.Cropper(cropperImageRef.current, {
         viewMode: 1,
         autoCropArea: 0.9,
       });
     }
   }, [cropperState.isOpen]);
 
-  // --- Handlers ---
 
   const handleFinancialChange = (index: number, field: keyof FinancialRecord, value: number) => {
     const newFinancials = [...financials];
@@ -294,331 +369,214 @@ const DprApp: React.FC = () => {
   ];
 
   return (
-    <>
-      <Script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" strategy="lazyOnload" />
-      <Script src="https://cdn.jsdelivr.net/npm/chart.js" strategy="lazyOnload" />
-      <Script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" strategy="lazyOnload" />
-    
-      <div className="flex flex-col h-screen text-gray-800 font-sans bg-gray-100 overflow-hidden">
-        
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 no-print">
-          <div className="flex items-center gap-3">
-            <button className="md:hidden text-gray-500 hover:text-indigo-600" onClick={() => setSidebarOpen(true)}>
-              <Menu size={24} />
-            </button>
-            <button className="hidden md:block text-gray-500 hover:text-gray-700">
-              <ArrowLeft size={20} />
-            </button>
-            <h1 className="text-lg md:text-xl font-bold text-gray-800 truncate">
-              DPR <span className="hidden sm:inline font-normal text-gray-500 text-sm ml-2">Review & Edit</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <button className="hidden sm:flex px-3 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md font-medium text-sm transition items-center">
-              <Wand2 size={16} className="mr-2" /> AI Toolkit
-            </button>
-            <button onClick={() => window.print()} className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-md font-medium text-sm shadow flex items-center">
-              <Printer size={16} className="mr-2" /> <span className="hidden sm:inline">Print</span>
-            </button>
-          </div>
-        </header>
-
-        <div className="flex flex-1 overflow-hidden relative">
-          
-          {sidebarOpen && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
-          )}
-
-          <aside className={`absolute md:relative z-40 h-full w-72 bg-white border-r border-gray-200 flex flex-col shrink-0 no-print transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shadow-xl md:shadow-none`}>
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="font-bold text-gray-700">DPR Sections</h2>
-              <button className="md:hidden text-gray-500" onClick={() => setSidebarOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <nav className="flex-1 overflow-y-auto p-2 space-y-1">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => scrollToSection(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded transition-colors ${
-                    activeSection === item.id 
-                      ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600' 
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {item.icon} {item.label}
-                </button>
-              ))}
-            </nav>
-          </aside>
-
-          <main className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-8 flex justify-center relative">
-            <RichTextToolbar />
-
-            <div id="dpr-document" className="bg-white w-full max-w-[210mm] min-h-[297mm] p-6 md:p-[20mm] shadow-lg mb-8 mx-auto print:w-[210mm] print:p-[20mm] print:shadow-none print:m-0">
-              
-              <header className="border-b-2 border-indigo-900 pb-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div className="w-full md:w-3/4">
-                  <EditableBlock 
-                    id="content-project-title" 
-                    tagName="h1" 
-                    className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 uppercase" 
-                    placeholder="[PROJECT TITLE]" 
-                    initialHtml="DETAILED PROJECT REPORT"
-                  />
-                  <EditableBlock 
-                    id="content-subtitle" 
-                    tagName="h2" 
-                    className="text-lg md:text-xl text-indigo-700 font-medium" 
-                    placeholder="[Project Subtitle]" 
-                    initialHtml="For: New Venture Setup"
-                  />
-                </div>
-                <div className="w-full md:w-1/4 flex flex-row md:flex-col justify-between md:justify-end items-center md:items-end">
-                  <ImageUpload 
-                    id="header-logo"
-                    currentImage={images['header-logo']}
-                    onUpload={initCrop}
-                    onDelete={deleteImage}
-                    className="w-20 h-20"
-                    placeholderText="[Logo]"
-                  />
-                  <EditableBlock 
-                    id="content-date" 
-                    tagName="p" 
-                    className="text-sm text-gray-500 mt-2 text-right" 
-                    initialHtml="Dec 02, 2025" 
-                  />
-                </div>
-              </header>
-
-              <section id="sec-executive" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">1. Executive Summary</h3>
-                <EditableBlock 
-                  id="content-executive-summary" 
-                  className="prose max-w-none text-justify text-gray-700" 
-                  placeholder="[AI Output: Executive Summary...]"
-                  initialHtml="<p>The proposed project is a manufacturing enterprise, with the primary objective of producing high-quality goods to cater to the domestic market.</p>"
-                />
-              </section>
-
-              <section id="sec-intro" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">2. Project Introduction</h3>
-                <EditableBlock 
-                  id="content-project-intro" 
-                  className="prose max-w-none text-gray-700" 
-                  placeholder="[AI Output: Introduction...]"
-                  initialHtml="<p><strong>Objective:</strong> Setup of a 500 TPA unit.</p><p><strong>Rationale:</strong> Gap in local supply chain.</p>"
-                />
-              </section>
-
-              <section id="sec-promoter" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">3. Promoter Details</h3>
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="w-full md:w-32 shrink-0">
-                    <ImageUpload 
-                      id="promoter-img"
-                      currentImage={images['promoter-img']}
-                      onUpload={initCrop}
-                      onDelete={deleteImage}
-                      className="w-full h-48 md:h-32"
-                      placeholderIcon={<User size={32} />}
-                      placeholderText="Upload Photo"
-                    />
-                  </div>
-                  <EditableBlock 
-                    id="content-promoter" 
-                    className="flex-1 prose max-w-none text-gray-700" 
-                    placeholder="[AI Output: Promoter Bio...]"
-                    initialHtml="<p><strong>Name:</strong> [Promoter Name]</p><p><strong>Experience:</strong> [Years] in [Industry]</p>"
-                  />
-                </div>
-              </section>
-
-              <section id="sec-business" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">4. Business Model</h3>
-                <EditableBlock 
-                  id="content-business-model" 
-                  className="prose max-w-none text-gray-700" 
-                  initialHtml="<p>B2B model targeting wholesale distributors.</p>"
-                />
-              </section>
-
-              <section id="sec-market" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">5. Market Analysis</h3>
-                <EditableBlock 
-                  id="content-market-analysis" 
-                  className="prose max-w-none text-gray-700" 
-                  initialHtml="<p>Market is growing at 15% CAGR.</p>"
-                />
-              </section>
-
-              <section id="sec-location" className="mb-8 scroll-mt-20 break-before-page">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">6. Location & Site</h3>
-                <EditableBlock 
-                  id="content-location" 
-                  className="prose max-w-none text-gray-700 mb-4" 
-                  initialHtml="<p>Located in the industrial belt with access to highway.</p>"
-                />
-                <ImageUpload 
-                  id="location-img"
-                  currentImage={images['location-img']}
-                  onUpload={initCrop}
-                  onDelete={deleteImage}
-                  className="w-full h-48"
-                  placeholderIcon={<MapPin size={32} />}
-                  placeholderText="Upload Site Map"
-                />
-              </section>
-
-              <section id="sec-tech" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">7. Technical Feasibility</h3>
-                <EditableBlock 
-                  id="content-technical" 
-                  className="prose max-w-none text-gray-700" 
-                  initialHtml="<p>Standardized machinery with semi-automatic control.</p>"
-                />
-              </section>
-
-              <section id="sec-schedule" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">8. Implementation Schedule</h3>
-                <EditableBlock 
-                  id="content-schedule" 
-                  className="prose max-w-none text-gray-700" 
-                  initialHtml="<ul class='list-disc pl-5'><li>Month 1: Land Acquisition</li><li>Month 3: Civil Works</li><li>Month 6: Production Start</li></ul>"
-                />
-              </section>
-
-              <section id="sec-finance" className="mb-8 scroll-mt-20 break-before-page">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">9. Financial Projections</h3>
-                <p className="text-sm text-gray-500 italic mb-2 no-print">Edit figures below to update charts.</p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="h-64 border rounded p-2 bg-white min-w-0 relative">
-                      <canvas ref={revChartRef} />
-                  </div>
-                  <div className="h-64 border rounded p-2 bg-white min-w-0 relative">
-                      <canvas ref={costChartRef} />
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto border rounded border-gray-200">
-                  <table className="w-full text-sm border-collapse border border-gray-300 min-w-[500px]">
-                    <thead className="bg-indigo-50 text-indigo-900">
-                      <tr>
-                        <th className="border p-2 text-left">Year</th>
-                        <th className="border p-2">Revenue ($)</th>
-                        <th className="border p-2">Expense ($)</th>
-                        <th className="border p-2">Net Profit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {financials.map((row, idx) => (
-                        <tr key={idx}>
-                          <td className="border p-2 bg-gray-50">{row.year}</td>
-                          <td className="border p-0">
-                            <input 
-                              type="number" 
-                              className="w-full p-2 outline-none bg-transparent"
-                              value={row.revenue}
-                              onChange={(e) => handleFinancialChange(idx, 'revenue', Number(e.target.value))}
-                            />
-                          </td>
-                          <td className="border p-0">
-                            <input 
-                              type="number" 
-                              className="w-full p-2 outline-none bg-transparent"
-                              value={row.expense}
-                              onChange={(e) => handleFinancialChange(idx, 'expense', Number(e.target.value))}
-                            />
-                          </td>
-                          <td className="border p-2 font-bold text-gray-600">
-                            {row.revenue - row.expense}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <section id="sec-swot" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">10. SWOT Analysis</h3>
-                <div id="content-swot" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <EditableBlock id="swot-s" className="border border-gray-200 p-3 rounded bg-green-50 break-words" initialHtml="<strong>Strengths:</strong><br>Experienced Team" />
-                  <EditableBlock id="swot-w" className="border border-gray-200 p-3 rounded bg-red-50 break-words" initialHtml="<strong>Weaknesses:</strong><br>Funding limited" />
-                  <EditableBlock id="swot-o" className="border border-gray-200 p-3 rounded bg-blue-50 break-words" initialHtml="<strong>Opportunities:</strong><br>Export market" />
-                  <EditableBlock id="swot-t" className="border border-gray-200 p-3 rounded bg-yellow-50 break-words" initialHtml="<strong>Threats:</strong><br>Policy changes" />
-                </div>
-              </section>
-              
-              <section id="sec-compliance" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">11. Regulatory Compliance</h3>
-                <EditableBlock 
-                  id="content-compliance" 
-                  className="prose max-w-none text-gray-700" 
-                  initialHtml="<p>GST, Udyam Aadhar, and Fire NOC will be obtained.</p>"
-                />
-              </section>
-
-              <section id="sec-risk" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">12. Risk Assessment</h3>
-                <EditableBlock 
-                  id="content-risk" 
-                  className="prose max-w-none text-gray-700" 
-                  initialHtml="<p>Market risk mitigated by long term contracts.</p>"
-                />
-              </section>
-
-              <section id="sec-annexure" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">13. Annexures</h3>
-                <div className="border-2 border-dashed border-gray-300 p-6 rounded text-center text-gray-400 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
-                  Drop supporting documents here
-                </div>
-              </section>
-
-            </div>
-          </main>
+    <div className="flex flex-col h-screen text-gray-800 font-sans bg-gray-100 overflow-hidden">
+      
+      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 shrink-0 z-20 no-print">
+        <div className="flex items-center gap-3">
+          <button className="md:hidden text-gray-500 hover:text-indigo-600" onClick={() => setSidebarOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <button className="hidden md:block text-gray-500 hover:text-gray-700">
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-lg md:text-xl font-bold text-gray-800 truncate">
+            DPR <span className="hidden sm:inline font-normal text-gray-500 text-sm ml-2">Review & Edit</span>
+          </h1>
         </div>
+        <div className="flex items-center gap-3">
+          <button className="hidden sm:flex px-3 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md font-medium text-sm transition items-center">
+            <Wand2 size={16} className="mr-2" /> AI Toolkit
+          </button>
+          <button onClick={() => window.print()} className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-md font-medium text-sm shadow flex items-center">
+            <Printer size={16} className="mr-2" /> <span className="hidden sm:inline">Print</span>
+          </button>
+        </div>
+      </header>
 
-        {cropperState.isOpen && (
-          <div className="fixed inset-0 z-[9999] bg-black bg-opacity-80 flex items-center justify-center p-4">
-            <div className="bg-white p-4 rounded shadow-lg max-w-lg w-full">
-              <h3 className="font-bold text-lg mb-4">Crop Image</h3>
-              <div className="h-64 bg-gray-200 mb-4 overflow-hidden relative">
-                <img ref={cropperImgRef} src={cropperState.imageSrc!} alt="To Crop" className="max-w-full block" />
-              </div>
-              <div className="flex justify-between">
-                <div className="flex gap-2">
-                  <button onClick={() => rotateCrop(-90)} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"><RotateCcw size={16}/></button>
-                  <button onClick={() => rotateCrop(90)} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"><RotateCw size={16}/></button>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={closeCrop} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
-                  <button onClick={saveCrop} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Save</button>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="flex flex-1 overflow-hidden relative">
+        
+        {sidebarOpen && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 z-30 md:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
-        <style jsx global>{`
-          @media print {
-            @page { size: A4; margin: 0; }
-            body { background: white; height: auto; overflow: visible; }
-            .no-print { display: none !important; }
-            #dpr-document { 
-              box-shadow: none !important; margin: 0 !important; width: 210mm !important; max-width: 210mm !important; padding: 20mm !important; 
-            }
-            .break-before-page { break-before: page; }
-            canvas { max-width: 100% !important; }
-          }
-        `}</style>
+        <aside className={`absolute md:relative z-40 h-full w-72 bg-white border-r border-gray-200 flex flex-col shrink-0 no-print transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} shadow-xl md:shadow-none`}>
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 className="font-bold text-gray-700">DPR Sections</h2>
+            <button className="md:hidden text-gray-500" onClick={() => setSidebarOpen(false)}>
+              <X size={20} />
+            </button>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded transition-colors ${
+                  activeSection === item.id 
+                    ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600' 
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="flex-1 overflow-y-auto bg-gray-100 p-4 md:p-8 flex justify-center relative">
+          <RichTextToolbar />
+
+          <div id="dpr-document" className="bg-white w-full max-w-[210mm] min-h-[297mm] p-6 md:p-[20mm] shadow-lg mb-8 mx-auto print:w-[210mm] print:p-[20mm] print:shadow-none print:m-0">
+            
+            <header className="border-b-2 border-indigo-900 pb-6 mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+              <div className="w-full md:w-3/4">
+                <EditableBlock 
+                  id="content-project-title" 
+                  tagName="h1" 
+                  className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 uppercase" 
+                  placeholder="[PROJECT TITLE]" 
+                  html={quizData?.projectName || 'DETAILED PROJECT REPORT'}
+                />
+                <EditableBlock 
+                  id="content-subtitle" 
+                  tagName="h2" 
+                  className="text-lg md:text-xl text-indigo-700 font-medium" 
+                  placeholder="[Project Subtitle]" 
+                  html={quizData?.businessDescription || 'For: New Venture Setup'}
+                />
+              </div>
+              <div className="w-full md:w-1/4 flex flex-row md:flex-col justify-between md:justify-end items-center md:items-end">
+                <ImageUpload 
+                  id="header-logo"
+                  currentImage={images['header-logo']}
+                  onUpload={initCrop}
+                  onDelete={deleteImage}
+                  className="w-20 h-20"
+                  placeholderText="[Logo]"
+                />
+                <EditableBlock 
+                  id="content-date" 
+                  tagName="p" 
+                  className="text-sm text-gray-500 mt-2 text-right" 
+                  html={new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                />
+              </div>
+            </header>
+
+            <section id="sec-executive" className="mb-8 scroll-mt-20">
+              <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">1. Executive Summary</h3>
+              <EditableBlock 
+                id="content-executive-summary" 
+                className="prose max-w-none text-justify text-gray-700" 
+                placeholder="[AI is generating summary...]"
+                html={sectionContents.executiveSummary.content}
+              />
+            </section>
+
+             <section id="sec-intro" className="mb-8 scroll-mt-20">
+                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">2. Project Introduction</h3>
+                <EditableBlock 
+                    id="content-project-intro" 
+                    className="prose max-w-none text-gray-700" 
+                    placeholder="[AI is generating introduction...]"
+                    html={sectionContents.projectIntroduction.content}
+                />
+            </section>
+
+             <section id="sec-promoter" className="mb-8 scroll-mt-20">
+                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">3. Promoter Details</h3>
+                <div className="flex flex-col md:flex-row gap-4">
+                    <div className="w-full md:w-32 shrink-0">
+                        <ImageUpload 
+                            id="promoter-img"
+                            currentImage={images['promoter-img']}
+                            onUpload={initCrop}
+                            onDelete={deleteImage}
+                            className="w-full h-48 md:h-32"
+                            placeholderIcon={<User size={32} />}
+                            placeholderText="Upload Photo"
+                        />
+                    </div>
+                    <EditableBlock 
+                        id="content-promoter" 
+                        className="flex-1 prose max-w-none text-gray-700" 
+                        placeholder="[AI is generating promoter details...]"
+                        html={sectionContents.promoterDetails.content}
+                    />
+                </div>
+            </section>
+
+            {dprSectionConfig.slice(3, -1).map(section => (
+                 <section key={section.key} id={`sec-${section.key.toLowerCase()}`} className="mb-8 scroll-mt-20">
+                    <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">{dprSectionConfig.indexOf(section) + 1}. {section.title}</h3>
+                    {sectionContents[section.key]?.status === 'loading' ? (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Generating...</span>
+                        </div>
+                    ) : (
+                        <EditableBlock 
+                            id={`content-${section.key}`}
+                            className="prose max-w-none text-gray-700"
+                            placeholder={`[AI is generating ${section.title.toLowerCase()}...]`}
+                            html={sectionContents[section.key]?.content || ''}
+                        />
+                    )}
+                </section>
+            ))}
+            
+            <section id="sec-annexure" className="mb-8 scroll-mt-20">
+              <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">13. Annexures</h3>
+              <div className="border-2 border-dashed border-gray-300 p-6 rounded text-center text-gray-400 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
+                Drop supporting documents here
+              </div>
+            </section>
+
+          </div>
+        </main>
       </div>
-    </>
+
+      {cropperState.isOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black bg-opacity-80 flex items-center justify-center p-4">
+          <div className="bg-white p-4 rounded shadow-lg max-w-lg w-full">
+            <h3 className="font-bold text-lg mb-4">Crop Image</h3>
+            <div className="h-64 bg-gray-200 mb-4 overflow-hidden relative">
+               <img ref={cropperImageRef} src={cropperState.imageSrc || ''} alt="To Crop" className="max-w-full block" />
+            </div>
+            <div className="flex justify-between">
+              <div className="flex gap-2">
+                 <Button variant="ghost" size="icon" onClick={() => rotateCrop(-90)}><RotateCcw size={16}/></Button>
+                 <Button variant="ghost" size="icon" onClick={() => rotateCrop(90)}><RotateCw size={16}/></Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={closeCrop}>Cancel</Button>
+                <Button onClick={saveCrop}>Save</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          @page { size: A4; margin: 0; }
+          body { background: white; height: auto; overflow: visible; }
+          .no-print { display: none !important; }
+          #dpr-document { 
+             box-shadow: none !important; margin: 0 !important; width: 210mm !important; max-width: 210mm !important; padding: 20mm !important; 
+          }
+          canvas { max-width: 100% !important; }
+        }
+      `}</style>
+    </div>
   );
 };
 
-export default DprApp;
+
+export default function DPRReportPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <DPRReportContent />
+        </Suspense>
+    )
+}
