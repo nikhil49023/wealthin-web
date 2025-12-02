@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/context/auth-provider';
@@ -5,6 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useEffect } from 'react';
+import { generateDprSectionAction } from '@/app/actions';
+import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 
 const dprWizardHtml = `
 <!DOCTYPE html>
@@ -12,7 +16,7 @@ const dprWizardHtml = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wealthin DPR Wizard - MSME Loan Ready</title>
+    <title>Wealthin - DPR Generator Pro</title>
     <style>
         :root {
             --primary: #1a7f7e;
@@ -1151,7 +1155,7 @@ const dprWizardHtml = `
         generateBtn.addEventListener('click', () => generateDPR());
 
         function validateStep(stepNum) {
-            const step = document.getElementById(`step${stepNum}`);
+            const step = document.getElementById(\`step\${stepNum}\`);
             const inputs = step.querySelectorAll('input[required], textarea[required], select[required]');
             let isValid = true;
 
@@ -1188,7 +1192,7 @@ const dprWizardHtml = `
 
         function showStep(stepNum) {
             document.querySelectorAll('.quiz-step').forEach(step => step.style.display = 'none');
-            const currentStepEl = document.getElementById(`step${stepNum}`);
+            const currentStepEl = document.getElementById(\`step\${stepNum}\`);
             if(currentStepEl) currentStepEl.style.display = 'block';
 
             state.currentStep = stepNum;
@@ -1202,7 +1206,7 @@ const dprWizardHtml = `
             const progressPercent = (state.currentStep / state.totalSteps) * 100;
             document.getElementById('progressBar').style.width = progressPercent + '%';
             document.getElementById('stepCount').textContent = state.currentStep;
-            document.getElementById('progressText').textContent = `Step ${state.currentStep} of ${state.totalSteps}`;
+            document.getElementById('progressText').textContent = \`Step \${state.currentStep} of \${state.totalSteps}\`;
 
             const titles = [
                 'Project Information',
@@ -1214,9 +1218,11 @@ const dprWizardHtml = `
                 'Risk Assessment',
                 'Project Images'
             ];
-
-            const currentTitleEl = document.getElementById('quizTitle');
-            if (currentTitleEl) currentTitleEl.textContent = titles[state.currentStep - 1];
+            
+            const quizTitleEl = document.getElementById('quizTitle');
+            if (quizTitleEl) {
+              quizTitleEl.textContent = titles[state.currentStep - 1];
+            }
         }
 
         function updateButtons() {
@@ -1226,7 +1232,7 @@ const dprWizardHtml = `
         }
 
         function saveStepData(stepNum) {
-            const step = document.getElementById(`step${stepNum}`);
+            const step = document.getElementById(\`step\${stepNum}\`);
             const inputs = step.querySelectorAll('input, textarea, select');
 
             inputs.forEach(input => {
@@ -1234,7 +1240,7 @@ const dprWizardHtml = `
                     state.formData[input.name] = input.value;
                 }
             });
-            console.log('Step ' + stepNum + ' data saved:', state.formData);
+            console.log(\`Step \${stepNum} data saved:\`, state.formData);
         }
 
         // ========================================
@@ -1258,7 +1264,6 @@ const dprWizardHtml = `
                             card.innerHTML = '';
                             card.appendChild(img);
                             card.style.backgroundImage = 'none';
-                            // Here you would upload the file and store the URL
                         };
                         reader.readAsDataURL(file);
                     }
@@ -1272,17 +1277,16 @@ const dprWizardHtml = `
         function generateDPR() {
             saveStepData(state.totalSteps);
 
-            // In a real app, this would call the backend AI service
             console.log('Generating DPR with data:', state.formData);
             
             // Mock AI Response
             const dprContent = {
-                executiveSummary: `This DPR outlines the establishment of ${state.formData.projectName}, a ${state.formData.projectCategory} enterprise in ${state.formData.city}, ${state.formData.state}. With a total project cost of ₹${state.formData.totalProjectCost} and promoter contribution of ₹${state.formData.promoterContribution}, the venture projects a first-year revenue of ₹${state.formData.annualRevenue}.`,
-                financialHighlights: `Projected Profit Margin: ${state.formData.profitMargin}%. Payback Period: ${state.formData.paybackPeriod} months. DSCR: ${state.formData.dscr}.`,
+                executiveSummary: \`This DPR outlines the establishment of \${state.formData.projectName}, a \${state.formData.projectCategory} enterprise in \${state.formData.city}, \${state.formData.state}. With a total project cost of ₹\${state.formData.totalProjectCost} and promoter contribution of ₹\${state.formData.promoterContribution}, the venture projects a first-year revenue of ₹\${state.formData.annualRevenue}.\`,
+                financialHighlights: \`Projected Profit Margin: \${state.formData.profitMargin}%. Payback Period: \${state.formData.paybackPeriod} months. DSCR: \${state.formData.dscr}.\`,
                 projectDescription: state.formData.projectDescription,
-                location: `${state.formData.city}, ${state.formData.state}`,
-                promoterBackground: `The project is led by ${state.formData.promoterName}, aged ${state.formData.promoterAge}, with ${state.formData.promoterExperience} years of relevant experience.`,
-                technicalDetails: `The project will utilize modern technology and equipment suitable for the ${state.formData.projectCategory} industry.`,
+                location: \`\${state.formData.city}, \${state.formData.state}\`,
+                promoterBackground: \`The project is led by \${state.formData.promoterName}, aged \${state.formData.promoterAge}, with \${state.formData.promoterExperience} years of relevant experience.\`,
+                technicalDetails: \`The project will utilize modern technology and equipment suitable for the \${state.formData.projectCategory} industry.\`,
                 marketAnalysis: state.formData.targetMarket,
                 competitiveAdvantage: state.formData.competitiveAdvantage,
             };
@@ -1304,8 +1308,6 @@ const dprWizardHtml = `
 
             document.querySelector('#market-analysis .edit-field-content').innerHTML = dprContent.marketAnalysis;
             document.querySelectorAll('#market-analysis .edit-field-content')[1].innerHTML = dprContent.competitiveAdvantage;
-            
-            // ... and so on for other sections
         }
 
         function showDPREditor() {
@@ -1329,7 +1331,6 @@ const dprWizardHtml = `
             });
         });
         
-        // ... Other functions for table management, download, etc.
         function downloadDPR() { alert('Download functionality to be implemented.'); }
         function previewDPR() { alert('Preview functionality to be implemented.'); }
         function addTable() { alert('Add table functionality to be implemented.'); }
@@ -1343,4 +1344,3 @@ const dprWizardHtml = `
     </script>
 </body>
 </html>
-Please replace the old wizard with this new one and update the logic accordingly. I want this to be a primary feature of the application.
