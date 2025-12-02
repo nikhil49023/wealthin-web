@@ -17,20 +17,20 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
-import type { DprQuizData } from '@/ai/schemas/dpr';
+import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 import Link from 'next/link';
 
 export default function DPREditorPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [quizData, setQuizData] = useState<DprQuizData | null>(null);
+  const [analysisData, setAnalysisData] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedData = localStorage.getItem('dprQuizData');
+    const storedData = localStorage.getItem('dprAnalysis');
     if (storedData) {
       try {
-        setQuizData(JSON.parse(storedData));
+        setAnalysisData(JSON.parse(storedData));
       } catch (e) {
         toast({
           variant: 'destructive',
@@ -43,7 +43,7 @@ export default function DPREditorPage() {
       toast({
         variant: 'destructive',
         title: 'No Data Found',
-        description: 'Please complete the DPR quiz first.',
+        description: 'Please analyze an idea first.',
       });
       router.push('/brainstorm');
     }
@@ -51,11 +51,11 @@ export default function DPREditorPage() {
   }, [router, toast]);
   
   const handleStartGeneration = () => {
-      // The actual generation now happens on the report page
+      // The generation now happens on the report page, which reads from localStorage
       router.push('/dpr-report');
   }
 
-  if (isLoading || !quizData) {
+  if (isLoading || !analysisData) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -76,15 +76,15 @@ export default function DPREditorPage() {
                 <div className="mx-auto bg-green-100 h-16 w-16 rounded-full flex items-center justify-center border-4 border-green-200">
                     <CheckCircle className="h-8 w-8 text-green-600"/>
                 </div>
-                <CardTitle className="mt-4 text-2xl">Quiz Completed!</CardTitle>
+                <CardTitle className="mt-4 text-2xl">Analysis Complete!</CardTitle>
                 <CardDescription>
-                    All necessary data for your Detailed Project Report has been collected.
+                    All necessary data for your Detailed Project Report has been collected from the AI analysis.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
                     <p className="text-muted-foreground">Project Name:</p>
-                    <p className="font-semibold text-lg">{quizData.projectName}</p>
+                    <p className="font-semibold text-lg">{analysisData.title}</p>
                 </div>
                 <p className="text-muted-foreground max-w-sm mx-auto">
                     You can now proceed to generate the full, formatted DPR document with our AI. This may take a minute.

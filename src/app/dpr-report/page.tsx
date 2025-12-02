@@ -3,19 +3,19 @@
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { 
-  Bold, Italic, List, Heading3, Printer, Wand2, 
+  Bold, Italic, List, Printer, Wand2, 
   Menu, X, Upload, ArrowLeft,
   FileText, Building, User, Briefcase, TrendingUp, MapPin, 
   Settings, Calendar, DollarSign, ShieldAlert, Gavel, AlertTriangle, Paperclip,
   RotateCcw, RotateCw, Loader2
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
 import { dprSectionConfig } from '@/lib/dpr-config';
 import type { DprQuizData } from '@/ai/schemas/dpr';
 import { generateDprSectionAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FinancialProjectionsBarChart, ProjectCostPieChart } from '@/components/wealthin/dpr-charts';
+import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
 
 
 // --- External Libraries (Simulated Imports for Single File) ---
@@ -154,7 +154,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ id, currentImage, onUpload, o
 
 function DPRReportContent() {
   const { toast } = useToast();
-  const [quizData, setQuizData] = useState<DprQuizData | null>(null);
+  // This state will hold the mapped data from idea analysis
+  const [reportInput, setReportInput] = useState<any>(null);
 
   const initialContentState = dprSectionConfig.reduce((acc, section) => {
     acc[section.key] = { content: `<p>Loading content for ${section.title}...</p>`, status: 'loading' };
@@ -165,7 +166,7 @@ function DPRReportContent() {
 
   // --- State ---
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('sec-executive');
+  const [activeSection, setActiveSection] = useState('sec-executiveSummary');
   
   const [images, setImages] = useState<ImageState>({});
   
@@ -173,25 +174,37 @@ function DPRReportContent() {
   const cropperInstance = useRef<any>(null);
   const cropperImageRef = useRef<HTMLImageElement>(null);
 
+  // Map Idea Analysis to DprQuizData structure
   useEffect(() => {
-    const storedData = localStorage.getItem('dprQuizData');
-    if (storedData) {
+    const storedAnalysis = localStorage.getItem('dprAnalysis');
+    if (storedAnalysis) {
         try {
-            setQuizData(JSON.parse(storedData));
+            const analysis: GenerateInvestmentIdeaAnalysisOutput = JSON.parse(storedAnalysis);
+            // Map the analysis data to the structure the DPR generation expects.
+            // This acts as our "quiz data".
+            const mappedData = {
+                projectName: analysis.title,
+                businessDescription: analysis.summary,
+                targetMarket: analysis.targetAudience,
+                // Pass the whole analysis object to have access to all fields in prompts
+                fullAnalysis: analysis,
+            };
+            setReportInput(mappedData);
         } catch(e) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load project data.'});
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load project analysis data.'});
         }
     }
   }, [toast]);
 
+  // Generate sections sequentially
   useEffect(() => {
-    if (!quizData) return;
+    if (!reportInput) return;
 
     const generateAllSections = async () => {
       for (const section of dprSectionConfig) {
         try {
           const result = await generateDprSectionAction({
-            idea: quizData,
+            idea: reportInput, // Use the mapped data
             section: section.key,
             basePrompt: section.prompt,
           });
@@ -215,7 +228,7 @@ function DPRReportContent() {
     };
 
     generateAllSections();
-  }, [quizData]);
+  }, [reportInput]);
 
 
   // Initialize Cropper
@@ -276,21 +289,12 @@ function DPRReportContent() {
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
-  const navItems = [
-    { id: 'sec-executiveSummary', icon: <FileText size={18} />, label: 'Executive Summary' },
-    { id: 'sec-projectIntroduction', icon: <Building size={18} />, label: 'Project Introduction' },
-    { id: 'sec-promoterDetails', icon: <User size={18} />, label: 'Promoter Details' },
-    { id: 'sec-businessModel', icon: <Briefcase size={18} />, label: 'Business Model' },
-    { id: 'sec-marketAnalysis', icon: <TrendingUp size={18} />, label: 'Market Analysis' },
-    { id: 'sec-locationAndSite', icon: <MapPin size={18} />, label: 'Location & Site' },
-    { id: 'sec-technicalFeasibility', icon: <Settings size={18} />, label: 'Technical Feasibility' },
-    { id: 'sec-implementationSchedule', icon: <Calendar size={18} />, label: 'Implementation Schedule' },
-    { id: 'sec-financialProjections', icon: <DollarSign size={18} />, label: 'Financial Projections' },
-    { id: 'sec-swotAnalysis', icon: <ShieldAlert size={18} />, label: 'SWOT Analysis' },
-    { id: 'sec-regulatoryCompliance', icon: <Gavel size={18} />, label: 'Regulatory Compliance' },
-    { id: 'sec-riskAssessment', icon: <AlertTriangle size={18} />, label: 'Risk Assessment' },
-    { id: 'sec-annexures', icon: <Paperclip size={18} />, label: 'Annexures' },
-  ];
+  const navItems = dprSectionConfig.map(section => ({
+      id: `sec-${section.key}`,
+      icon: React.createElement(section.icon, { size: 18 }),
+      label: section.title,
+  }));
+  
 
   const financialData = sectionContents.financialProjections?.content;
 
@@ -361,14 +365,14 @@ function DPRReportContent() {
                   tagName="h1" 
                   className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 uppercase" 
                   placeholder="[PROJECT TITLE]" 
-                  html={quizData?.projectName || 'DETAILED PROJECT REPORT'}
+                  html={reportInput?.projectName || 'DETAILED PROJECT REPORT'}
                 />
                 <EditableBlock 
                   id="content-subtitle" 
                   tagName="h2" 
                   className="text-lg md:text-xl text-indigo-700 font-medium" 
                   placeholder="[Project Subtitle]" 
-                  html={quizData?.businessDescription || 'For: New Venture Setup'}
+                  html={reportInput?.businessDescription || 'For: New Venture Setup'}
                 />
               </div>
               <div className="w-full md:w-1/4 flex flex-row md:flex-col justify-between md:justify-end items-center md:items-end">
