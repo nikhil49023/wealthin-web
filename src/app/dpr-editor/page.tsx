@@ -90,11 +90,36 @@ export default function DPREditorPage() {
             }
         }
         
-        // Store the final generated content
-        localStorage.setItem('dprGeneratedContent', JSON.stringify(sectionsContent));
+        setGenerationStatus('Finalizing report...');
 
-        // Navigate to the final report page
-        router.push('/dpr-report');
+        // Call the API to get the final HTML
+        const response = await fetch('/api/generate-dpr-html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sections: sectionsContent, quizData }),
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.message || 'Failed to generate final report HTML.');
+        }
+
+        const html = await response.text();
+
+        // Open the HTML in a new tab
+        const newTab = window.open();
+        if (newTab) {
+            newTab.document.open();
+            newTab.document.write(html);
+            newTab.document.close();
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Could not open new tab',
+                description: 'Please disable your pop-up blocker and try again.',
+            });
+        }
+
 
     } catch (err: any) {
         setError(err.message);
