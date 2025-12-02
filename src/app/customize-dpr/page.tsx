@@ -53,7 +53,7 @@ function CustomizeDPRContent() {
     
     setIsNavigating(true);
     // Navigate to the new wizard page
-    router.push(`/dpr-wizard`);
+    router.push(`/dpr-editor`);
   };
   
   if (error) {
