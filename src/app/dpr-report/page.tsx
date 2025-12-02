@@ -28,12 +28,6 @@ declare global {
 
 // --- Types & Interfaces ---
 
-interface FinancialRecord {
-  year: string;
-  revenue: number;
-  expense: number;
-}
-
 interface ImageState {
   [key: string]: string; // id -> base64/url
 }
@@ -283,19 +277,19 @@ function DPRReportContent() {
   };
 
   const navItems = [
-    { id: 'sec-executive', icon: <FileText size={18} />, label: 'Executive Summary' },
-    { id: 'sec-intro', icon: <Building size={18} />, label: 'Project Introduction' },
-    { id: 'sec-promoter', icon: <User size={18} />, label: 'Promoter Details' },
-    { id: 'sec-business', icon: <Briefcase size={18} />, label: 'Business Model' },
-    { id: 'sec-market', icon: <TrendingUp size={18} />, label: 'Market Analysis' },
-    { id: 'sec-location', icon: <MapPin size={18} />, label: 'Location & Site' },
-    { id: 'sec-tech', icon: <Settings size={18} />, label: 'Technical Feasibility' },
-    { id: 'sec-schedule', icon: <Calendar size={18} />, label: 'Implementation Schedule' },
-    { id: 'sec-finance', icon: <DollarSign size={18} />, label: 'Financial Projections' },
-    { id: 'sec-swot', icon: <ShieldAlert size={18} />, label: 'SWOT Analysis' },
-    { id: 'sec-compliance', icon: <Gavel size={18} />, label: 'Regulatory Compliance' },
-    { id: 'sec-risk', icon: <AlertTriangle size={18} />, label: 'Risk Assessment' },
-    { id: 'sec-annexure', icon: <Paperclip size={18} />, label: 'Annexures' },
+    { id: 'sec-executiveSummary', icon: <FileText size={18} />, label: 'Executive Summary' },
+    { id: 'sec-projectIntroduction', icon: <Building size={18} />, label: 'Project Introduction' },
+    { id: 'sec-promoterDetails', icon: <User size={18} />, label: 'Promoter Details' },
+    { id: 'sec-businessModel', icon: <Briefcase size={18} />, label: 'Business Model' },
+    { id: 'sec-marketAnalysis', icon: <TrendingUp size={18} />, label: 'Market Analysis' },
+    { id: 'sec-locationAndSite', icon: <MapPin size={18} />, label: 'Location & Site' },
+    { id: 'sec-technicalFeasibility', icon: <Settings size={18} />, label: 'Technical Feasibility' },
+    { id: 'sec-implementationSchedule', icon: <Calendar size={18} />, label: 'Implementation Schedule' },
+    { id: 'sec-financialProjections', icon: <DollarSign size={18} />, label: 'Financial Projections' },
+    { id: 'sec-swotAnalysis', icon: <ShieldAlert size={18} />, label: 'SWOT Analysis' },
+    { id: 'sec-regulatoryCompliance', icon: <Gavel size={18} />, label: 'Regulatory Compliance' },
+    { id: 'sec-riskAssessment', icon: <AlertTriangle size={18} />, label: 'Risk Assessment' },
+    { id: 'sec-annexures', icon: <Paperclip size={18} />, label: 'Annexures' },
   ];
 
   const financialData = sectionContents.financialProjections?.content;

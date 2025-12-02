@@ -42,11 +42,11 @@ const formatCurrencyForChart = (value: number) => {
 };
 
 const COLORS = [
-  "hsl(259, 39%, 33%)", // primary: Indigo Night
-  "hsl(0, 100%, 66%)",  // accent: Electric Coral
-  "hsl(175, 80%, 40%)", // A custom teal
-  "hsl(330, 70%, 55%)", // A vibrant pink
-  "hsl(30, 90%, 60%)",  // A warm orange
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
   '#82ca9d',
   '#ffc658',
 ];
@@ -82,11 +82,11 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 // --- Pie Chart for Project Cost Breakdown ---
 export function ProjectCostPieChart({ data }: { data: PieChartData[] }) {
   if (!data || data.length === 0) {
-    return <p>No cost breakdown data available.</p>;
+    return <p className="text-sm text-muted-foreground text-center py-10">No cost breakdown data available.</p>;
   }
 
   return (
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={250}>
           <PieChart>
             <Tooltip
               formatter={(value: number) =>
@@ -120,7 +120,7 @@ export function ProjectCostPieChart({ data }: { data: PieChartData[] }) {
                 />
               ))}
             </Pie>
-            <Legend />
+            <Legend wrapperStyle={{fontSize: "12px"}}/>
           </PieChart>
         </ResponsiveContainer>
   );
@@ -133,13 +133,13 @@ export function FinancialProjectionsBarChart({
   data: BarChartData[];
 }) {
   if (!data || data.length === 0) {
-    return <p>No financial projection data available.</p>;
+    return <p className="text-sm text-muted-foreground text-center py-10">No financial projection data available.</p>;
   }
 
   return (
-    <ResponsiveContainer width="100%" height={350}>
+    <ResponsiveContainer width="100%" height={250}>
       <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
         <XAxis
           dataKey="year"
           stroke="hsl(var(--muted-foreground))"
@@ -167,17 +167,17 @@ export function FinancialProjectionsBarChart({
             borderColor: 'hsl(var(--border))',
             borderRadius: 'var(--radius)',
           }}
-          cursor={{ fill: 'hsl(var(--accent))' }}
+          cursor={{ fill: 'hsl(var(--accent))', opacity: 0.1 }}
         />
-        <Legend />
+        <Legend wrapperStyle={{fontSize: "12px"}} />
         <Bar
           dataKey="sales"
-          fill={COLORS[0]}
+          fill="hsl(var(--chart-1))"
           radius={[4, 4, 0, 0]}
         />
         <Bar
           dataKey="profit"
-          fill={COLORS[1]}
+          fill="hsl(var(--chart-2))"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>
