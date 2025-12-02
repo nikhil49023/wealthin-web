@@ -84,7 +84,7 @@ function CustomizeDPRContent() {
         <div className="text-center">
             <h1 className="text-3xl font-bold">Launch the DPR Wizard</h1>
             <p className="text-muted-foreground mt-2">
-            The wizard will now generate your report section by section.
+            The wizard will guide you through a few questions to gather the necessary data for your report.
             </p>
         </div>
         
@@ -95,8 +95,8 @@ function CustomizeDPRContent() {
                     onClick={handleNavigateToReport}
                 >
                     <Banknote className="h-12 w-12 text-primary" />
-                    <h3 className="font-semibold text-lg">Generate DPR</h3>
-                    <p className="text-xs text-muted-foreground">Start the automated AI generation process for your report.</p>
+                    <h3 className="font-semibold text-lg">Start DPR Quiz</h3>
+                    <p className="text-xs text-muted-foreground">Answer a few questions to automatically generate your report.</p>
                 </Card>
                  <Card 
                     className="p-6 text-center cursor-not-allowed bg-muted/50"

@@ -185,50 +185,14 @@ export default function DPREditorPage() {
   };
 
   const handleGenerateDpr = async () => {
-    setView('loading');
-    const generatedContent: { [key: string]: any } = {};
-
-    try {
-      for (let i = 0; i < dprSectionConfig.length; i++) {
-        const section = dprSectionConfig[i];
-        setGenerationStatus(`Generating ${section.title}...`);
-        
-        const result = await generateDprSectionAction({
-            idea: formData,
-            section: section.key,
-            basePrompt: section.prompt,
-        });
-
-        if (result.success && result.data) {
-            generatedContent[section.key] = result.data.content || result.data;
-            setGenerationProgress(((i + 1) / dprSectionConfig.length) * 100);
-        } else {
-            throw new Error(result.error || `Failed to generate section: ${section.title}`);
-        }
-      }
-
-      // Store the generated DPR in local storage
-      localStorage.setItem('generatedDpr', JSON.stringify(generatedContent));
-      // Store the base idea for refinement context
-      localStorage.setItem('dprAnalysis', JSON.stringify({ title: formData.projectName, summary: formData.businessDescription }));
-      setGeneratedDpr(generatedContent);
-
-      toast({
-        title: 'DPR Generated Successfully!',
-        description: 'Redirecting you to the report editor...',
-      });
-      
-      setView('editor');
-
-    } catch (e: any) {
-      console.error('DPR Generation Error:', e);
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: e.message,
-      });
-      setView('quiz'); // Go back to quiz on failure
-    }
+    // Store the quiz data in local storage
+    localStorage.setItem('dprQuizData', JSON.stringify(formData));
+    
+    // Clear any previously generated DPR from storage to ensure a fresh start
+    localStorage.removeItem('generatedDpr');
+    
+    // Redirect to the new report page which will handle the generation
+    router.push('/dpr-report');
   };
 
   const renderQuizStep = () => {
@@ -351,17 +315,6 @@ export default function DPREditorPage() {
     }),
   };
 
-  if (view === 'loading') {
-    return (
-      <div className="flex flex-col justify-center items-center h-full text-center py-20">
-        <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
-        <h2 className="text-2xl font-semibold">Generating Your DPR...</h2>
-        <p className="text-muted-foreground mt-2 max-w-md">{generationStatus}</p>
-        <Progress value={generationProgress} className="w-full max-w-sm mt-4" />
-      </div>
-    );
-  }
-
   const Icon = quizSteps[currentStep].icon;
 
   return (
@@ -402,7 +355,7 @@ export default function DPREditorPage() {
             </Button>
           ) : (
             <Button onClick={handleGenerateDpr}>
-              <Check className="mr-2" /> Generate DPR
+              <Check className="mr-2" /> Start Generation
             </Button>
           )}
         </CardFooter>
