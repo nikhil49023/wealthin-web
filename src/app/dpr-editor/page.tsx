@@ -255,7 +255,7 @@ function DPREditorComponent() {
             )}
             {![0, 5].includes(i) && (
               <p className="text-sm text-muted-foreground">
-                For brevity, only some fields are shown. More fields will be added based on quiz logic.
+                More fields will be added based on quiz logic.
               </p>
             )}
           </CardContent>
