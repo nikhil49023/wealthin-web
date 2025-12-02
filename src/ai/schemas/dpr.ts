@@ -67,3 +67,19 @@ export const GenerateDprOutputSchema = z.object({
   annexures: z.string().describe('Must be an HTML string.'),
 });
 export type GenerateDprOutput = z.infer<typeof GenerateDprOutputSchema>;
+
+// Input for generating a single section of the DPR
+export const GenerateDprSectionInputSchema = z.object({
+    idea: z.any().describe("The business idea data, usually an object conforming to DprQuizData."),
+    section: z.string().describe("The specific section key to generate."),
+    basePrompt: z.string().describe("The detailed base prompt for the AI to generate the content for this specific section."),
+    existingContent: z.string().optional().describe("The existing content of the section to be refined."),
+    refinementPrompt: z.string().optional().describe("The user's instruction on how to refine the content."),
+});
+export type GenerateDprSectionInput = z.infer<typeof GenerateDprSectionInputSchema>;
+
+// Output for a single generated section
+export const GenerateDprSectionOutputSchema = z.object({
+    content: z.any().describe("The generated content for the section. Can be a string (HTML) or a JSON object for financial projections.")
+});
+export type GenerateDprSectionOutput = z.infer<typeof GenerateDprSectionOutputSchema>;

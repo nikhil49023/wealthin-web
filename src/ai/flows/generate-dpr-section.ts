@@ -1,8 +1,9 @@
+
 'use server';
 
 import catalystService from '@/services/catalyst';
 import type { GenerateDprSectionInput, GenerateDprSectionOutput } from '@/ai/schemas/dpr';
-import { GenerateDprOutputSchema, FinancialProjectionsSchema } from '@/ai/schemas/dpr';
+import { FinancialProjectionsSchema } from '@/ai/schemas/dpr';
 import { cleanAndParseJSON } from '@/lib/cleanJson';
 
 

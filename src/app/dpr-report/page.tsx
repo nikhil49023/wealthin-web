@@ -79,13 +79,20 @@ function DPRReportContent() {
       
       const ideaAnalysis = JSON.parse(localStorage.getItem('dprAnalysis') || '{}');
       const existingContent = dprData[activeSection];
+      
+      // Find the base prompt from the config for the active section
+      const sectionConf = dprSectionConfig.find(s => s.key === activeSection);
+      if (!sectionConf) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Could not find configuration for this section.'});
+          setIsRefining(false);
+          return;
+      }
 
       try {
           const result = await generateDprSectionAction({
               idea: ideaAnalysis,
-              promoterName: userProfile.displayName || "Entrepreneur",
               section: activeSection,
-              basePrompt: "Refine the provided content based on the user's instruction.", // Generic prompt for refinement
+              basePrompt: sectionConf.prompt, // Pass the correct, specific prompt
               existingContent: existingContent,
               refinementPrompt: refinementPrompt
           });
@@ -301,5 +308,3 @@ export default function DPRReportPage() {
     </Suspense>
   );
 }
-
-    
