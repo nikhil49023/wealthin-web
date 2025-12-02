@@ -1,3 +1,4 @@
+
 'use server';
 
 import catalystService from '@/services/catalyst';
@@ -8,18 +9,7 @@ import type {
 import {
   GenerateDprOutputSchema
 } from '@/ai/schemas/dpr';
-
-function cleanAndParseJSON(text: string) {
-  // Attempt to remove markdown code blocks
-  const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  try {
-    return JSON.parse(cleaned);
-  } catch (e) {
-    console.error("Failed to parse cleaned JSON:", e);
-    console.error("Original text:", text);
-    throw new Error("AI returned malformed JSON.");
-  }
-}
+import { cleanAndParseJSON } from '@/lib/cleanJson';
 
 
 export async function generateDpr(
@@ -27,12 +17,13 @@ export async function generateDpr(
 ): Promise < GenerateDprOutput > {
 
   const systemPrompt = `You are an expert consultant hired to write a bank-ready Detailed Project Report (DPR) for an MSME in India.
-You will be given a JSON object with user-provided data.
+You will be given user-provided data.
 Your response MUST be a single, valid JSON object conforming to the output schema. Do NOT include any other text, markdown, or explanations.
 All financial figures should be in Indian Rupees (INR).
 Generate detailed, professional, and well-structured content for each section.`;
-
-  const userPrompt = `
+  
+  // Construct the prompt in the format expected by the chat model
+  const userMessage = `
 Based on the following project data, please generate the content for a Detailed Project Report.
 
 **User-Provided Data:**
@@ -56,9 +47,25 @@ Your response must be a JSON object with the following keys and value types:
 Generate the content for each field now.
 `;
 
+  // Zoho's qwen-instruct model expects a chat-like structure.
+  const promptAsChat = {
+    "messages": [
+      {
+        "role": "user",
+        "content": userMessage,
+      },
+      {
+        "role": "assistant",
+        "content": "{\n" // Start the JSON object for the AI
+      }
+    ]
+  };
+
   try {
-    const responseText = await catalystService.generateText(userPrompt, systemPrompt);
-    const parsedJson = cleanAndParseJSON(responseText);
+    // The catalystService is expecting a string, so we stringify the chat structure.
+    const responseText = await catalystService.generateText(JSON.stringify(promptAsChat), systemPrompt);
+    // The AI might not close the first brace, so we prepend it.
+    const parsedJson = cleanAndParseJSON("{" + responseText); 
     return GenerateDprOutputSchema.parse(parsedJson);
   } catch (e: any) {
     console.error("Failed to generate or parse DPR from AI:", e.message);
