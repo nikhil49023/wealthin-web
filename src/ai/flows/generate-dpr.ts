@@ -22,7 +22,7 @@ Your response MUST be a single, valid JSON object conforming to the output schem
 All financial figures should be in Indian Rupees (INR).
 Generate detailed, professional, and well-structured content for each section.`;
   
-  // Construct the prompt in the format expected by the chat model
+  // Construct a single string prompt
   const userMessage = `
 Based on the following project data, please generate the content for a Detailed Project Report.
 
@@ -44,28 +44,12 @@ Your response must be a JSON object with the following keys and value types:
 - riskAssessment: (string) Identification of risks and mitigation strategies.
 - annexures: (string) List of attached documents.
 
-Generate the content for each field now.
+Generate the content for each field now. Start your response with {
 `;
 
-  // Zoho's qwen-instruct model expects a chat-like structure.
-  const promptAsChat = {
-    "messages": [
-      {
-        "role": "user",
-        "content": userMessage,
-      },
-      {
-        "role": "assistant",
-        "content": "{\n" // Start the JSON object for the AI
-      }
-    ]
-  };
-
   try {
-    // The catalystService is expecting a string, so we stringify the chat structure.
-    const responseText = await catalystService.generateText(JSON.stringify(promptAsChat), systemPrompt);
-    // The AI might not close the first brace, so we prepend it.
-    const parsedJson = cleanAndParseJSON("{" + responseText); 
+    const responseText = await catalystService.generateText(userMessage, systemPrompt);
+    const parsedJson = cleanAndParseJSON(responseText); 
     return GenerateDprOutputSchema.parse(parsedJson);
   } catch (e: any) {
     console.error("Failed to generate or parse DPR from AI:", e.message);
