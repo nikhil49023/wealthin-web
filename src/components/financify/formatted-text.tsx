@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -14,6 +15,25 @@ export function FormattedText({ text }: FormattedTextProps) {
     return null;
   }
 
+  // This is a special case for the DPR page where content might be stringified JSON
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === 'object' && parsed !== null) {
+        // It's a JSON object, likely the financial projections.
+        // Instead of showing the raw JSON, let's display a user-friendly summary.
+        let summaryText = "Financial data has been generated. This includes:\n";
+        if (parsed.summaryText) summaryText += "- Financial Summary\n";
+        if (parsed.projectCost) summaryText += "- Project Cost Analysis\n";
+        if (parsed.meansOfFinance) summaryText += "- Means of Finance\n";
+        if (parsed.costBreakdown) summaryText += "- Cost Breakdown Data\n";
+        if (parsed.yearlyProjections) summaryText += "- Yearly Projections Data\n";
+        
+        return <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans">{summaryText}</pre>;
+    }
+  } catch (e) {
+    // Not a JSON string, continue to normal text processing
+  }
+
   // Use dangerouslySetInnerHTML to render HTML content from the AI
   if (text.includes('<p>') || text.includes('<h3>') || text.includes('<ul>')) {
       return (
@@ -24,17 +44,6 @@ export function FormattedText({ text }: FormattedTextProps) {
       );
   }
   
-  // This is a special case for the DPR page where content might be stringified JSON
-  try {
-    const parsed = JSON.parse(text);
-    if (typeof parsed === 'object' && parsed !== null) {
-        // It's a JSON object, maybe from the financial projections. Pretty-print it.
-        return <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(parsed, null, 2)}</pre>;
-    }
-  } catch (e) {
-    // Not a JSON string, continue to normal text processing
-  }
-
 
   // Fallback for plain text with special formatting
   const urlRegex = /(https?:\/\/[^\s)]+[^\s.,!?)\]])/g;
