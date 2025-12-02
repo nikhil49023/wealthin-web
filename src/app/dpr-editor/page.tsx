@@ -1,7 +1,8 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -18,19 +19,25 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
+import type { DprQuizData } from '@/ai/schemas/dpr';
 import Link from 'next/link';
 
-export default function DPREditorPage() {
+function DPREditorContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [analysisData, setAnalysisData] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
+  const [quizData, setQuizData] = useState<DprQuizData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedData = localStorage.getItem('dprAnalysis');
-    if (storedData) {
+    const storedAnalysis = localStorage.getItem('dprAnalysis');
+    const storedQuizData = localStorage.getItem('dprQuizData');
+    
+    if (storedAnalysis && storedQuizData) {
       try {
-        setAnalysisData(JSON.parse(storedData));
+        setAnalysisData(JSON.parse(storedAnalysis));
+        setQuizData(JSON.parse(storedQuizData));
       } catch (e) {
         toast({
           variant: 'destructive',
@@ -43,7 +50,7 @@ export default function DPREditorPage() {
       toast({
         variant: 'destructive',
         title: 'No Data Found',
-        description: 'Please analyze an idea first.',
+        description: 'Please analyze an idea first and complete the DPR wizard.',
       });
       router.push('/brainstorm');
     }
@@ -51,6 +58,10 @@ export default function DPREditorPage() {
   }, [router, toast]);
   
   const handleStartGeneration = () => {
+      if (!quizData) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Quiz data is missing.'});
+          return;
+      }
       // The generation now happens on the report page, which reads from localStorage
       router.push('/dpr-report');
   }
@@ -76,9 +87,9 @@ export default function DPREditorPage() {
                 <div className="mx-auto bg-green-100 h-16 w-16 rounded-full flex items-center justify-center border-4 border-green-200">
                     <CheckCircle className="h-8 w-8 text-green-600"/>
                 </div>
-                <CardTitle className="mt-4 text-2xl">Analysis Complete!</CardTitle>
+                <CardTitle className="mt-4 text-2xl">Data Collection Complete!</CardTitle>
                 <CardDescription>
-                    All necessary data for your Detailed Project Report has been collected from the AI analysis.
+                    All necessary data for your Detailed Project Report has been collected from the wizard.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -98,3 +109,13 @@ export default function DPREditorPage() {
     </div>
   );
 }
+
+
+export default function DPREditorPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <DPREditorContent />
+        </Suspense>
+    );
+}
+

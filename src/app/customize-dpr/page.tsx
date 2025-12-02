@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
+import type { DprQuizData } from '@/ai/schemas/dpr';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-provider';
@@ -19,7 +21,7 @@ function CustomizeDPRContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   
   const [analysis, setAnalysis] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,12 +48,38 @@ function CustomizeDPRContent() {
       toast({ variant: 'destructive', description: 'No analysis data found.' });
     }
     
-  }, [searchParams, toast, user]);
+  }, [searchParams, toast]);
 
   const handleNavigateToReport = async () => {
-    if (!analysis) return;
+    if (!analysis || !userProfile) return;
     
     setIsNavigating(true);
+
+    // This is a simplified mapping. A real quiz would collect more.
+    const quizData: DprQuizData = {
+        projectName: analysis.title,
+        businessDescription: analysis.summary,
+        businessType: 'Not specified',
+        companyName: '',
+        location: 'Not specified',
+        siteDetails: 'Not specified',
+        registrationType: 'Not specified',
+        promoterName: userProfile.displayName || 'Entrepreneur',
+        education: 'Not specified',
+        experience: 'Not specified',
+        projectCost: 0,
+        loanAmount: 0,
+        revenueY1: 0,
+        profitMargin: 0,
+        targetMarket: analysis.targetAudience,
+        competitors: 'Not specified',
+        marketingStrategy: 'Not specified',
+        risks: 'Not specified',
+        mitigation: 'Not specified',
+    };
+
+    localStorage.setItem('dprQuizData', JSON.stringify(quizData));
+    
     // Navigate to the new wizard page
     router.push(`/dpr-editor`);
   };

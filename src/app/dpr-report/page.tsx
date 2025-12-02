@@ -154,8 +154,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ id, currentImage, onUpload, o
 
 function DPRReportContent() {
   const { toast } = useToast();
-  // This state will hold the mapped data from idea analysis
-  const [reportInput, setReportInput] = useState<any>(null);
+  // This state will hold the quiz data
+  const [reportInput, setReportInput] = useState<DprQuizData | null>(null);
 
   const initialContentState = dprSectionConfig.reduce((acc, section) => {
     acc[section.key] = { content: `<p>Loading content for ${section.title}...</p>`, status: 'loading' };
@@ -174,24 +174,15 @@ function DPRReportContent() {
   const cropperInstance = useRef<any>(null);
   const cropperImageRef = useRef<HTMLImageElement>(null);
 
-  // Map Idea Analysis to DprQuizData structure
+  // Get Quiz data from local storage
   useEffect(() => {
-    const storedAnalysis = localStorage.getItem('dprAnalysis');
-    if (storedAnalysis) {
+    const storedQuizData = localStorage.getItem('dprQuizData');
+    if (storedQuizData) {
         try {
-            const analysis: GenerateInvestmentIdeaAnalysisOutput = JSON.parse(storedAnalysis);
-            // Map the analysis data to the structure the DPR generation expects.
-            // This acts as our "quiz data".
-            const mappedData = {
-                projectName: analysis.title,
-                businessDescription: analysis.summary,
-                targetMarket: analysis.targetAudience,
-                // Pass the whole analysis object to have access to all fields in prompts
-                fullAnalysis: analysis,
-            };
-            setReportInput(mappedData);
+            const quizData: DprQuizData = JSON.parse(storedQuizData);
+            setReportInput(quizData);
         } catch(e) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load project analysis data.'});
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load project quiz data.'});
         }
     }
   }, [toast]);
@@ -204,7 +195,7 @@ function DPRReportContent() {
       for (const section of dprSectionConfig) {
         try {
           const result = await generateDprSectionAction({
-            idea: reportInput, // Use the mapped data
+            idea: reportInput, // Use the quiz data
             section: section.key,
             basePrompt: section.prompt,
           });
