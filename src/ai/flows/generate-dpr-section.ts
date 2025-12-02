@@ -5,7 +5,6 @@ import type { GenerateDprSectionInput, GenerateDprSectionOutput } from '@/ai/sch
 import { FinancialProjectionsSchema } from '@/ai/schemas/dpr';
 import { cleanAndParseJSON } from '@/lib/cleanJson';
 
-
 export async function generateDprSection(
   input: GenerateDprSectionInput
 ): Promise<GenerateDprSectionOutput> {
@@ -16,39 +15,18 @@ Your task is to generate the content for ONLY ONE specific section of the DPR.
 All financial figures should be in Indian Rupees (INR).
 Generate detailed, professional, and well-structured content for the section.`;
   
-  const userMessage = `
-Generate the content for the "${input.section}" section of a Detailed Project Report.
-
-Here is the overall project data:
-${JSON.stringify(input.idea)}
-
-Here are the specific instructions for the "${input.section}" section you need to generate:
----
-${input.basePrompt}
----
-
-${input.section === 'financialProjections' ? 
-`For the 'financialProjections' section, your entire response MUST be a single, valid JSON object that strictly conforms to this schema (do NOT wrap it in any other markdown or text):
-${JSON.stringify(FinancialProjectionsSchema._def.properties)}` 
-: 
-"For all other sections, the output MUST be a valid JSON object with a single key 'content' where the value is the generated HTML text using basic tags like <h3>, <p>, <ul>, <li>, <strong>. Example: { \"content\": \"<h3>My Section</h3><p>Details...</p>\" }"
-}
-
-If you are refining existing content, use the following as a base and apply the user's refinement instructions.
-Existing Content: ${input.existingContent || 'N/A'}
-Refinement Instruction: ${input.refinementPrompt || 'N/A'}
-
-Your final output must be a single, valid JSON object.
-`;
+  // Replace the placeholder with the stringified idea data
+  const finalUserMessage = input.basePrompt.replace('{{idea}}', JSON.stringify(input.idea));
 
   try {
-    const responseText = await catalystService.generateText(userMessage, systemPrompt);
+    const responseText = await catalystService.generateText(finalUserMessage, systemPrompt);
     const parsedJson = cleanAndParseJSON(responseText);
     
-    // If it's the financial section, the AI returns the object directly. We wrap it for consistency.
+    // For the financial section, the AI returns the object directly. We wrap it for consistency.
     if (input.section === 'financialProjections') {
       const validatedData = FinancialProjectionsSchema.parse(parsedJson);
-      return { content: validatedData };
+      // The component expects the full object, not nested under 'content'
+      return validatedData as any;
     }
 
     // For other sections, the AI is asked to return { "content": "..." }

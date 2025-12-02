@@ -151,6 +151,8 @@ export default function DPREditorPage() {
   
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStatus, setGenerationStatus] = useState('Starting...');
+  const [generatedDpr, setGeneratedDpr] = useState<any>(null);
+
 
   useEffect(() => {
     if (userProfile?.displayName) {
@@ -159,10 +161,10 @@ export default function DPREditorPage() {
   }, [userProfile]);
 
   useEffect(() => {
-    if (view === 'editor') {
-        router.push('/dpr-report');
+    if (view === 'editor' && generatedDpr) {
+      router.push('/dpr-report');
     }
-  }, [view, router]);
+  }, [view, router, generatedDpr]);
 
   const handleQuizChange = (field: keyof DprQuizData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -197,8 +199,8 @@ export default function DPREditorPage() {
             basePrompt: section.prompt,
         });
 
-        if (result.success && result.data.content) {
-            generatedContent[section.key] = result.data.content;
+        if (result.success && result.data) {
+            generatedContent[section.key] = result.data.content || result.data;
             setGenerationProgress(((i + 1) / dprSectionConfig.length) * 100);
         } else {
             throw new Error(result.error || `Failed to generate section: ${section.title}`);
@@ -209,6 +211,7 @@ export default function DPREditorPage() {
       localStorage.setItem('generatedDpr', JSON.stringify(generatedContent));
       // Store the base idea for refinement context
       localStorage.setItem('dprAnalysis', JSON.stringify({ title: formData.projectName, summary: formData.businessDescription }));
+      setGeneratedDpr(generatedContent);
 
       toast({
         title: 'DPR Generated Successfully!',

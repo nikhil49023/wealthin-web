@@ -90,9 +90,7 @@ function DPRReportContent() {
           const result = await generateDprSectionAction({
               idea: ideaAnalysis,
               section: activeSection,
-              basePrompt: sectionConf.prompt,
-              existingContent: existingContent,
-              refinementPrompt: refinementPrompt
+              basePrompt: `${sectionConf.prompt}\n\nRefinement Instruction: ${refinementPrompt}\n\nExisting Content: ${JSON.stringify(existingContent)}`,
           });
 
           if (result.success && result.data.content) {
@@ -286,8 +284,8 @@ function DPRReportContent() {
             {dprSectionConfig.map(section => (
                 <div key={section.key} className="mb-8 break-after-page">
                     <h2 className="text-2xl font-bold border-b-2 border-primary pb-2 mb-4">{section.title}</h2>
-                    {section.key === 'financialProjections' ? (
-                       <p>See charts and tables in appendix.</p>
+                     {section.key === 'financialProjections' && typeof dprData[section.key] === 'object' ? (
+                       <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: dprData[section.key].summaryText || 'Financial summary not available.' }} />
                     ) : (
                        <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: dprData[section.key] || '' }} />
                     )}
