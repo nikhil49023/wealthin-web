@@ -64,51 +64,45 @@ const formatIndianCurrency = (value: number) => {
 const quizSteps = [
   {
     key: 'projectInfo',
-    title: 'Project Information',
+    title: 'Project Details',
     icon: FileText,
-    fields: ['projectName', 'businessType', 'companyName', 'businessDescription'],
-  },
-  {
-    key: 'locationInfo',
-    title: 'Location & Registration',
-    icon: MapPin,
-    fields: ['location', 'siteDetails', 'registrationType'],
+    fields: ['projectName', 'businessType', 'businessDescription'],
   },
   {
     key: 'promoterInfo',
-    title: 'Promoter Details',
+    title: 'Promoter Information',
     icon: User,
     fields: ['promoterName', 'education', 'experience'],
+  },
+  {
+    key: 'marketInfo',
+    title: 'Market & Business Model',
+    icon: Building,
+    fields: ['targetMarket', 'competitors', 'marketingStrategy'],
+  },
+  {
+    key: 'technicalInfo',
+    title: 'Technical & Location',
+    icon: FlaskConical,
+    fields: ['location', 'siteDetails'],
   },
   {
     key: 'financials',
     title: 'Financial Requirements',
     icon: Banknote,
-    fields: ['projectCost', 'workingCapital', 'loanAmount', 'promoterContribution'],
+    fields: ['projectCost', 'loanAmount'],
   },
   {
     key: 'projections',
     title: 'Financial Projections',
     icon: TrendingUp,
-    fields: ['revenueY1', 'profitMargin', 'growthRate'],
-  },
-  {
-    key: 'market',
-    title: 'Market & Competition',
-    icon: Building,
-    fields: ['targetMarket', 'competitors', 'marketingStrategy'],
+    fields: ['revenueY1', 'profitMargin'],
   },
   {
     key: 'risks',
-    title: 'Risk Assessment',
+    title: 'Risks & SWOT',
     icon: Shield,
     fields: ['risks', 'mitigation'],
-  },
-  {
-    key: 'media',
-    title: 'Supporting Documents',
-    icon: Paperclip,
-    fields: ['logoUrl', 'productImageUrl'],
   },
 ];
 
@@ -147,24 +141,13 @@ export default function DPREditorPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<DprQuizData>(initialFormData);
   const [direction, setDirection] = useState(1);
-  const [view, setView] = useState<'quiz' | 'loading' | 'editor'>('quiz');
   
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStatus, setGenerationStatus] = useState('Starting...');
-  const [generatedDpr, setGeneratedDpr] = useState<any>(null);
-
-
   useEffect(() => {
     if (userProfile?.displayName) {
       setFormData(prev => ({...prev, promoterName: userProfile.displayName || ''}));
     }
   }, [userProfile]);
 
-  useEffect(() => {
-    if (view === 'editor' && generatedDpr) {
-      router.push('/dpr-report');
-    }
-  }, [view, router, generatedDpr]);
 
   const handleQuizChange = (field: keyof DprQuizData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -202,38 +185,37 @@ export default function DPREditorPage() {
       case 'projectInfo':
         return (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Tell us about your business idea.</p>
-            <Input placeholder="Project Name (e.g., Organic Farm)" value={formData.projectName} onChange={(e) => handleQuizChange('projectName', e.target.value)} />
-            <Textarea placeholder="Describe your business in one or two sentences." value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
-            <Select value={formData.businessType} onValueChange={(v) => handleQuizChange('businessType', v)}>
-                <SelectTrigger><SelectValue placeholder="Select Business Type" /></SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-                    <SelectItem value="Services">Services</SelectItem>
-                    <SelectItem value="Trading">Trading</SelectItem>
-                    <SelectItem value="Agri-business">Agri-business</SelectItem>
-                </SelectContent>
-            </Select>
-          </div>
-        );
-      case 'locationInfo':
-        return (
-          <div className="space-y-4">
-             <p className="text-sm text-muted-foreground">Where will your business operate from?</p>
-            <Input placeholder="Location (e.g., Visakhapatnam, AP)" value={formData.location} onChange={(e) => handleQuizChange('location', e.target.value)} />
-            <div className="grid grid-cols-2 gap-2">
-                <Button variant={formData.siteDetails === 'Owned' ? 'secondary': 'outline'} onClick={() => handleQuizChange('siteDetails', 'Owned')}>Owned</Button>
-                <Button variant={formData.siteDetails === 'Leased' ? 'secondary': 'outline'} onClick={() => handleQuizChange('siteDetails', 'Leased')}>Leased</Button>
-            </div>
+            <p className="text-sm text-muted-foreground">Let's start with the basics of your new venture.</p>
+            <Input placeholder="Project Title (e.g., Automated Textile Unit)" value={formData.projectName} onChange={(e) => handleQuizChange('projectName', e.target.value)} />
+            <Input placeholder="Industry/Sector (e.g., Textile Manufacturing)" value={formData.businessType} onChange={(e) => handleQuizChange('businessType', e.target.value)} />
+            <Textarea placeholder="Objective & Rationale (e.g., To establish a 500 TPA garment unit to bridge local supply gaps...)" value={formData.businessDescription} onChange={(e) => handleQuizChange('businessDescription', e.target.value)} />
           </div>
         );
       case 'promoterInfo':
          return (
           <div className="space-y-4">
-             <p className="text-sm text-muted-foreground">Tell us a bit about yourself, the entrepreneur.</p>
-            <Input placeholder="Your Full Name" value={formData.promoterName} onChange={(e) => handleQuizChange('promoterName', e.target.value)} />
-            <Input placeholder="Highest Qualification (e.g., B.Tech)" value={formData.education} onChange={(e) => handleQuizChange('education', e.target.value)} />
-            <Textarea placeholder="Your relevant experience (e.g., 5 years in marketing...)" value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
+             <p className="text-sm text-muted-foreground">Tell us about the entrepreneur(s) behind the project.</p>
+            <Input placeholder="Promoter Name(s)" value={formData.promoterName} onChange={(e) => handleQuizChange('promoterName', e.target.value)} />
+            <Input placeholder="Education & Qualification (e.g., MBA, Finance)" value={formData.education} onChange={(e) => handleQuizChange('education', e.target.value)} />
+            <Textarea placeholder="Relevant industry experience and track record..." value={formData.experience} onChange={(e) => handleQuizChange('experience', e.target.value)} />
+          </div>
+        );
+      case 'marketInfo':
+          return (
+            <div className="space-y-4">
+               <p className="text-sm text-muted-foreground">Describe your market and business model.</p>
+              <Textarea placeholder="Target Audience (e.g., Wholesale distributors, retail chains...)" value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
+              <Textarea placeholder="Value Proposition & Competitors (e.g., Better quality at lower price compared to X & Y...)" value={formData.competitors} onChange={(e) => handleQuizChange('competitors', e.target.value)} />
+              <Input placeholder="Market Trends (e.g., Market is growing at 12% CAGR...)" value={formData.marketingStrategy} onChange={(e) => handleQuizChange('marketingStrategy', e.target.value)} />
+            </div>
+          );
+      case 'technicalInfo':
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Details about the operational setup.</p>
+            <Input placeholder="Location (e.g., Industrial Park, Visakhapatnam, AP)" value={formData.location} onChange={(e) => handleQuizChange('location', e.target.value)} />
+            <Textarea placeholder="Location Advantage & Land Area (e.g., Near highway, 2 acres...)" value={formData.siteDetails} onChange={(e) => handleQuizChange('siteDetails', e.target.value)} />
+            <Input placeholder="Technology & Production Capacity (e.g., Fully automatic, 500 TPA...)" value={formData.registrationType} onChange={(e) => handleQuizChange('registrationType', e.target.value)} />
           </div>
         );
       case 'financials':
@@ -245,11 +227,11 @@ export default function DPREditorPage() {
                   <Slider value={[formData.projectCost]} onValueChange={([v]) => handleQuizChange('projectCost', v)} max={10000000} step={50000} />
               </div>
               <div>
-                  <Label>Loan Amount Required: {formatIndianCurrency(formData.loanAmount)}</Label>
+                  <Label>Bank Loan Required: {formatIndianCurrency(formData.loanAmount)}</Label>
                   <Slider value={[formData.loanAmount]} onValueChange={([v]) => handleQuizChange('loanAmount', v)} max={formData.projectCost} step={50000} />
               </div>
                <div>
-                  <Label>Your Contribution: {formatIndianCurrency(formData.projectCost - formData.loanAmount)}</Label>
+                  <Label>Promoter's Contribution: {formatIndianCurrency(formData.projectCost - formData.loanAmount)}</Label>
                    <p className="text-xs text-muted-foreground">This is automatically calculated based on the total cost and loan amount.</p>
               </div>
             </div>
@@ -266,35 +248,15 @@ export default function DPREditorPage() {
                   <Label>Expected Profit Margin: {formData.profitMargin}%</Label>
                   <Slider value={[formData.profitMargin]} onValueChange={([v]) => handleQuizChange('profitMargin', v)} max={80} step={1} />
               </div>
-            </div>
-          );
-      case 'market':
-          return (
-            <div className="space-y-4">
-               <p className="text-sm text-muted-foreground">Who are your customers and competitors?</p>
-              <Textarea placeholder="Describe your ideal customer (e.g., small businesses, urban families)." value={formData.targetMarket} onChange={(e) => handleQuizChange('targetMarket', e.target.value)} />
-              <Textarea placeholder="List 1-2 main competitors and what makes you different." value={formData.competitors} onChange={(e) => handleQuizChange('competitors', e.target.value)} />
+               <Input placeholder="Major Expenses (e.g., Raw Materials: 40%, Labor: 30%)" value={formData.workingCapital?.toString()} onChange={(e) => handleQuizChange('workingCapital', e.target.value)} />
             </div>
           );
       case 'risks':
           return (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">What are the potential challenges?</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant={formData.risks.includes('Market competition') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Market competition')}>Market Competition</Button>
-                <Button variant={formData.risks.includes('Supply chain') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Supply chain')}>Supply Chain Issues</Button>
-                <Button variant={formData.risks.includes('Regulatory changes') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Regulatory changes')}>Regulatory Changes</Button>
-                <Button variant={formData.risks.includes('Economic downturn') ? 'secondary': 'outline'} onClick={() => handleQuizChange('risks', 'Economic downturn')}>Economic Downturn</Button>
-              </div>
-              <Textarea placeholder="Describe how you will handle these risks." value={formData.mitigation} onChange={(e) => handleQuizChange('mitigation', e.target.value)} />
-            </div>
-          );
-       case 'media':
-          return (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Add links to your logo or product images (optional).</p>
-              <Input placeholder="URL for your business logo" value={formData.logoUrl} onChange={(e) => handleQuizChange('logoUrl', e.target.value)} />
-              <Input placeholder="URL for a product image" value={formData.productImageUrl} onChange={(e) => handleQuizChange('productImageUrl', e.target.value)} />
+              <p className="text-sm text-muted-foreground">Identify potential strengths, weaknesses, and risks.</p>
+              <Textarea placeholder="Strengths, Weaknesses, Opportunities, Threats (SWOT)..." value={formData.risks} onChange={(e) => handleQuizChange('risks', e.target.value)} />
+              <Textarea placeholder="Mitigation plan for the identified risks..." value={formData.mitigation} onChange={(e) => handleQuizChange('mitigation', e.target.value)} />
             </div>
           );
       default:
