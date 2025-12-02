@@ -41,3 +41,4 @@ Your output must be a valid, parsable JSON object matching the expected schema.
     throw new Error(`Failed to generate the DPR. The AI returned an unrecoverable format or an error occurred: ${e.message}`);
   }
 }
+
