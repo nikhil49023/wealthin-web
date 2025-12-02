@@ -57,12 +57,14 @@ function DPRReportContent() {
   const [visibleSectionIndex, setVisibleSectionIndex] = useState(-1);
 
   const [isRefining, setIsRefining] = useState(false);
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const [refinementPrompt, setRefinementPrompt] = useState('');
   const [showRefineDialog, setShowRefineDialog] = useState(false);
   const [isSavingFeedback, setIsSavingFeedback] = useState(false);
 
   const [cooldown, setCooldown] = useState(0);
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const allSectionsGenerated = generatingSectionIndex >= sections.length;
 
   // Load quiz data and start generation on mount
   useEffect(() => {
@@ -125,6 +127,8 @@ function DPRReportContent() {
       // And immediately start generating the NEXT section in the background
       if (generatingSectionIndex < sections.length - 1) {
           setGeneratingSectionIndex(prev => prev + 1);
+      } else {
+          setGeneratingSectionIndex(sections.length); // Mark generation as complete
       }
     }
   }, [sections, visibleSectionIndex, generatingSectionIndex]);
@@ -167,8 +171,9 @@ function DPRReportContent() {
           const result = await generateDprSectionAction({
               idea: quizData,
               section: activeSectionKey,
-              basePrompt: `${currentSection.prompt}\n\nRefinement Instruction: ${refinementPrompt}`,
+              basePrompt: currentSection.prompt, // Use the correct prompt for refinement
               existingContent: JSON.stringify(existingContent),
+              refinementPrompt: refinementPrompt,
           });
 
           if (result.success && result.data.content) {
@@ -185,6 +190,37 @@ function DPRReportContent() {
           setRefinementPrompt('');
       }
   };
+
+  const handleGenerateFinalDraft = async () => {
+    if (!quizData || !allSectionsGenerated) {
+        toast({ variant: 'destructive', title: 'Cannot Generate Draft', description: 'Please wait for all sections to be generated.' });
+        return;
+    }
+    setIsGeneratingDraft(true);
+    try {
+        const response = await fetch('/api/generate-dpr-html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sections, quizData }),
+        });
+
+        if (!response.ok) {
+            const errorResult = await response.json();
+            throw new Error(errorResult.message || 'Failed to generate final draft from server.');
+        }
+
+        const html = await response.text();
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Draft Generation Failed', description: e.message });
+    } finally {
+        setIsGeneratingDraft(false);
+    }
+  };
+
 
   const handleFeedback = async (feedback: 'good' | 'bad') => {
     setIsSavingFeedback(true);
@@ -296,9 +332,12 @@ function DPRReportContent() {
           <p className="text-muted-foreground">Review, edit, and finalize your AI-generated report.</p>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.print()}>
-                <Printer className="mr-2" /> Print / Save PDF
-            </Button>
+            {allSectionsGenerated && (
+              <Button onClick={handleGenerateFinalDraft} disabled={isGeneratingDraft}>
+                  {isGeneratingDraft ? <Loader2 className="mr-2 animate-spin" /> : <Printer className="mr-2" />}
+                  Generate Final Draft
+              </Button>
+            )}
             <Dialog open={showRefineDialog} onOpenChange={setShowRefineDialog}>
               <DialogTrigger asChild>
                   <Button>
