@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -24,6 +23,18 @@ export function FormattedText({ text }: FormattedTextProps) {
            />
       );
   }
+  
+  // This is a special case for the DPR page where content might be stringified JSON
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === 'object' && parsed !== null) {
+        // It's a JSON object, maybe from the financial projections. Pretty-print it.
+        return <pre className="text-xs whitespace-pre-wrap">{JSON.stringify(parsed, null, 2)}</pre>;
+    }
+  } catch (e) {
+    // Not a JSON string, continue to normal text processing
+  }
+
 
   // Fallback for plain text with special formatting
   const urlRegex = /(https?:\/\/[^\s)]+[^\s.,!?)\]])/g;

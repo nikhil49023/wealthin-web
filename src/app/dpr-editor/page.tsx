@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,24 +16,15 @@ import {
   CheckCircle,
   FileText,
   Loader2,
-  AlertTriangle,
 } from 'lucide-react';
 import type { DprQuizData } from '@/ai/schemas/dpr';
 import Link from 'next/link';
-import { generateDprSectionAction } from '@/app/actions';
-import { dprSectionConfig } from '@/lib/dpr-config';
-import { Progress } from '@/components/ui/progress';
 
 export default function DPREditorPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [quizData, setQuizData] = useState<DprQuizData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStatus, setGenerationStatus] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
 
   useEffect(() => {
     const storedData = localStorage.getItem('dprQuizData');
@@ -60,78 +50,10 @@ export default function DPREditorPage() {
     setIsLoading(false);
   }, [router, toast]);
   
-  const handleGenerateDpr = async () => {
-    if (!quizData) {
-        toast({ variant: 'destructive', description: 'Quiz data is missing.' });
-        return;
-    }
-    
-    setIsGenerating(true);
-    setError(null);
-    setGenerationProgress(0);
-    setGenerationStatus('Starting generation...');
-
-    const sectionsContent: { key: string; content: any }[] = [];
-    
-    try {
-        for (const [index, section] of dprSectionConfig.entries()) {
-            setGenerationStatus(`Generating: ${section.title}...`);
-            const result = await generateDprSectionAction({
-                idea: quizData,
-                section: section.key,
-                basePrompt: section.prompt,
-            });
-
-            if (result.success && result.data.content) {
-                sectionsContent.push({ key: section.key, content: result.data.content });
-                setGenerationProgress(((index + 1) / dprSectionConfig.length) * 100);
-            } else {
-                throw new Error(result.error || `Failed to generate section: ${section.title}`);
-            }
-        }
-        
-        setGenerationStatus('Finalizing report...');
-
-        // Call the API to get the final HTML
-        const response = await fetch('/api/generate-dpr-html', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sections: sectionsContent, quizData }),
-        });
-
-        if (!response.ok) {
-            const errorResult = await response.json();
-            throw new Error(errorResult.message || 'Failed to generate final report HTML.');
-        }
-
-        const html = await response.text();
-
-        // Open the HTML in a new tab
-        const newTab = window.open();
-        if (newTab) {
-            newTab.document.open();
-            newTab.document.write(html);
-            newTab.document.close();
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Could not open new tab',
-                description: 'Please disable your pop-up blocker and try again.',
-            });
-        }
-
-
-    } catch (err: any) {
-        setError(err.message);
-        toast({
-            variant: 'destructive',
-            title: 'Generation Failed',
-            description: err.message,
-        });
-    } finally {
-        setIsGenerating(false);
-    }
-  };
+  const handleStartGeneration = () => {
+      // The actual generation now happens on the report page
+      router.push('/dpr-report');
+  }
 
   if (isLoading || !quizData) {
     return (
@@ -149,58 +71,30 @@ export default function DPREditorPage() {
             Back to My Ideas
           </Link>
         </Button>
-
-        {isGenerating ? (
-            <Card>
-                <CardHeader className="text-center">
-                    <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary mb-4"/>
-                    <CardTitle>Generating Your DPR</CardTitle>
-                    <CardDescription>The AI is building your report. Please wait...</CardDescription>
-                </CardHeader>
-                <CardContent className="px-10 pb-10">
-                    <Progress value={generationProgress} className="w-full" />
-                    <p className="text-center text-sm text-muted-foreground mt-2">{generationStatus}</p>
-                </CardContent>
-            </Card>
-        ) : error ? (
-            <Card className="text-center bg-red-50 border-red-200">
-                <CardHeader>
-                    <div className="mx-auto bg-red-100 h-16 w-16 rounded-full flex items-center justify-center border-4 border-red-200">
-                        <AlertTriangle className="h-8 w-8 text-red-600"/>
-                    </div>
-                    <CardTitle className="mt-4 text-2xl text-destructive">Generation Failed</CardTitle>
-                    <CardDescription className="text-red-700">{error}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button variant="destructive" onClick={handleGenerateDpr}>Retry Generation</Button>
-                </CardContent>
-            </Card>
-        ) : (
-            <Card className="text-center">
-                <CardHeader>
-                    <div className="mx-auto bg-green-100 h-16 w-16 rounded-full flex items-center justify-center border-4 border-green-200">
-                        <CheckCircle className="h-8 w-8 text-green-600"/>
-                    </div>
-                    <CardTitle className="mt-4 text-2xl">Quiz Completed!</CardTitle>
-                    <CardDescription>
-                        All necessary data for your Detailed Project Report has been collected.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div>
-                        <p className="text-muted-foreground">Project Name:</p>
-                        <p className="font-semibold text-lg">{quizData.projectName}</p>
-                    </div>
-                    <p className="text-muted-foreground max-w-sm mx-auto">
-                        You can now proceed to generate the full, formatted DPR document with our AI.
-                    </p>
-                    <Button onClick={handleGenerateDpr} size="lg">
-                        <FileText className="mr-2"/>
-                        Generate Full DPR
-                    </Button>
-                </CardContent>
-            </Card>
-        )}
+        <Card className="text-center">
+            <CardHeader>
+                <div className="mx-auto bg-green-100 h-16 w-16 rounded-full flex items-center justify-center border-4 border-green-200">
+                    <CheckCircle className="h-8 w-8 text-green-600"/>
+                </div>
+                <CardTitle className="mt-4 text-2xl">Quiz Completed!</CardTitle>
+                <CardDescription>
+                    All necessary data for your Detailed Project Report has been collected.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div>
+                    <p className="text-muted-foreground">Project Name:</p>
+                    <p className="font-semibold text-lg">{quizData.projectName}</p>
+                </div>
+                <p className="text-muted-foreground max-w-sm mx-auto">
+                    You can now proceed to generate the full, formatted DPR document with our AI.
+                </p>
+                <Button onClick={handleStartGeneration} size="lg">
+                    <FileText className="mr-2"/>
+                    Start AI Generation
+                </Button>
+            </CardContent>
+        </Card>
     </div>
   );
 }
