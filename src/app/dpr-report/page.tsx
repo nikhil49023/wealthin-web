@@ -15,7 +15,9 @@ import { generateDprSectionAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { FinancialProjectionsBarChart, ProjectCostPieChart } from '@/components/wealthin/dpr-charts';
-import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 
 // --- External Libraries (Simulated Imports for Single File) ---
@@ -44,6 +46,13 @@ type SectionContent = {
         status: 'pending' | 'loading' | 'done' | 'error';
     };
 };
+
+type AiToolkitState = {
+    isOpen: boolean;
+    sectionKey: string | null;
+    refinementPrompt: string;
+    isRefining: boolean;
+}
 
 
 // --- Components ---
@@ -154,7 +163,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ id, currentImage, onUpload, o
 
 function DPRReportContent() {
   const { toast } = useToast();
-  // This state will hold the quiz data
   const [reportInput, setReportInput] = useState<DprQuizData | null>(null);
 
   const initialContentState = dprSectionConfig.reduce((acc, section) => {
@@ -164,7 +172,6 @@ function DPRReportContent() {
 
   const [sectionContents, setSectionContents] = useState<SectionContent>(initialContentState);
 
-  // --- State ---
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('sec-executiveSummary');
   
@@ -173,8 +180,10 @@ function DPRReportContent() {
   const [cropperState, setCropperState] = useState<CropperState>({ isOpen: false, imageSrc: null, targetId: null });
   const cropperInstance = useRef<any>(null);
   const cropperImageRef = useRef<HTMLImageElement>(null);
+  
+  const [aiToolkitState, setAiToolkitState] = useState<AiToolkitState>({ isOpen: false, sectionKey: null, refinementPrompt: '', isRefining: false });
 
-  // Get Quiz data from local storage
+
   useEffect(() => {
     const storedQuizData = localStorage.getItem('dprQuizData');
     if (storedQuizData) {
@@ -187,7 +196,6 @@ function DPRReportContent() {
     }
   }, [toast]);
 
-  // Generate sections sequentially
   useEffect(() => {
     if (!reportInput) return;
 
@@ -195,7 +203,7 @@ function DPRReportContent() {
       for (const section of dprSectionConfig) {
         try {
           const result = await generateDprSectionAction({
-            idea: reportInput, // Use the quiz data
+            idea: reportInput,
             section: section.key,
             basePrompt: section.prompt,
           });
@@ -222,7 +230,6 @@ function DPRReportContent() {
   }, [reportInput]);
 
 
-  // Initialize Cropper
   useEffect(() => {
     if (cropperState.isOpen && cropperImageRef.current && window.Cropper) {
       if (cropperInstance.current) cropperInstance.current.destroy();
@@ -280,6 +287,52 @@ function DPRReportContent() {
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
+  const openAiToolkit = () => {
+      const currentSectionKey = activeSection.replace('sec-', '');
+      setAiToolkitState({ isOpen: true, sectionKey: currentSectionKey, refinementPrompt: '', isRefining: false });
+  };
+  
+  const handleRefineContent = async () => {
+    if (!aiToolkitState.sectionKey || !aiToolkitState.refinementPrompt || !reportInput) return;
+    
+    setAiToolkitState(prev => ({ ...prev, isRefining: true }));
+    
+    try {
+        const sectionKey = aiToolkitState.sectionKey;
+        const sectionConfigItem = dprSectionConfig.find(s => s.key === sectionKey);
+        const contentElement = document.getElementById(`content-${sectionKey}`);
+
+        if (!sectionConfigItem || !contentElement) {
+            throw new Error("Could not find the section to refine.");
+        }
+
+        const result = await generateDprSectionAction({
+            idea: reportInput,
+            section: sectionKey,
+            basePrompt: sectionConfigItem.prompt, // Use the original base prompt
+            existingContent: contentElement.innerHTML,
+            refinementPrompt: aiToolkitState.refinementPrompt,
+        });
+
+        if (result.success) {
+            setSectionContents(prev => ({
+                ...prev,
+                [sectionKey]: { content: result.data.content, status: 'done' }
+            }));
+            toast({ title: "Section Refined", description: `"${sectionConfigItem.title}" has been updated.`});
+        } else {
+            throw new Error(result.error);
+        }
+
+    } catch (error: any) {
+        console.error("AI Toolkit refinement error:", error);
+        toast({ variant: "destructive", title: "Refinement Failed", description: error.message });
+    } finally {
+        setAiToolkitState({ isOpen: false, sectionKey: null, refinementPrompt: '', isRefining: false });
+    }
+  };
+
+
   const navItems = dprSectionConfig.map(section => ({
       id: `sec-${section.key}`,
       icon: React.createElement(section.icon, { size: 18 }),
@@ -305,12 +358,12 @@ function DPRReportContent() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <button className="hidden sm:flex px-3 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md font-medium text-sm transition items-center">
+          <Button onClick={openAiToolkit} variant="outline" size="sm" className="hidden sm:flex items-center">
             <Wand2 size={16} className="mr-2" /> AI Toolkit
-          </button>
-          <button onClick={() => window.print()} className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-md font-medium text-sm shadow flex items-center">
+          </Button>
+          <Button onClick={() => window.print()} variant="default" size="sm" className="flex items-center">
             <Printer size={16} className="mr-2" /> <span className="hidden sm:inline">Print</span>
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -453,6 +506,35 @@ function DPRReportContent() {
           </div>
         </main>
       </div>
+      
+      <Dialog open={aiToolkitState.isOpen} onOpenChange={(open) => !open && setAiToolkitState(prev => ({...prev, isOpen: false}))}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>AI Toolkit: Refine Section</DialogTitle>
+                  <DialogDescription>
+                      Enter a prompt to ask the AI to refine the content of the selected section.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                  <Label htmlFor="refinement-prompt">Your Instruction</Label>
+                  <Textarea
+                    id="refinement-prompt"
+                    placeholder="e.g., 'Make this more formal', 'Add more details about the competition', 'Shorten this section'"
+                    value={aiToolkitState.refinementPrompt}
+                    onChange={(e) => setAiToolkitState(prev => ({ ...prev, refinementPrompt: e.target.value }))}
+                    className="mt-2"
+                  />
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                  <Button onClick={handleRefineContent} disabled={aiToolkitState.isRefining || !aiToolkitState.refinementPrompt}>
+                      {aiToolkitState.isRefining && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      Refine with AI
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
 
       {cropperState.isOpen && (
         <div className="fixed inset-0 z-[9999] bg-black bg-opacity-80 flex items-center justify-center p-4">
