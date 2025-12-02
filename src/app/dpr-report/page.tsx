@@ -11,10 +11,11 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { dprSectionConfig } from '@/lib/dpr-config';
-import { DprQuizData } from '@/ai/schemas/dpr';
+import type { DprQuizData } from '@/ai/schemas/dpr';
 import { generateDprSectionAction } from '../actions';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
+import { FinancialProjectionsBarChart, ProjectCostPieChart } from '@/components/wealthin/dpr-charts';
 
 
 // --- External Libraries (Simulated Imports for Single File) ---
@@ -45,7 +46,7 @@ interface CropperState {
 
 type SectionContent = {
     [key: string]: {
-        content: string;
+        content: any; // Can be string (HTML) or object (financial data)
         status: 'pending' | 'loading' | 'done' | 'error';
     };
 };
@@ -172,22 +173,11 @@ function DPRReportContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('sec-executive');
   
-  const [financials, setFinancials] = useState<FinancialRecord[]>([
-    { year: 'Year 1', revenue: 100000, expense: 80000 },
-    { year: 'Year 2', revenue: 150000, expense: 100000 },
-    { year: 'Year 3', revenue: 220000, expense: 140000 },
-  ]);
-
   const [images, setImages] = useState<ImageState>({});
   
   const [cropperState, setCropperState] = useState<CropperState>({ isOpen: false, imageSrc: null, targetId: null });
   const cropperInstance = useRef<any>(null);
   const cropperImageRef = useRef<HTMLImageElement>(null);
-
-  const revChartRef = useRef<HTMLCanvasElement>(null);
-  const costChartRef = useRef<HTMLCanvasElement>(null);
-  const revChartInstance = useRef<any>(null);
-  const costChartInstance = useRef<any>(null);
 
   useEffect(() => {
     const storedData = localStorage.getItem('dprQuizData');
@@ -217,21 +207,6 @@ function DPRReportContent() {
               ...prev,
               [section.key]: { content: result.data.content, status: 'done' }
             }));
-
-            // Special handling for financial projections to update chart data
-            if (section.key === 'financialProjections' && typeof result.data.content === 'object') {
-                const financialData = result.data.content as any;
-                 if (financialData.yearlyProjections && financialData.yearlyProjections.length > 0) {
-                     const updatedFinancials = financialData.yearlyProjections.map((p: any) => ({
-                         year: p.year,
-                         revenue: p.sales,
-                         expense: p.sales - p.profit, // Calculate expense
-                     }));
-                     setFinancials(updatedFinancials);
-                 }
-            }
-
-
           } else {
             throw new Error(result.error);
           }
@@ -249,45 +224,6 @@ function DPRReportContent() {
   }, [quizData]);
 
 
-  // Initialize/Update Charts
-  useEffect(() => {
-    if (!window.Chart || !revChartRef.current || !costChartRef.current) return;
-
-    if (revChartInstance.current) revChartInstance.current.destroy();
-    if (costChartInstance.current) costChartInstance.current.destroy();
-
-    revChartInstance.current = new window.Chart(revChartRef.current, {
-      type: 'bar',
-      data: {
-        labels: financials.map(f => f.year),
-        datasets: [{
-          label: 'Revenue',
-          data: financials.map(f => f.revenue),
-          backgroundColor: '#4f46e5',
-          borderRadius: 4
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-
-    const yr1 = financials[0];
-    const profit = yr1 ? yr1.revenue - yr1.expense : 0;
-    
-    costChartInstance.current = new window.Chart(costChartRef.current, {
-      type: 'doughnut',
-      data: {
-        labels: ['Expense', 'Net Profit'],
-        datasets: [{
-          data: [yr1 ? yr1.expense: 0, profit],
-          backgroundColor: ['#ef4444', '#10b981'],
-          borderWidth: 0
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-
-  }, [financials]);
-
   // Initialize Cropper
   useEffect(() => {
     if (cropperState.isOpen && cropperImageRef.current && window.Cropper) {
@@ -299,12 +235,6 @@ function DPRReportContent() {
     }
   }, [cropperState.isOpen]);
 
-
-  const handleFinancialChange = (index: number, field: keyof FinancialRecord, value: number) => {
-    const newFinancials = [...financials];
-    (newFinancials[index] as any)[field] = value;
-    setFinancials(newFinancials);
-  };
 
   const initCrop = (id: string, file: File) => {
     const reader = new FileReader();
@@ -367,6 +297,8 @@ function DPRReportContent() {
     { id: 'sec-risk', icon: <AlertTriangle size={18} />, label: 'Risk Assessment' },
     { id: 'sec-annexure', icon: <Paperclip size={18} />, label: 'Annexures' },
   ];
+
+  const financialData = sectionContents.financialProjections?.content;
 
   return (
     <div className="flex flex-col h-screen text-gray-800 font-sans bg-gray-100 overflow-hidden">
@@ -463,56 +395,60 @@ function DPRReportContent() {
               </div>
             </header>
 
-            <section id="sec-executive" className="mb-8 scroll-mt-20">
-              <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">1. Executive Summary</h3>
-              <EditableBlock 
-                id="content-executive-summary" 
-                className="prose max-w-none text-justify text-gray-700" 
-                placeholder="[AI is generating summary...]"
-                html={sectionContents.executiveSummary.content}
-              />
-            </section>
-
-             <section id="sec-intro" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">2. Project Introduction</h3>
-                <EditableBlock 
-                    id="content-project-intro" 
-                    className="prose max-w-none text-gray-700" 
-                    placeholder="[AI is generating introduction...]"
-                    html={sectionContents.projectIntroduction.content}
-                />
-            </section>
-
-             <section id="sec-promoter" className="mb-8 scroll-mt-20">
-                <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">3. Promoter Details</h3>
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="w-full md:w-32 shrink-0">
-                        <ImageUpload 
-                            id="promoter-img"
-                            currentImage={images['promoter-img']}
-                            onUpload={initCrop}
-                            onDelete={deleteImage}
-                            className="w-full h-48 md:h-32"
-                            placeholderIcon={<User size={32} />}
-                            placeholderText="Upload Photo"
-                        />
-                    </div>
-                    <EditableBlock 
-                        id="content-promoter" 
-                        className="flex-1 prose max-w-none text-gray-700" 
-                        placeholder="[AI is generating promoter details...]"
-                        html={sectionContents.promoterDetails.content}
-                    />
-                </div>
-            </section>
-
-            {dprSectionConfig.slice(3, -1).map(section => (
-                 <section key={section.key} id={`sec-${section.key.toLowerCase()}`} className="mb-8 scroll-mt-20">
-                    <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">{dprSectionConfig.indexOf(section) + 1}. {section.title}</h3>
+            {dprSectionConfig.map((section) => (
+                <section key={section.key} id={`sec-${section.key}`} className="mb-8 scroll-mt-20">
+                    <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">{dprSectionConfig.findIndex(s => s.key === section.key) + 1}. {section.title}</h3>
+                    
                     {sectionContents[section.key]?.status === 'loading' ? (
-                        <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="flex items-center gap-2 text-muted-foreground p-4">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <span>Generating...</span>
+                        </div>
+                    ) : section.key === 'financialProjections' && financialData ? (
+                        <div className="space-y-6">
+                            <EditableBlock id="financial-summary" className="prose max-w-none text-gray-700" html={financialData.summaryText} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 className="font-bold mb-2">Cost Breakdown</h4>
+                                    <div className="h-64 border rounded p-2 bg-white min-w-0 relative">
+                                        <ProjectCostPieChart data={financialData.costBreakdown} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 className="font-bold mb-2">Yearly Projections</h4>
+                                    <div className="h-64 border rounded p-2 bg-white min-w-0 relative">
+                                        <FinancialProjectionsBarChart data={financialData.yearlyProjections} />
+                                    </div>
+                                </div>
+                            </div>
+                             <EditableBlock id="financial-analysis" className="prose max-w-none text-gray-700" html={`
+                                ${financialData.projectCost}
+                                ${financialData.meansOfFinance}
+                                ${financialData.profitabilityAnalysis}
+                                ${financialData.cashFlowStatement}
+                                ${financialData.loanRepaymentSchedule}
+                                ${financialData.breakEvenAnalysis}
+                            `} />
+                        </div>
+                    ) : section.key === 'promoterDetails' ? (
+                         <div className="flex flex-col md:flex-row gap-4">
+                            <div className="w-full md:w-32 shrink-0">
+                                <ImageUpload 
+                                    id="promoter-img"
+                                    currentImage={images['promoter-img']}
+                                    onUpload={initCrop}
+                                    onDelete={deleteImage}
+                                    className="w-full h-48 md:h-32"
+                                    placeholderIcon={<User size={32} />}
+                                    placeholderText="Upload Photo"
+                                />
+                            </div>
+                            <EditableBlock 
+                                id={`content-${section.key}`}
+                                className="flex-1 prose max-w-none text-gray-700"
+                                placeholder={`[AI is generating ${section.title.toLowerCase()}...]`}
+                                html={sectionContents[section.key]?.content || ''}
+                            />
                         </div>
                     ) : (
                         <EditableBlock 
@@ -524,13 +460,6 @@ function DPRReportContent() {
                     )}
                 </section>
             ))}
-            
-            <section id="sec-annexure" className="mb-8 scroll-mt-20">
-              <h3 className="text-lg font-bold text-indigo-900 border-l-4 border-indigo-600 pl-3 mb-3 uppercase">13. Annexures</h3>
-              <div className="border-2 border-dashed border-gray-300 p-6 rounded text-center text-gray-400 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
-                Drop supporting documents here
-              </div>
-            </section>
 
           </div>
         </main>
