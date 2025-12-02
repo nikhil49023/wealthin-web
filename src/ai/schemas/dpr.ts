@@ -39,6 +39,8 @@ export type DprQuizData = z.infer<typeof DprQuizDataSchema>;
 
 
 // Schema for the final AI-generated DPR output
+// All fields are now strings, as they will contain HTML content.
+// The complex object structure is assembled in the flow, not by the AI directly.
 export const FinancialProjectionsSchema = z.object({
   summaryText: z.string().describe('A brief summary of the financial outlook in HTML format.'),
   projectCost: z.string().describe('Breakdown of total project costs in HTML format.'),
