@@ -73,11 +73,10 @@ ${transactionsSample}
 `;
 
   try {
-    // Override the model for this specific, conversational task
+    // Removed the model override, as the default service model is now correct.
     const suggestion = await catalystService.generateText(
         userPrompt, 
-        systemPrompt,
-        'crm-di-qwen_text_14b-fp8-it' // Using a model better suited for this task
+        systemPrompt
     );
     // 3. Return combined result
     return {

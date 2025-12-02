@@ -63,7 +63,7 @@ class CatalystService {
     
     const body = {
       "prompt": prompt,
-      "model": modelOverride || "qwen-coder", // Use override or default to qwen-coder
+      "model": modelOverride || "crm-di-qwen_text_14b-fp8-it", // Reverted to the reliable model
       "system_prompt": system_prompt,
       "top_p": 0.9,
       "top_k": 50,
