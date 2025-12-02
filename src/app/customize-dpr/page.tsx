@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
@@ -23,7 +22,6 @@ function CustomizeDPRContent() {
   const { user } = useAuth();
   
   const [analysis, setAnalysis] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
-  const [promoterName, setPromoterName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -48,9 +46,6 @@ function CustomizeDPRContent() {
       toast({ variant: 'destructive', description: 'No analysis data found.' });
     }
     
-    // Use a placeholder if the name is not available, but don't block.
-    setPromoterName(user?.displayName || "[Promoter Name Here]");
-
   }, [searchParams, toast, user]);
 
   const handleNavigateToReport = async () => {
