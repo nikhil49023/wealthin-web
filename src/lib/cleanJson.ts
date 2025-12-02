@@ -43,23 +43,13 @@ export function cleanAndParseJSON(llmOutput: string) {
     }
   }
 
-  // If the string does not start with a brace, prepend one.
-  // This handles cases where the model forgets the opening brace.
-  if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {
-      const braceIndex = jsonString.indexOf('{');
-      if (braceIndex > 0) {
-          jsonString = jsonString.substring(braceIndex);
-      } else {
-         jsonString = '{' + jsonString;
-      }
-  }
-
   try {
     // 3. Parse the cleaned string
     return JSON.parse(jsonString);
   } catch (error: any) {
     console.error("Failed to parse LLM JSON after cleaning:", error.message);
     console.error("Original AI Output that failed parsing:", llmOutput);
-    throw new Error("AI returned an invalid or malformed JSON structure.");
+    console.error("String that was attempted to be parsed:", jsonString);
+    throw new Error("AI returned an invalid or malformed JSON structure that could not be automatically corrected.");
   }
 }

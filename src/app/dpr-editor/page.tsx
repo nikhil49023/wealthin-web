@@ -12,7 +12,10 @@ import {
 } from '@/components/ui/button';
 import {
   Card,
-  CardContent
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
 } from '@/components/ui/card';
 import {
   Input
@@ -77,8 +80,45 @@ function DPREditorComponent() {
 
   const [formData, setFormData] = useState < Partial < GenerateDprInput >> ({
     idea: '',
-    promoterName: ''
+    promoterName: '',
+    projectDescription: '',
+    projectCategory: '',
+    state: '',
+    city: '',
+    udyam: '',
+    promoterExperience: '',
+    promoterQualification: '',
+    totalProjectCost: '',
+    promoterContribution: '',
+    loanRequired: '',
+    expectedRevenue: '',
+    profitMargin: '',
+    targetMarket: '',
+    competitiveAdvantage: '',
+    identifiedRisks: '',
+    mitigationStrategies: '',
+    businessModel: '',
+    locationAndSite: '',
+    technicalFeasibility: '',
+    implementationSchedule: '',
+    swotAnalysis: '',
+    regulatoryCompliance: '',
+    riskAssessment: '',
+    annexures: '',
+    financialProjections: { // Initialize with empty values
+      isMock: true,
+      summaryText: '',
+      projectCost: '',
+      meansOfFinance: '',
+      costBreakdown: [],
+      yearlyProjections: [],
+      profitabilityAnalysis: '',
+      cashFlowStatement: '',
+      loanRepaymentSchedule: '',
+      breakEvenAnalysis: ''
+    }
   });
+
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [dprData, setDprData] = useState < GenerateDprOutput | null > (null);
@@ -145,8 +185,8 @@ function DPREditorComponent() {
     },
     {
       field: 'media',
-      title: 'Project Images',
-      description: 'Upload relevant images for your project.'
+      title: 'Final Details',
+      description: 'Final details before generating the report.'
     },
   ];
 
@@ -254,8 +294,12 @@ function DPREditorComponent() {
                         <Input id="city" value={(formData as any).city || ''} onChange={e => handleChange('city' as any, e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="udyam">UDYAM Registration No.</Label>
+                        <Label htmlFor="udyam">UDYAM Registration No. (if any)</Label>
                         <Input id="udyam" value={(formData as any).udyam || ''} onChange={e => handleChange('udyam' as any, e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="locationAndSite">Site/Location Details</Label>
+                        <Textarea id="locationAndSite" value={(formData as any).locationAndSite || ''} onChange={e => handleChange('locationAndSite' as any, e.target.value)} placeholder="e.g., Leased space in an industrial area, address, size..."/>
                     </div>
                 </div>
             )}
@@ -294,7 +338,7 @@ function DPREditorComponent() {
              {i === 4 && (
                  <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="expectedRevenue">Expected Annual Revenue (INR)</Label>
+                        <Label htmlFor="expectedRevenue">Expected Annual Revenue (Year 1, INR)</Label>
                         <Input type="number" id="expectedRevenue" value={(formData as any).expectedRevenue || ''} onChange={e => handleChange('expectedRevenue' as any, e.target.value)} />
                     </div>
                     <div className="space-y-2">
@@ -336,9 +380,15 @@ function DPREditorComponent() {
                 </div>
             )}
             {i === 7 && (
-                 <div className="space-y-4 text-center">
-                    <Label>Project Images (Optional)</Label>
-                    <p className="text-sm text-muted-foreground">You can add images to your report in the editor after generation.</p>
+                 <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="businessModel">Business Model</Label>
+                        <Textarea id="businessModel" value={(formData as any).businessModel || ''} onChange={e => handleChange('businessModel' as any, e.target.value)} placeholder="e.g., B2B sales to local restaurants, direct to consumer via website..."/>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="technicalFeasibility">Technical Implementation</Label>
+                        <Textarea id="technicalFeasibility" value={(formData as any).technicalFeasibility || ''} onChange={e => handleChange('technicalFeasibility' as any, e.target.value)} placeholder="Describe the machinery, technology, and process flow..."/>
+                    </div>
                 </div>
             )}
           </CardContent>
@@ -359,12 +409,8 @@ function DPREditorComponent() {
   }
 
   if (view === 'editor' && dprData) {
-    return (
-      <div>
-        <h1>DPR Editor</h1>
-        <pre>{JSON.stringify(dprData, null, 2)}</pre>
-      </div>
-    );
+    // This view is now handled by the /dpr-report page
+    return null;
   }
 
   return (
@@ -405,5 +451,3 @@ export default function DPREditorPage() {
     </Suspense>
   );
 }
-
-    

@@ -17,34 +17,19 @@ export async function generateDpr(
 ): Promise < GenerateDprOutput > {
 
   const systemPrompt = `You are an expert consultant hired to write a bank-ready Detailed Project Report (DPR) for an MSME in India.
-You will be given user-provided data.
+You will be given user-provided data in a JSON format.
 Your response MUST be a single, valid JSON object conforming to the output schema. Do NOT include any other text, markdown, or explanations.
 All financial figures should be in Indian Rupees (INR).
 Generate detailed, professional, and well-structured content for each section.`;
   
-  // Construct a single string prompt
+  // Construct a single, clear string prompt as requested
   const userMessage = `
-Based on the following project data, please generate the content for a Detailed Project Report.
+Act as a bank-grade DPR generator. Take the following JSON data and generate full, narrative sections for a Detailed Project Report (executiveSummary, promoterDetails, technicalFeasibility, marketAnalysis, financialProjections, swotAnalysis, regulatoryCompliance, riskAssessment, and annexures). Return ONLY a valid JSON object with those sections as keys and their generated content as string values.
 
-**User-Provided Data:**
-\`\`\`json
-${JSON.stringify(input, null, 2)}
-\`\`\`
+Here is the project data:
+${JSON.stringify(input)}
 
-**Output Schema:**
-Your response must be a JSON object with the following keys and value types:
-- executiveSummary: (string) A concise overview of the entire project.
-- projectIntroduction: (string) Detailed introduction to the project.
-- promoterDetails: (string) Details about the entrepreneur.
-- marketAnalysis: (string) Analysis of the target market, competition, etc.
-- technicalFeasibility: (string) Details on technology, machinery, and process.
-- financialProjections: (object) A detailed financial projection object.
-- swotAnalysis: (string) Strengths, Weaknesses, Opportunities, Threats analysis.
-- regulatoryCompliance: (string) Details on legal and regulatory aspects.
-- riskAssessment: (string) Identification of risks and mitigation strategies.
-- annexures: (string) List of attached documents.
-
-Generate the content for each field now. Start your response with {
+Your output must be a valid, parsable JSON object matching the expected schema.
 `;
 
   try {
@@ -53,6 +38,6 @@ Generate the content for each field now. Start your response with {
     return GenerateDprOutputSchema.parse(parsedJson);
   } catch (e: any) {
     console.error("Failed to generate or parse DPR from AI:", e.message);
-    throw new Error(`Failed to generate the DPR: ${e.message}`);
+    throw new Error(`Failed to generate the DPR. The AI returned an unrecoverable format or an error occurred: ${e.message}`);
   }
 }
