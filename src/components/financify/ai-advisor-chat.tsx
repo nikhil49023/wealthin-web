@@ -72,6 +72,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
     }
   }, [user]);
 
+  // Effect to set the initial state of messages
   useEffect(() => {
     const welcomeMessage: Message = {
       id: getUniqueMessageId(),
@@ -86,12 +87,20 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
             sender: 'user',
         };
         setMessages([welcomeMessage, initialUserMessage]);
-        handleSendMessage(undefined, initialMessage, true);
     } else {
         setMessages([welcomeMessage]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialMessage]);
+
+  // Effect to trigger AI response for the initial message
+  useEffect(() => {
+    if (initialMessage) {
+      handleSendMessage(undefined, initialMessage, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage]);
+
 
   const scrollToBottom = () => {
     bottomOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
