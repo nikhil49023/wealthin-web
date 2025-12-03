@@ -13,7 +13,7 @@ export const ExtractedTransactionSchema = z.object({
   description: z.string().describe('The description of the transaction.'),
   date: z
     .string()
-    .describe('The date of the transaction, extracted exactly as it appears in the document.'),
+    .describe('The date of the transaction, extracted and normalized to YYYY-MM-DD format.'),
   time: z
     .string()
     .optional()
@@ -24,6 +24,10 @@ export const ExtractedTransactionSchema = z.object({
   amount: z
     .coerce.number()
     .describe("The transaction amount as a number."),
+  category: z
+    .string()
+    .optional()
+    .describe("The category of the transaction (e.g., 'Food', 'Transport')."),
   invoiceUrl: z.string().optional().describe("The URL of the attached invoice file in Firebase Storage."),
 });
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;

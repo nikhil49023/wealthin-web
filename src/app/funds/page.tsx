@@ -469,8 +469,8 @@ export default function FundManagementPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Description</TableHead>
-                                            <TableHead>Date & Time</TableHead>
-                                            <TableHead>Type</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Category</TableHead>
                                             <TableHead className="text-right">Amount</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -478,9 +478,13 @@ export default function FundManagementPage() {
                                         {extractedData.map((t, i) => (
                                             <TableRow key={i}>
                                                 <TableCell>{t.description}</TableCell>
-                                                <TableCell>{t.date} {t.time}</TableCell>
-                                                <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'}>{t.type}</Badge></TableCell>
-                                                <TableCell className="text-right font-mono">₹{Number(t.amount).toLocaleString('en-IN')}</TableCell>
+                                                <TableCell>{t.date}</TableCell>
+                                                <TableCell>
+                                                    {t.category ? <Badge variant="secondary">{t.category}</Badge> : <span className="text-muted-foreground text-xs">N/A</span>}
+                                                </TableCell>
+                                                <TableCell className={cn("text-right font-mono", t.type === 'income' ? 'text-green-600' : 'text-red-600')}>
+                                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount).replace('₹', '₹')}
+                                                </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -546,7 +550,7 @@ export default function FundManagementPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Description</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
@@ -557,10 +561,14 @@ export default function FundManagementPage() {
                     <TableRow key={t.id}>
                       <TableCell>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.date} {t.time}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                       </TableCell>
-                      <TableCell><Badge variant={t.type === 'income' ? 'default' : 'destructive'} className={cn(t.type === 'income' && 'bg-green-600')}>{t.type}</Badge></TableCell>
-                      <TableCell className="text-right font-mono">{formatCurrency(t.amount)}</TableCell>
+                       <TableCell>
+                        {t.category ? <Badge variant="secondary">{t.category}</Badge> : <span className="text-muted-foreground text-xs">N/A</span>}
+                      </TableCell>
+                      <TableCell className={cn("text-right font-mono", t.type === 'income' ? 'text-green-600' : 'text-red-600')}>
+                        {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                      </TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => handleDelete('transactions', t.id)}><Trash2 className="h-4 w-4"/></Button>
                       </TableCell>

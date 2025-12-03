@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview A flow for extracting financial transactions from a document using a hybrid approach.
- * It uses a text model for text-based documents (PDF, TXT, CSV) and a vision model for images.
+ * It uses a vision model which is effective for both images and document pages (like PDFs).
  */
 import catalystService from '@/services/catalyst';
 import type {
@@ -13,25 +13,26 @@ import type {
 import { ExtractTransactionsOutputSchema } from '@/ai/schemas/transactions';
 import { cleanAndParseJSON } from '@/lib/cleanJson';
 
-// Function to process a document or image using the Vision Language Model (VLM)
+// This function processes a document or image using the Vision Language Model (VLM)
 async function processWithVisionModel(base64Image: string): Promise<ExtractedTransaction[]> {
-  const vlmSystemPrompt = `You are an expert financial data analyst. You MUST return ONLY a valid JSON array of transactions. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.`;
+  const vlmSystemPrompt = `You are an expert financial data analyst specializing in Indian financial documents. You MUST return ONLY a valid JSON array of transactions. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.`;
 
   const vlmUserPrompt = `
-Analyze the provided image of a financial document (like a bank statement page or transaction list).
+Analyze the provided image of a financial document (like a bank statement page or receipt).
 Your task is to extract all transactions and return them as a valid JSON array.
 
 The JSON array must be an array of objects, where each object conforms to this exact schema:
 {
-  "description": "(string) A clear description of the transaction.",
-  "date": "(string) The date of the transaction, extracted exactly as it appears in the document. Do not reformat it.",
-  "time": "(string, optional) The time of the transaction if available, extracted exactly as it appears.",
+  "description": "(string) A clear and concise description of the transaction.",
+  "date": "(string) The date of the transaction. IMPORTANT: You must normalize this to YYYY-MM-DD format.",
   "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals and 'income' for credits/deposits.",
-  "amount": "(number) The transaction amount as a raw number, without any currency symbols or commas."
+  "amount": "(number) The transaction amount as a raw number, without currency symbols or commas. Correctly parse Indian number formats (e.g., '1,23,456.78' becomes 123456.78).",
+  "category": "(string, optional) Categorize the transaction into one of the following: 'Food', 'Transport', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health', 'Rent', 'Salary', or 'Other'."
 }
 
-- If no time is available for a transaction, omit the 'time' field.
-- The 'amount' field MUST be a raw number (e.g., 1234.56).
+- For dates, always convert them to a standard YYYY-MM-DD format. For example, '03/05/24' becomes '2024-05-03'.
+- The 'amount' field MUST be a raw number.
+- If a clear category cannot be determined, you may omit the 'category' field.
 - If no transactions are found, return an empty array [].
 `;
 
@@ -64,7 +65,7 @@ export async function extractTransactionsFromDocument(
         
         // Route all file types through the vision model.
         // Modern VLMs are effective at OCR on document images/PDFs.
-        // This avoids issues with passing large base64 text in prompts to text-only models.
+        // This avoids issues with needing a separate PDF text parsing library.
         extracted = await processWithVisionModel(base64Data);
         
         if (extracted.length > 0) {
