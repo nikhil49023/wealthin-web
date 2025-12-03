@@ -8,7 +8,7 @@ import { cleanAndParseJSON } from '@/lib/cleanJson';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-const DPR_MODEL = 'crm-di-qwen_coder_7b-it';
+const DPR_MODEL = 'crm-di-qwen_text_14b-fp8-it';
 
 // Helper to generate simple HTML content for most sections
 async function generateHtmlContent(prompt: string, idea: any): Promise<string> {
