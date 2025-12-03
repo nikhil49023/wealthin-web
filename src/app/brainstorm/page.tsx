@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   FileText,
   Send,
@@ -19,6 +19,7 @@ import {
   Heart,
   PieChart,
   Combine,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,11 +45,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { Textarea } from '@/components/ui/textarea';
 import Autoplay from "embla-carousel-autoplay"
 import React from 'react';
-import { doc, getFirestore, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getFirestore, setDoc, updateDoc, collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { generateInvestmentIdeaAnalysisAction } from '@/app/actions';
+import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 
 const db = getFirestore(app);
 
@@ -145,11 +147,27 @@ export default function BrainstormPage() {
   const router = useRouter();
   const { user, userProfile } = useAuth();
   const [showLimitAlert, setShowLimitAlert] = useState(false);
-  const curatedIdeasRef = useRef<HTMLDivElement>(null);
+  const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
   )
+  
+  useEffect(() => {
+    if (user) {
+      const transactionsRef = collection(db, 'users', user.uid, 'transactions');
+      const q = query(transactionsRef, orderBy('date', 'desc'), limit(20));
+      const unsubscribe = onSnapshot(q, snapshot => {
+        setTransactions(snapshot.docs.map(doc => doc.data() as ExtractedTransaction));
+      },
+      (error) => {
+        console.error("Error fetching transactions for brainstorm page:", error);
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
 
   const handleAnalyzeIdea = async (ideaToAnalyze: string) => {
     if (!ideaToAnalyze.trim()) {
@@ -172,8 +190,9 @@ export default function BrainstormPage() {
       return;
     }
     
-    // First, generate the initial analysis to ensure it works before deducting credits.
-    const initialAnalysisResult = await generateInvestmentIdeaAnalysisAction({ idea: ideaToAnalyze });
+    setIsAnalyzing(true);
+    
+    const initialAnalysisResult = await generateInvestmentIdeaAnalysisAction({ idea: ideaToAnalyze, transactions });
 
     if (!initialAnalysisResult.success) {
       toast({
@@ -181,10 +200,10 @@ export default function BrainstormPage() {
         title: 'Analysis Failed',
         description: initialAnalysisResult.error,
       });
+      setIsAnalyzing(false);
       return;
     }
 
-    // If initial analysis is successful, *then* deduct credits.
     const userDocRef = doc(db, 'users', user.uid);
     const newCredits = (userProfile.credits ?? 0) - IDEA_ANALYSIS_COST;
 
@@ -194,7 +213,6 @@ export default function BrainstormPage() {
             title: 'Credits Deducted',
             description: `You have been charged ${IDEA_ANALYSIS_COST} credits. Remaining: ${newCredits}`,
         });
-        // Now navigate to the analysis page
         router.push(`/investment-ideas/custom?idea=${encodeURIComponent(ideaToAnalyze)}`);
       })
       .catch((e) => {
@@ -210,7 +228,9 @@ export default function BrainstormPage() {
             title: 'Error',
             description: 'Could not deduct credits. Please try again.',
         });
-    });
+      }).finally(() => {
+          setIsAnalyzing(false);
+      });
   };
 
   return (
@@ -241,7 +261,7 @@ export default function BrainstormPage() {
         </CardContent>
       </Card>
       
-      <div className="space-y-4" ref={curatedIdeasRef}>
+      <div className="space-y-4">
         <header>
             <h2 className="text-2xl font-bold flex items-center gap-2">Curated Business Ideas</h2>
             <p className="text-muted-foreground">Explore some popular ideas to get started. Click any idea to analyze it instantly.</p>
@@ -295,8 +315,13 @@ export default function BrainstormPage() {
               className="text-base"
             />
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button onClick={() => handleAnalyzeIdea(userIdea)} disabled={!userIdea.trim()} size="lg">
-                <Send className="mr-2" /> Get AI Insights ({IDEA_ANALYSIS_COST} Credits)
+            <Button onClick={() => handleAnalyzeIdea(userIdea)} disabled={!userIdea.trim() || isAnalyzing} size="lg">
+                {isAnalyzing ? (
+                  <Loader2 className="mr-2 animate-spin" />
+                ) : (
+                  <Send className="mr-2" />
+                )}
+                {isAnalyzing ? 'Analyzing...' : `Get AI Insights (${IDEA_ANALYSIS_COST} Credits)`}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/my-ideas">

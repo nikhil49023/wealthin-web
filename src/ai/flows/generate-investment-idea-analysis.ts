@@ -16,14 +16,23 @@ import { cleanAndParseJSON } from '@/lib/cleanJson';
 export async function generateInvestmentIdeaAnalysis(
   input: GenerateInvestmentIdeaAnalysisInput
 ): Promise<GenerateInvestmentIdeaAnalysisOutput> {
+  const transactionsList = input.transactions
+    ?.map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
+    .join('\n') || 'No transaction history provided.';
+
   const systemPrompt = `You are a specialized financial mentor. Your response MUST be ONLY a valid JSON object with "title" and "summary" keys. Do NOT include any other text, markdown, or explanations.`;
   
   const userPrompt = `Please provide a concise and professional "title" and a brief, compelling "summary" for the following business idea: "${input.idea}"
 
+Also consider the user's recent transactions when framing the summary:
+---
+${transactionsList}
+---
+
 Structure your response as a valid JSON object:
 {
   "title": "A concise and professional title for the business idea.",
-  "summary": "A brief, compelling summary of the business concept, its value proposition, and target market."
+  "summary": "A brief, compelling summary of the business concept, its value proposition, and target market. Subtly incorporate insights from the user's financial context if relevant."
 }
 `;
 

@@ -1,9 +1,11 @@
 
 import { z } from 'zod';
+import { ExtractedTransactionSchema } from './transactions';
 
 // Schema for the original, full analysis generation
 export const GenerateInvestmentIdeaAnalysisInputSchema = z.object({
   idea: z.string().describe('The business investment idea to be analyzed.'),
+  transactions: z.array(ExtractedTransactionSchema).optional().describe('Optional user transactions for context.'),
 });
 export type GenerateInvestmentIdeaAnalysisInput = z.infer<
   typeof GenerateInvestmentIdeaAnalysisInputSchema

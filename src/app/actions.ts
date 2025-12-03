@@ -74,7 +74,7 @@ export async function generateDashboardSummaryAction(input: {
   }
 }
 
-// This action is now deprecated in favor of generateIdeaSectionAction
+// This action now accepts optional transaction data for context
 export async function generateInvestmentIdeaAnalysisAction(
   input: GenerateInvestmentIdeaAnalysisInput
 ): Promise<
