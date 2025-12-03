@@ -1,10 +1,11 @@
 
 'use server';
 /**
- * @fileOverview A flow for extracting financial transactions from a document using a hybrid, two-stage approach.
+ * @fileOverview A flow for extracting financial transactions from a document using a hybrid, three-stage approach.
  * Stage 1: A vision model performs OCR to extract raw text from the document image.
- * Stage 2: A powerful instruction-following text model parses the raw text to extract structured transaction data.
- * This pipeline is more accurate and robust than a single-shot approach.
+ * Stage 2: An instruction-following model "chunks" the raw text, wrapping each transaction in a <transaction> tag.
+ * Stage 3: The flow loops through each chunk and calls the model again to extract structured data from that small, specific block.
+ * This pipeline is more accurate and robust than a two-stage approach, especially for dense documents.
  */
 import catalystService from '@/services/catalyst';
 import type {
@@ -26,66 +27,90 @@ async function extractTextWithVisionModel(base64Image: string): Promise<string> 
     return rawText;
 }
 
+// --- STAGE 2: Text Model for "Chunking" ---
+// This function takes raw text and wraps each transaction in a <transaction> tag.
+async function chunkTransactionsWithLLM(rawText: string): Promise<string[]> {
+    const systemPrompt = `You are a text processing utility. Your task is to identify individual transaction records in the text and wrap each one within <transaction> and </transaction> tags. Return the entire text with these tags inserted. Do not remove or alter any of the original text.`;
+    const userPrompt = `
+Analyze the following text from a financial statement.
+Identify each distinct transaction record. A transaction usually includes a date, description, and amount.
+Wrap each full transaction block you find with <transaction> opening and </transaction> closing tags.
 
-// --- STAGE 2: Text Model for Structuring ---
-// This function takes raw text and uses a powerful instruction-following model to extract JSON.
-async function structureTextWithLLM(rawText: string): Promise<ExtractedTransaction[]> {
-  const systemPrompt = `You are an expert financial data analyst specializing in Indian financial documents. You MUST return ONLY a valid JSON array of transactions. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.`;
-  
-  // A more detailed prompt for the text model, which is better at instruction following.
-  const userPrompt = `
-Analyze the following text extracted from a financial document.
-Your task is to be exhaustive and extract all transactions, returning them as a valid JSON array.
+Example:
+Original Text:
+Nov 30, 2025
+01:34 pm
+Paid to SOMEONE
+₹35,000
+UPI/12345
 
-Each object in the JSON array must conform to this exact schema:
-{
-  "description": "(string) A clear and concise description of the transaction.",
-  "date": "(string) The date of the transaction. IMPORTANT: You must normalize this to YYYY-MM-DD format.",
-  "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals and 'income' for credits/deposits.",
-  "amount": "(number) The transaction amount as a raw number, without currency symbols or commas. Correctly parse Indian number formats (e.g., '1,23,456.78' becomes 123456.78)."
-}
+Nov 29, 2025
+Received from SOMEONE ELSE
+₹500
 
-- For dates, always convert them to a standard YYYY-MM-DD format. For example, '03/05/24' becomes '2024-05-03'.
-- The 'amount' field MUST be a raw number.
-- If no transactions are found, return an empty array [].
-- Be exhaustive. Do not miss any line item that looks like a transaction.
+Your output should be:
+<transaction>
+Nov 30, 2025
+01:34 pm
+Paid to SOMEONE
+₹35,000
+UPI/12345
+</transaction>
+<transaction>
+Nov 29, 2025
+Received from SOMEONE ELSE
+₹500
+</transaction>
 
-Here is the text to analyze:
+Here is the text to process:
 ---
 ${rawText}
 ---
 `;
+    const taggedText = await catalystService.generateText(userPrompt, systemPrompt);
+    
+    // Extract content between the tags
+    const chunks = taggedText.match(/<transaction>([\s\S]*?)<\/transaction>/g) || [];
+    return chunks.map(chunk => chunk.replace(/<\/?transaction>/g, '').trim());
+}
 
-  // Use a general instruction-following model which is better for this task
+
+// --- STAGE 3: Text Model for Structuring a Single Chunk ---
+// This function takes a single transaction text chunk and extracts a JSON object from it.
+async function structureSingleChunkWithLLM(chunk: string): Promise<ExtractedTransaction | null> {
+  const systemPrompt = `You are a data extraction expert. You MUST return ONLY a single, valid JSON object for the transaction. Do not include any other text, markdown formatting, or explanations.`;
+  
+  const userPrompt = `
+Analyze the following transaction text.
+Your task is to extract the details and return them as a single, valid JSON object.
+
+The JSON object must conform to this exact schema:
+{
+  "description": "(string) A clear and concise description of the transaction.",
+  "date": "(string) The date of the transaction. IMPORTANT: You must normalize this to YYYY-MM-DD format.",
+  "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals/payments and 'income' for credits/deposits/receipts.",
+  "amount": "(number) The transaction amount as a raw number, without currency symbols or commas. Correctly parse Indian number formats."
+}
+
+- If you cannot determine a field, omit it from the JSON.
+- The 'amount' field MUST be a raw number.
+
+Here is the transaction text to analyze:
+---
+${chunk}
+---
+`;
   const jsonResponseText = await catalystService.generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
   
-  // Use the robust cleaner to parse the response
   const parsedData = cleanAndParseJSON(jsonResponseText);
 
-  // After cleaning, we must validate that we have an array before proceeding
-  if (!Array.isArray(parsedData)) {
-    console.error("Cleaned data is not an array:", parsedData);
-    throw new Error("AI returned an invalid format that could not be fixed. Please try a different document.");
+  // Since we expect a single object, we don't need to check for arrays
+  if (typeof parsedData === 'object' && parsedData !== null && !Array.isArray(parsedData)) {
+    return parsedData as ExtractedTransaction;
   }
   
-  // The schema expects an object with a 'transactions' property, so we wrap the array
-  const validatedData = ExtractTransactionsOutputSchema.safeParse({ transactions: parsedData });
-
-  if (!validatedData.success) {
-      console.error("Zod validation failed:", validatedData.error.errors);
-      // Even if validation fails, we can try to return the successfully parsed items
-      // This is a more lenient approach as requested.
-      const partiallyValidData = parsedData.filter(item => {
-          return 'description' in item && 'date' in item && 'type' in item && 'amount' in item;
-      });
-      if (partiallyValidData.length > 0) {
-          console.warn("Returning partially valid data.");
-          return partiallyValidData;
-      }
-      throw new Error(`AI returned a format with missing required fields. Zod errors: ${JSON.stringify(validatedData.error.errors)}`);
-  }
-  
-  return validatedData.data.transactions;
+  console.warn("Could not parse a valid transaction object from chunk:", chunk);
+  return null;
 }
 
 
@@ -97,7 +122,6 @@ export async function extractTransactionsFromDocument(
     const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
     let allTransactions: ExtractedTransaction[] = [];
     
-    // Process each document URI (e.g., each page of a PDF) individually
     for (const uri of uris) {
         const mimeTypeMatch = uri.match(/^data:(.*?);base64,/);
         if (!mimeTypeMatch) {
@@ -106,7 +130,7 @@ export async function extractTransactionsFromDocument(
         }
         const base64Data = uri.split(',')[1];
         
-        // STAGE 1: Extract raw text using the vision model's OCR capability
+        // STAGE 1: Extract raw text using OCR
         const rawText = await extractTextWithVisionModel(base64Data);
 
         if (!rawText || rawText.trim().length < 10) {
@@ -114,11 +138,24 @@ export async function extractTransactionsFromDocument(
             continue;
         }
 
-        // STAGE 2: Structure the extracted text using a powerful text model
-        let extracted: ExtractedTransaction[] = await structureTextWithLLM(rawText);
+        // STAGE 2: Chunk the raw text into individual transaction blocks
+        const transactionChunks = await chunkTransactionsWithLLM(rawText);
+
+        if (transactionChunks.length === 0) {
+            console.warn("No transaction chunks were identified on this page.");
+            continue;
+        }
         
-        if (extracted.length > 0) {
-            allTransactions.push(...extracted);
+        // STAGE 3: Process each chunk individually
+        const chunkPromises = transactionChunks.map(chunk => structureSingleChunkWithLLM(chunk));
+        const extractedFromChunks = await Promise.all(chunkPromises);
+
+        const validTransactions = extractedFromChunks.filter(
+            (t): t is ExtractedTransaction => t !== null && 'description' in t && 'date' in t && 'type' in t && 'amount' in t
+        );
+        
+        if (validTransactions.length > 0) {
+            allTransactions.push(...validTransactions);
         }
     }
 
@@ -127,16 +164,11 @@ export async function extractTransactionsFromDocument(
     }
 
     const finalResult = { transactions: allTransactions };
-    // Final validation of the combined result
     const validatedData = ExtractTransactionsOutputSchema.parse(finalResult);
     return validatedData;
 
   } catch (e: any) {
     console.error('Error during transaction extraction flow:', e);
-    // Provide a more user-friendly error message
-    if (e.message.includes("AI returned an invalid")) {
-        throw new Error('The AI returned an invalid format that could not be fixed. Please try a different document or check the document quality.');
-    }
     throw new Error(e.message || 'Could not extract transactions due to an unexpected error.');
   }
 }
