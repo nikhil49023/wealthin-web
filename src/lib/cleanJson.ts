@@ -34,7 +34,7 @@ export function cleanAndParseJSON(llmOutput: string) {
   }
 
   // 3. Handle cases where the initial brace might be missing
-  if (!jsonString.startsWith('{') && jsonString.includes(':')) {
+  if (!jsonString.startsWith('{') && !jsonString.startsWith('[') && jsonString.includes(':')) {
     const firstColon = jsonString.indexOf(':');
     const braceBeforeColon = jsonString.lastIndexOf('{', firstColon);
     if (braceBeforeColon === -1) {
