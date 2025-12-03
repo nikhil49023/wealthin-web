@@ -33,23 +33,21 @@ export function cleanAndParseJSON(llmOutput: string) {
     }
   }
 
-  // 3. Handle cases where the initial brace might be missing
-  if (!jsonString.startsWith('{') && !jsonString.startsWith('[') && jsonString.includes(':')) {
-    const firstColon = jsonString.indexOf(':');
-    const braceBeforeColon = jsonString.lastIndexOf('{', firstColon);
-    if (braceBeforeColon === -1) {
-      jsonString = '{' + jsonString;
-      // Attempt to add a closing brace if it seems to be missing
-      if (jsonString.lastIndexOf('}') < jsonString.length - 2) {
-          jsonString += '}';
-      }
-    }
-  }
-
-
   try {
-    // 4. Parse the cleaned string
-    return JSON.parse(jsonString);
+    // 3. Parse the cleaned string
+    let parsed = JSON.parse(jsonString);
+
+    // 4. If the result is an object with a 'transactions' key, extract the array
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) && 'transactions' in parsed && Array.isArray(parsed.transactions)) {
+        parsed = parsed.transactions;
+    }
+    
+    // Ensure the final output is an array
+    if (!Array.isArray(parsed)) {
+       throw new Error("Final parsed content is not a JSON array.");
+    }
+
+    return parsed;
   } catch (error: any) {
     console.error("Failed to parse LLM JSON after cleaning:", error.message);
     console.error("Original AI Output that failed parsing:", llmOutput);

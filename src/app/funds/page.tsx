@@ -438,7 +438,9 @@ export default function FundManagementPage() {
                         <>
                             <DialogHeader>
                                 <DialogTitle>Import Transactions</DialogTitle>
-                                <DialogDescription>Choose an import method. The AI will extract and structure the data for you.</DialogDescription>
+                                <DialogDescription>
+                                  Choose an import method. You can upload multiple images (e.g., screenshots or photos of statements) at once.
+                                </DialogDescription>
                             </DialogHeader>
                              <div className="grid md:grid-cols-2 gap-6 py-4">
                                 <Dropzone

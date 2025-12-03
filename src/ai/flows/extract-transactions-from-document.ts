@@ -37,6 +37,8 @@ The JSON array must be an array of objects, where each object conforms to this e
 `;
 
   const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, [base64Image], vlmSystemPrompt);
+  
+  // Use the robust cleaner to parse the response
   const parsedData = cleanAndParseJSON(jsonResponseText);
   
   // The schema expects an object with a 'transactions' property, so we wrap the array
@@ -52,7 +54,7 @@ export async function extractTransactionsFromDocument(
     const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
     let allTransactions: ExtractedTransaction[] = [];
     
-    // Process each document URI individually
+    // Process each document URI individually using the vision model
     for (const uri of uris) {
         const mimeTypeMatch = uri.match(/^data:(.*?);base64,/);
         if (!mimeTypeMatch) {
@@ -61,12 +63,7 @@ export async function extractTransactionsFromDocument(
         }
         const base64Data = uri.split(',')[1];
         
-        let extracted: ExtractedTransaction[] = [];
-        
-        // Route all file types through the vision model.
-        // Modern VLMs are effective at OCR on document images/PDFs.
-        // This avoids issues with needing a separate PDF text parsing library.
-        extracted = await processWithVisionModel(base64Data);
+        let extracted: ExtractedTransaction[] = await processWithVisionModel(base64Data);
         
         if (extracted.length > 0) {
             allTransactions.push(...extracted);
@@ -83,10 +80,10 @@ export async function extractTransactionsFromDocument(
     return validatedData;
 
   } catch (e: any) {
-    console.error('Error during transaction extraction flow:', e.message);
+    console.error('Error during transaction extraction flow:', e);
     // Provide a more user-friendly error message
-    if (e.message.includes("malformed JSON")) {
-        throw new Error('The AI returned an invalid format. Please try a different document or check the document quality.');
+    if (e.message.includes("AI returned an invalid")) {
+        throw new Error('The AI returned an invalid format that could not be fixed. Please try a different document or check the document quality.');
     }
     throw new Error(e.message || 'Could not extract transactions due to an unexpected error.');
   }
