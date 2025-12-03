@@ -21,7 +21,7 @@ async function processWithVisionModel(base64Image: string): Promise<ExtractedTra
   // Enhanced user prompt with clearer schema instructions
   const vlmUserPrompt = `
 Analyze the provided image of a financial document (like a bank statement page or receipt).
-Your task is to extract all transactions and return them as a valid JSON array.
+Your task is to be exhaustive and extract all transactions, returning them as a valid JSON array.
 
 Each object in the JSON array must conform to this exact schema:
 {
@@ -34,7 +34,7 @@ Each object in the JSON array must conform to this exact schema:
 
 - For dates, always convert them to a standard YYYY-MM-DD format. For example, '03/05/24' becomes '2024-05-03'.
 - The 'amount' field MUST be a raw number.
-- If a clear category cannot be determined, you may omit the 'category' field.
+- If a clear category cannot be determined, you may omit the 'category' field entirely.
 - If no transactions are found, return an empty array [].
 - Be exhaustive. Do not miss any line item that looks like a transaction.
 `;
@@ -64,7 +64,7 @@ Each object in the JSON array must conform to this exact schema:
           console.warn("Returning partially valid data.");
           return partiallyValidData;
       }
-      throw new Error("AI returned a format with missing required fields.");
+      throw new Error(`AI returned a format with missing required fields. Zod errors: ${JSON.stringify(validatedData.error.errors)}`);
   }
   
   return validatedData.data.transactions;
