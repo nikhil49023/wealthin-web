@@ -42,6 +42,10 @@ service cloud.firestore {
       match /savingsGoals/{goalId} {
         allow read, write, delete: if isSignedIn() && isOwner(userId);
       }
+
+      match /scheduledPayments/{paymentId} {
+        allow read, write, delete: if isSignedIn() && isOwner(userId);
+      }
     }
     
     // Rules for the 'msme-profiles' collection (PUBLIC marketplace data)
