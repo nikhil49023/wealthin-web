@@ -3,7 +3,7 @@
 /**
  * @fileOverview A flow for extracting financial transactions from a document using a hybrid, two-stage approach.
  * Stage 1: A vision model performs OCR to extract raw text from the document image.
- * Stage 2: A powerful text model (Qwen Coder) parses the raw text to extract structured transaction data.
+ * Stage 2: A powerful instruction-following text model parses the raw text to extract structured transaction data.
  * This pipeline is more accurate and robust than a single-shot approach.
  */
 import catalystService from '@/services/catalyst';
@@ -56,8 +56,8 @@ ${rawText}
 ---
 `;
 
-  // Use the Qwen Coder model which is optimized for this kind of task
-  const jsonResponseText = await catalystService.generateText(userPrompt, systemPrompt, "crm-di-qwen_coder_7b-it");
+  // Use a general instruction-following model which is better for this task
+  const jsonResponseText = await catalystService.generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
   
   // Use the robust cleaner to parse the response
   const parsedData = cleanAndParseJSON(jsonResponseText);
@@ -74,7 +74,7 @@ ${rawText}
   if (!validatedData.success) {
       console.error("Zod validation failed:", validatedData.error.errors);
       // Even if validation fails, we can try to return the successfully parsed items
-      // This is a more lenient approach
+      // This is a more lenient approach as requested.
       const partiallyValidData = parsedData.filter(item => {
           return 'description' in item && 'date' in item && 'type' in item && 'amount' in item;
       });
