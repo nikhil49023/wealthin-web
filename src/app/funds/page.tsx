@@ -90,6 +90,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
 import CashflowForecast from '@/components/financify/cashflow-forecast';
+import { PDFDocument } from 'pdf-lib';
 
 
 const db = getFirestore(app);
@@ -134,8 +135,7 @@ export default function FundManagementPage() {
   const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
 
   // File Refs
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   
@@ -286,17 +286,39 @@ export default function FundManagementPage() {
     setIsImporting(true);
     startProgressAnimation();
 
-    try {
-      const fileToDataUri = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = error => reject(error);
-        });
-      };
+    let dataUris: string[] = [];
 
-      const dataUris = await Promise.all(Array.from(files).map(fileToDataUri));
+    try {
+        for (const file of Array.from(files)) {
+            if (file.type === 'application/pdf') {
+                const pdfBytes = await file.arrayBuffer();
+                const pdfDoc = await PDFDocument.load(pdfBytes);
+                const pageCount = pdfDoc.getPageCount();
+
+                for (let i = 0; i < pageCount; i++) {
+                    const newPdf = await PDFDocument.create();
+                    const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
+                    newPdf.addPage(copiedPage);
+                    const newPdfBytes = await newPdf.save();
+                    const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+                    const dataUri = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        reader.onload = () => resolve(reader.result as string);
+                        reader.onerror = error => reject(error);
+                    });
+                    dataUris.push(dataUri);
+                }
+            } else if (file.type.startsWith('image/')) {
+                const dataUri = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = error => reject(error);
+                });
+                dataUris.push(dataUri);
+            }
+        }
 
       const result = await extractTransactionsAction({ documentDataUri: dataUris });
 
@@ -439,25 +461,23 @@ export default function FundManagementPage() {
                             <DialogHeader>
                                 <DialogTitle>Import Transactions</DialogTitle>
                                 <DialogDescription>
-                                  Choose an import method. You can upload multiple images (e.g., screenshots or photos of statements) at once.
+                                  Choose a file to import. PDF files will have all pages processed.
                                 </DialogDescription>
                             </DialogHeader>
-                             <div className="grid md:grid-cols-2 gap-6 py-4">
-                                <Dropzone
-                                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFiles(e.dataTransfer.files); }}
-                                    fileInputRef={pdfInputRef}
-                                    accept=".pdf"
-                                    title="Bank Statement"
-                                    icon={FileText}
-                                />
-                                <Dropzone
-                                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFiles(e.dataTransfer.files); }}
-                                    fileInputRef={imageInputRef}
-                                    accept="image/*"
-                                    title="From Picture"
-                                    icon={Image}
-                                />
-                            </div>
+                             <div
+                                className={cn('border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors flex flex-col items-center justify-center mt-4', { 'bg-accent': isDragging })}
+                                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFiles(e.dataTransfer.files); }}
+                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/*" className="hidden" multiple={false} />
+                                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                  <FileUp className="w-8 h-8" />
+                                  <p className="font-semibold">Upload a Document</p>
+                                  <p className="text-xs">Drag & drop or click to upload (PDF, PNG, JPG)</p>
+                                </div>
+                              </div>
                         </>
                     )}
                     {importStep === 'confirm' && (
