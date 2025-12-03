@@ -92,20 +92,35 @@ export async function generateDprSection(
       return { content: financialData };
     }
 
-    // --- Handle all other standard HTML content sections ---
     const ideaJson = JSON.stringify(input.idea, null, 2);
-    let userPrompt = input.basePrompt;
+    let systemPrompt: string;
+    let finalUserMessage: string;
+
+    // --- Handle Refinement/Code Generation ---
     if (input.existingContent && input.refinementPrompt) {
-        userPrompt += `\n\nThe user wants to refine the existing content. Their instruction is: "${input.refinementPrompt}".\n\nHere is the existing content to refine:\n${input.existingContent}`;
-    }
-    const finalUserMessage = userPrompt.replace('{{idea}}', ideaJson);
-    
-    const systemPrompt = `You are an expert consultant hired to write a bank-ready Detailed Project Report (DPR) for an MSME in India.
+        systemPrompt = `You are an expert web developer and financial analyst creating a Detailed Project Report (DPR).
+Your task is to modify an HTML snippet based on a user's instruction.
+The user's instruction may require you to:
+1.  Rewrite or rephrase existing text.
+2.  Add new HTML elements like lists, tables, or complex layouts using Tailwind CSS classes.
+3.  Generate complex visual elements like a roadmap or flowchart using styled HTML and CSS. You can use inline styles if necessary.
+4.  If asked to add a graph or chart, you MUST output a valid JSON object string for Chart.js, NOT an HTML canvas element. For example: \`{"type":"bar","data":{...}}\`.
+
+CRITICAL: Your output MUST be ONLY the raw, complete, and valid HTML content for the section. Do NOT include any other text, markdown, or explanations.
+If generating a chart, output ONLY the stringified JSON object for that chart.`;
+
+        finalUserMessage = `Project Data: ${ideaJson}\n\nRefine the following HTML content for the "${input.section}" section based on my instruction.\n\nInstruction: "${input.refinementPrompt}"\n\nExisting HTML Content:\n\`\`\`html\n${input.existingContent}\n\`\`\``;
+
+    } else {
+    // --- Handle all other standard HTML content sections ---
+        systemPrompt = `You are an expert consultant hired to write a bank-ready Detailed Project Report (DPR) for an MSME in India.
 Your task is to generate the content for ONLY ONE specific section of the DPR.
 All financial figures should be in Indian Rupees (INR).
 The output MUST be ONLY the raw content string, using basic HTML for formatting (e.g., <h3>, <p>, <ul>, <li>, <strong>).
 Do NOT include any other text, markdown, titles, or explanations in your response. Just the raw HTML content.`;
-
+        finalUserMessage = input.basePrompt.replace('{{idea}}', ideaJson);
+    }
+    
     const content = await catalystService.generateText(finalUserMessage, systemPrompt, DPR_MODEL);
     return { content: content };
 

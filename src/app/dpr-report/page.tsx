@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { FormattedText } from '@/components/wealthin/formatted-text';
 
 // --- External Libraries (Simulated Imports for Single File) ---
 declare global {
@@ -458,7 +459,7 @@ function DPRReportContent() {
                         </div>
                     ) : section.key === 'financialProjections' && financialData ? (
                         <div className="space-y-6">
-                            <EditableBlock id="financial-summary" className="prose max-w-none text-gray-700" html={financialData.summaryText} />
+                            <FormattedText html={financialData.summaryText} />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <h4 className="font-bold mb-2">Cost Breakdown</h4>
@@ -473,7 +474,7 @@ function DPRReportContent() {
                                     </div>
                                 </div>
                             </div>
-                             <EditableBlock id="financial-analysis" className="prose max-w-none text-gray-700" html={`
+                             <FormattedText html={`
                                 ${financialData.projectCost}
                                 ${financialData.meansOfFinance}
                                 ${financialData.profitabilityAnalysis}
@@ -535,17 +536,18 @@ function DPRReportContent() {
               <DialogHeader>
                   <DialogTitle>AI Toolkit: Refine Section</DialogTitle>
                   <DialogDescription>
-                      Enter a prompt to ask the AI to refine the content of the selected section.
+                      Ask the AI to modify the content. You can ask for rewrites, new elements like tables, or even visual flowcharts.
                   </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                   <Label htmlFor="refinement-prompt">Your Instruction</Label>
                   <Textarea
                     id="refinement-prompt"
-                    placeholder="e.g., 'Make this more formal', 'Add more details about the competition', 'Shorten this section'"
+                    placeholder="e.g., 'Make this more formal', 'Add a timeline flowchart for the implementation schedule', 'Add a table of competitors'"
                     value={aiToolkitState.refinementPrompt}
                     onChange={(e) => setAiToolkitState(prev => ({ ...prev, refinementPrompt: e.target.value }))}
                     className="mt-2"
+                    rows={4}
                   />
               </div>
               <DialogFooter>
@@ -638,3 +640,4 @@ export default function DPRReportPage() {
         </Suspense>
     )
 }
+
