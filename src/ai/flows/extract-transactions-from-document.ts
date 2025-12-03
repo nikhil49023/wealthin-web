@@ -3,7 +3,7 @@
 /**
  * @fileOverview A flow for extracting financial transactions from a document using a hybrid, two-stage approach.
  * Stage 1: A vision model performs OCR to extract raw text from the document image.
- * Stage 2: A powerful text model (Qwen Instruct) parses the raw text to extract structured transaction data.
+ * Stage 2: A powerful text model (Qwen Coder) parses the raw text to extract structured transaction data.
  * This pipeline is more accurate and robust than a single-shot approach.
  */
 import catalystService from '@/services/catalyst';
@@ -56,8 +56,8 @@ ${rawText}
 ---
 `;
 
-  // Use the Qwen Instruct model which is optimized for this kind of task
-  const jsonResponseText = await catalystService.generateText(userPrompt, systemPrompt, "crm-di-qwen_instruct");
+  // Use the Qwen Coder model which is optimized for this kind of task
+  const jsonResponseText = await catalystService.generateText(userPrompt, systemPrompt, "crm-di-qwen_coder_7b-it");
   
   // Use the robust cleaner to parse the response
   const parsedData = cleanAndParseJSON(jsonResponseText);
