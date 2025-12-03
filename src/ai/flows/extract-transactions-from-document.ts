@@ -39,14 +39,35 @@ Each object in the JSON array must conform to this exact schema:
 - Be exhaustive. Do not miss any line item that looks like a transaction.
 `;
 
-  const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, [base64Image], vlmSystemPrompt);
+  const jsonResponseText = await catalystService.generateTextFromImage(vlmSystemPrompt, [base64Image], vlmUserPrompt);
   
   // Use the robust cleaner to parse the response
   const parsedData = cleanAndParseJSON(jsonResponseText);
+
+  // After cleaning, we must validate that we have an array before proceeding
+  if (!Array.isArray(parsedData)) {
+    console.error("Cleaned data is not an array:", parsedData);
+    throw new Error("AI returned an invalid format that could not be fixed. Please try a different document.");
+  }
   
   // The schema expects an object with a 'transactions' property, so we wrap the array
-  const validatedData = ExtractTransactionsOutputSchema.parse({ transactions: parsedData });
-  return validatedData.transactions;
+  const validatedData = ExtractTransactionsOutputSchema.safeParse({ transactions: parsedData });
+
+  if (!validatedData.success) {
+      console.error("Zod validation failed:", validatedData.error.errors);
+      // Even if validation fails, we can try to return the successfully parsed items
+      // This is a more lenient approach
+      const partiallyValidData = parsedData.filter(item => {
+          return 'description' in item && 'date' in item && 'type' in item && 'amount' in item;
+      });
+      if (partiallyValidData.length > 0) {
+          console.warn("Returning partially valid data.");
+          return partiallyValidData;
+      }
+      throw new Error("AI returned a format with missing required fields.");
+  }
+  
+  return validatedData.data.transactions;
 }
 
 

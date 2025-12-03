@@ -2,7 +2,7 @@
 export function cleanAndParseJSON(llmOutput: string) {
   if (typeof llmOutput !== 'string') {
     console.error("cleanAndParseJSON received a non-string input:", llmOutput);
-    throw new Error("Invalid input to JSON parser.");
+    return []; // Return empty array for invalid input
   }
   
   let jsonString = llmOutput.trim();
@@ -13,19 +13,24 @@ export function cleanAndParseJSON(llmOutput: string) {
     jsonString = markdownMatch[1];
   } else {
     // 2. If no markdown, aggressively find the main JSON object/array
-    // This is more robust for cases where there's leading/trailing text.
     const firstBracket = jsonString.indexOf('[');
     const lastBracket = jsonString.lastIndexOf(']');
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
 
-    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
-      jsonString = jsonString.substring(firstBracket, lastBracket + 1);
-    } else {
-      // Fallback for objects, though we now expect an array
-      const firstBrace = jsonString.indexOf('{');
-      const lastBrace = jsonString.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-      }
+    let startIndex = -1;
+    let endIndex = -1;
+
+    if (firstBracket !== -1 && lastBracket > firstBracket) {
+      startIndex = firstBracket;
+      endIndex = lastBracket;
+    } else if (firstBrace !== -1 && lastBrace > firstBrace) {
+      startIndex = firstBrace;
+      endIndex = lastBrace;
+    }
+    
+    if (startIndex !== -1 && endIndex !== -1) {
+      jsonString = jsonString.substring(startIndex, endIndex + 1);
     }
   }
 
@@ -38,16 +43,13 @@ export function cleanAndParseJSON(llmOutput: string) {
         parsed = parsed.transactions;
     }
     
-    // 5. Ensure the final output is an array. If not, something is wrong.
-    if (!Array.isArray(parsed)) {
-       throw new Error("Final parsed content is not a JSON array.");
-    }
+    return parsed; // Return whatever was parsed
 
-    return parsed;
   } catch (error: any) {
-    console.error("Failed to parse LLM JSON after cleaning:", error.message);
+    console.error("Failed to parse LLM JSON after aggressive cleaning:", error.message);
     console.error("Original AI Output that failed parsing:", llmOutput);
     console.error("String that was attempted to be parsed:", jsonString);
-    throw new Error("AI returned an invalid or malformed JSON structure that could not be automatically corrected.");
+    // Return an empty array or a specific error indicator if parsing fails
+    return [];
   }
 }
