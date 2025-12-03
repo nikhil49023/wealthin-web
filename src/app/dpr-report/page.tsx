@@ -58,10 +58,6 @@ type AiToolkitState = {
 
 type FeedbackState = {
     isOpen: boolean;
-    isSubmitting: boolean;
-    submitted: boolean;
-    rating: 'good' | 'bad' | null;
-    comment: string;
 }
 
 // --- Components ---
@@ -191,7 +187,7 @@ function DPRReportContent() {
   const cropperImageRef = useRef<HTMLImageElement>(null);
   
   const [aiToolkitState, setAiToolkitState] = useState<AiToolkitState>({ isOpen: false, sectionKey: null, refinementPrompt: '', isRefining: false });
-  const [feedbackState, setFeedbackState] = useState<FeedbackState>({ isOpen: false, isSubmitting: false, submitted: false, rating: null, comment: '' });
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>({ isOpen: false });
 
 
   useEffect(() => {
@@ -342,45 +338,9 @@ function DPRReportContent() {
     }
   };
 
-  const handleFeedbackRating = (rating: 'good' | 'bad') => {
-      setFeedbackState({
-          ...feedbackState,
-          isOpen: true,
-          rating: rating,
-      })
+  const handleFeedbackClick = () => {
+    setFeedbackState({ isOpen: true });
   }
-
-  const handleFeedbackSubmit = async () => {
-    if (!feedbackState.rating) return;
-    setFeedbackState(prev => ({ ...prev, isSubmitting: true }));
-    
-    try {
-        const response = await fetch('/api/save-feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                feedback: `${feedbackState.rating.toUpperCase()}: ${feedbackState.comment}`,
-                page: 'DPR Report',
-                ideaTitle: reportInput?.projectName || 'Unknown',
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to submit feedback.');
-        }
-        
-        setFeedbackState(prev => ({ ...prev, submitted: true, isSubmitting: false }));
-
-    } catch (error: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Submission Failed',
-            description: error.message
-        });
-        setFeedbackState(prev => ({...prev, isSubmitting: false}));
-    }
-  }
-
 
   const navItems = dprSectionConfig.map(section => ({
       id: `sec-${section.key}`,
@@ -560,8 +520,8 @@ function DPRReportContent() {
                         <CardDescription>Your feedback helps us improve the AI generation.</CardDescription>
                     </CardHeader>
                     <CardFooter className="gap-2">
-                        <Button variant="outline" onClick={() => handleFeedbackRating('good')}><ThumbsUp className="mr-2" /> Yes</Button>
-                        <Button variant="outline" onClick={() => handleFeedbackRating('bad')}><ThumbsDown className="mr-2" /> No</Button>
+                        <Button variant="outline" onClick={handleFeedbackClick}><ThumbsUp className="mr-2" /> Yes</Button>
+                        <Button variant="outline" onClick={handleFeedbackClick}><ThumbsDown className="mr-2" /> No</Button>
                     </CardFooter>
                 </Card>
             </footer>
@@ -598,67 +558,41 @@ function DPRReportContent() {
           </DialogContent>
       </Dialog>
       
-      <Dialog open={feedbackState.isOpen} onOpenChange={(open) => !open && setFeedbackState(prev => ({...prev, isOpen: false, submitted: false, comment: ''}))}>
+      <Dialog open={feedbackState.isOpen} onOpenChange={(open) => !open && setFeedbackState(prev => ({...prev, isOpen: false}))}>
           <DialogContent>
-            {!feedbackState.submitted ? (
-                <>
-                    <DialogHeader>
-                        <DialogTitle>Provide Feedback</DialogTitle>
-                        <DialogDescription>
-                            Thank you for your rating! Any additional comments can help us improve.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Label htmlFor="feedback-comment">Comments (optional)</Label>
-                        <Textarea
-                            id="feedback-comment"
-                            placeholder="What did you like or dislike?"
-                            value={feedbackState.comment}
-                            onChange={(e) => setFeedbackState(prev => ({...prev, comment: e.target.value}))}
-                            className="mt-2"
-                        />
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
-                        <Button onClick={handleFeedbackSubmit} disabled={feedbackState.isSubmitting}>
-                            {feedbackState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Submit
-                        </Button>
-                    </DialogFooter>
-                </>
-            ) : (
-                <>
-                    <DialogHeader>
-                        <DialogTitle>Thank You!</DialogTitle>
-                        <DialogDescription>
-                            Your feedback has been submitted.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                        <Card className="bg-green-50 border-green-200">
-                           <CardHeader>
-                               <CardTitle className="text-green-900">Ready for the Next Step?</CardTitle>
-                           </CardHeader>
-                            <CardContent className="text-green-800 text-sm space-y-2">
-                                <p>This DPR is structured for review by many financial institutions. Based on your location, you may consider applying to:</p>
-                                <ul className="list-disc list-inside font-semibold">
-                                    <li>Andhra Pradesh State Co-operative Bank</li>
-                                    <li>Saptagiri Grameena Bank</li>
-                                    <li>Other nationalized banks in your area</li>
-                                </ul>
-                            </CardContent>
-                             <CardFooter>
-                                <Button asChild className="bg-green-600 hover:bg-green-700 w-full">
-                                    <Link href="#" target="_blank">Apply Now</Link>
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    </div>
-                </>
-            )}
+            <DialogHeader>
+                <DialogTitle>Thank You!</DialogTitle>
+                <DialogDescription>
+                    We appreciate you helping us improve. Please share your detailed feedback via our form.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Card className="bg-green-50 border-green-200">
+                    <CardHeader>
+                        <CardTitle className="text-green-900">Ready for the Next Step?</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-green-800 text-sm space-y-2">
+                        <p>This DPR is structured for review by many financial institutions. Based on your location, you may consider applying to:</p>
+                        <ul className="list-disc list-inside font-semibold">
+                            <li>Andhra Pradesh State Co-operative Bank</li>
+                            <li>Saptagiri Grameena Bank</li>
+                            <li>Other nationalized banks in your area</li>
+                        </ul>
+                    </CardContent>
+                </Card>
+            </div>
+            <DialogFooter className="sm:justify-between gap-2">
+                <Button asChild variant="secondary" className="w-full sm:w-auto">
+                    <a href="https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4" target="_blank" rel="noopener noreferrer">
+                        Give Feedback
+                    </a>
+                </Button>
+                <Button asChild className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                    <Link href="#" target="_blank">Apply Now</Link>
+                </Button>
+            </DialogFooter>
           </DialogContent>
       </Dialog>
-
 
       {cropperState.isOpen && (
         <div className="fixed inset-0 z-[9999] bg-black bg-opacity-80 flex items-center justify-center p-4">
