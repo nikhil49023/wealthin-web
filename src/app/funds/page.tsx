@@ -90,7 +90,6 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
 import CashflowForecast from '@/components/financify/cashflow-forecast';
-import { PDFDocument } from 'pdf-lib';
 
 
 const db = getFirestore(app);
@@ -281,52 +280,26 @@ export default function FundManagementPage() {
     setImportStep('upload');
   };
 
-  const processFiles = async (files: FileList) => {
-    if (!user || files.length === 0) return;
+  const processFile = async (file: File) => {
+    if (!user) return;
     setIsImporting(true);
     startProgressAnimation();
 
-    let dataUris: string[] = [];
-
     try {
-        for (const file of Array.from(files)) {
-            if (file.type === 'application/pdf') {
-                const pdfBytes = await file.arrayBuffer();
-                const pdfDoc = await PDFDocument.load(pdfBytes);
-                const pageCount = pdfDoc.getPageCount();
+        const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
 
-                for (let i = 0; i < pageCount; i++) {
-                    const newPdf = await PDFDocument.create();
-                    const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
-                    newPdf.addPage(copiedPage);
-                    const newPdfBytes = await newPdf.save();
-                    const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
-                    const dataUri = await new Promise<string>((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.readAsDataURL(blob);
-                        reader.onload = () => resolve(reader.result as string);
-                        reader.onerror = error => reject(error);
-                    });
-                    dataUris.push(dataUri);
-                }
-            } else if (file.type.startsWith('image/')) {
-                const dataUri = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.onerror = error => reject(error);
-                });
-                dataUris.push(dataUri);
-            }
-        }
-
-      const result = await extractTransactionsAction({ documentDataUri: dataUris });
+      const result = await extractTransactionsAction({ documentDataUri: dataUri });
 
       if (result.success && result.data.transactions.length > 0) {
         setExtractedData(result.data.transactions);
         setImportStep('confirm');
       } else {
-        throw new Error(result.error || 'No transactions were extracted from the document(s).');
+        throw new Error(result.error || 'No transactions were extracted from the document.');
       }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Import Failed', description: error.message });
@@ -360,7 +333,7 @@ export default function FundManagementPage() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) processFiles(files);
+    if (files && files[0]) processFile(files[0]);
   };
   
   if (loadingAuth || loading) {
@@ -382,7 +355,7 @@ export default function FundManagementPage() {
         onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
         onClick={() => fileInputRef.current?.click()}
       >
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={accept} className="hidden" multiple />
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={accept} className="hidden" />
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Icon className="w-8 h-8" />
           <p className="font-semibold">{title}</p>
@@ -461,21 +434,21 @@ export default function FundManagementPage() {
                             <DialogHeader>
                                 <DialogTitle>Import Transactions</DialogTitle>
                                 <DialogDescription>
-                                  Choose a file to import. PDF files will have all pages processed.
+                                  Choose a document to import transactions from (e.g., PDF, JPG, PNG).
                                 </DialogDescription>
                             </DialogHeader>
                              <div
                                 className={cn('border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors flex flex-col items-center justify-center mt-4', { 'bg-accent': isDragging })}
-                                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFiles(e.dataTransfer.files); }}
+                                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFile(e.dataTransfer.files[0]); }}
                                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                 onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                 onClick={() => fileInputRef.current?.click()}
                               >
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/*" className="hidden" multiple={false} />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/*" className="hidden" />
                                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                   <FileUp className="w-8 h-8" />
                                   <p className="font-semibold">Upload a Document</p>
-                                  <p className="text-xs">Drag & drop or click to upload (PDF, PNG, JPG)</p>
+                                  <p className="text-xs">Drag & drop or click to upload</p>
                                 </div>
                               </div>
                         </>
