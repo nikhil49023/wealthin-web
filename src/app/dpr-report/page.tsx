@@ -7,7 +7,7 @@ import {
   Menu, X, Upload, ArrowLeft,
   FileText, Building, User, Briefcase, TrendingUp, MapPin, 
   Settings, Calendar, DollarSign, ShieldAlert, Gavel, AlertTriangle, Paperclip,
-  RotateCcw, RotateCw, Loader2
+  RotateCcw, RotateCw, Loader2, ThumbsUp, ThumbsDown, Send
 } from 'lucide-react';
 import { dprSectionConfig } from '@/lib/dpr-config';
 import type { DprQuizData } from '@/ai/schemas/dpr';
@@ -18,7 +18,9 @@ import { FinancialProjectionsBarChart, ProjectCostPieChart } from '@/components/
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 // --- External Libraries (Simulated Imports for Single File) ---
 declare global {
@@ -54,6 +56,13 @@ type AiToolkitState = {
     isRefining: boolean;
 }
 
+type FeedbackState = {
+    isOpen: boolean;
+    isSubmitting: boolean;
+    submitted: boolean;
+    rating: 'good' | 'bad' | null;
+    comment: string;
+}
 
 // --- Components ---
 
@@ -182,6 +191,7 @@ function DPRReportContent() {
   const cropperImageRef = useRef<HTMLImageElement>(null);
   
   const [aiToolkitState, setAiToolkitState] = useState<AiToolkitState>({ isOpen: false, sectionKey: null, refinementPrompt: '', isRefining: false });
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>({ isOpen: false, isSubmitting: false, submitted: false, rating: null, comment: '' });
 
 
   useEffect(() => {
@@ -332,6 +342,45 @@ function DPRReportContent() {
     }
   };
 
+  const handleFeedbackRating = (rating: 'good' | 'bad') => {
+      setFeedbackState({
+          ...feedbackState,
+          isOpen: true,
+          rating: rating,
+      })
+  }
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackState.rating) return;
+    setFeedbackState(prev => ({ ...prev, isSubmitting: true }));
+    
+    try {
+        const response = await fetch('/api/save-feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                feedback: `${feedbackState.rating.toUpperCase()}: ${feedbackState.comment}`,
+                page: 'DPR Report',
+                ideaTitle: reportInput?.projectName || 'Unknown',
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit feedback.');
+        }
+        
+        setFeedbackState(prev => ({ ...prev, submitted: true, isSubmitting: false }));
+
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Submission Failed',
+            description: error.message
+        });
+        setFeedbackState(prev => ({...prev, isSubmitting: false}));
+    }
+  }
+
 
   const navItems = dprSectionConfig.map(section => ({
       id: `sec-${section.key}`,
@@ -356,6 +405,7 @@ function DPRReportContent() {
           <h1 className="text-lg md:text-xl font-bold text-gray-800 truncate">
             DPR <span className="hidden sm:inline font-normal text-gray-500 text-sm ml-2">Review & Edit</span>
           </h1>
+          <Badge variant="outline" className="border-amber-500 text-amber-600">Beta</Badge>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={openAiToolkit} variant="outline" size="sm" className="hidden sm:flex items-center">
@@ -503,6 +553,19 @@ function DPRReportContent() {
                 </section>
             ))}
 
+            <footer className="mt-12 pt-8 border-t-2 border-dashed no-print">
+                <Card className="bg-gray-50 border-gray-200">
+                    <CardHeader>
+                        <CardTitle>Was this report helpful?</CardTitle>
+                        <CardDescription>Your feedback helps us improve the AI generation.</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="gap-2">
+                        <Button variant="outline" onClick={() => handleFeedbackRating('good')}><ThumbsUp className="mr-2" /> Yes</Button>
+                        <Button variant="outline" onClick={() => handleFeedbackRating('bad')}><ThumbsDown className="mr-2" /> No</Button>
+                    </CardFooter>
+                </Card>
+            </footer>
+
           </div>
         </main>
       </div>
@@ -532,6 +595,67 @@ function DPRReportContent() {
                       Refine with AI
                   </Button>
               </DialogFooter>
+          </DialogContent>
+      </Dialog>
+      
+      <Dialog open={feedbackState.isOpen} onOpenChange={(open) => !open && setFeedbackState(prev => ({...prev, isOpen: false, submitted: false, comment: ''}))}>
+          <DialogContent>
+            {!feedbackState.submitted ? (
+                <>
+                    <DialogHeader>
+                        <DialogTitle>Provide Feedback</DialogTitle>
+                        <DialogDescription>
+                            Thank you for your rating! Any additional comments can help us improve.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label htmlFor="feedback-comment">Comments (optional)</Label>
+                        <Textarea
+                            id="feedback-comment"
+                            placeholder="What did you like or dislike?"
+                            value={feedbackState.comment}
+                            onChange={(e) => setFeedbackState(prev => ({...prev, comment: e.target.value}))}
+                            className="mt-2"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                        <Button onClick={handleFeedbackSubmit} disabled={feedbackState.isSubmitting}>
+                            {feedbackState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Submit
+                        </Button>
+                    </DialogFooter>
+                </>
+            ) : (
+                <>
+                    <DialogHeader>
+                        <DialogTitle>Thank You!</DialogTitle>
+                        <DialogDescription>
+                            Your feedback has been submitted.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Card className="bg-green-50 border-green-200">
+                           <CardHeader>
+                               <CardTitle className="text-green-900">Ready for the Next Step?</CardTitle>
+                           </CardHeader>
+                            <CardContent className="text-green-800 text-sm space-y-2">
+                                <p>This DPR is structured for review by many financial institutions. Based on your location, you may consider applying to:</p>
+                                <ul className="list-disc list-inside font-semibold">
+                                    <li>Andhra Pradesh State Co-operative Bank</li>
+                                    <li>Saptagiri Grameena Bank</li>
+                                    <li>Other nationalized banks in your area</li>
+                                </ul>
+                            </CardContent>
+                             <CardFooter>
+                                <Button asChild className="bg-green-600 hover:bg-green-700 w-full">
+                                    <Link href="#" target="_blank">Apply Now</Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </div>
+                </>
+            )}
           </DialogContent>
       </Dialog>
 
