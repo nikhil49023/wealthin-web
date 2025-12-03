@@ -13,23 +13,19 @@ export function cleanAndParseJSON(llmOutput: string) {
     jsonString = markdownMatch[1];
   } else {
     // 2. If no markdown, aggressively find the main JSON object/array
-    const firstBrace = jsonString.indexOf('{');
+    // This is more robust for cases where there's leading/trailing text.
     const firstBracket = jsonString.indexOf('[');
-    
-    let firstIndex = -1;
-    if (firstBrace > -1 && firstBracket > -1) {
-        firstIndex = Math.min(firstBrace, firstBracket);
-    } else {
-        firstIndex = Math.max(firstBrace, firstBracket);
-    }
-
-    const lastBrace = jsonString.lastIndexOf('}');
     const lastBracket = jsonString.lastIndexOf(']');
-    
-    let lastIndex = Math.max(lastBrace, lastBracket);
 
-    if (firstIndex !== -1 && lastIndex !== -1 && lastIndex > firstIndex) {
-      jsonString = jsonString.substring(firstIndex, lastIndex + 1);
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      jsonString = jsonString.substring(firstBracket, lastBracket + 1);
+    } else {
+      // Fallback for objects, though we now expect an array
+      const firstBrace = jsonString.indexOf('{');
+      const lastBrace = jsonString.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+      }
     }
   }
 
@@ -42,7 +38,7 @@ export function cleanAndParseJSON(llmOutput: string) {
         parsed = parsed.transactions;
     }
     
-    // Ensure the final output is an array
+    // 5. Ensure the final output is an array. If not, something is wrong.
     if (!Array.isArray(parsed)) {
        throw new Error("Final parsed content is not a JSON array.");
     }

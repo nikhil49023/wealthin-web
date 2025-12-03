@@ -15,13 +15,15 @@ import { cleanAndParseJSON } from '@/lib/cleanJson';
 
 // This function processes a document or image using the Vision Language Model (VLM)
 async function processWithVisionModel(base64Image: string): Promise<ExtractedTransaction[]> {
+  // Enhanced system prompt for robustness
   const vlmSystemPrompt = `You are an expert financial data analyst specializing in Indian financial documents. You MUST return ONLY a valid JSON array of transactions. Do not include any other text, markdown formatting (like \`\`\`json), or explanations.`;
 
+  // Enhanced user prompt with clearer schema instructions
   const vlmUserPrompt = `
 Analyze the provided image of a financial document (like a bank statement page or receipt).
 Your task is to extract all transactions and return them as a valid JSON array.
 
-The JSON array must be an array of objects, where each object conforms to this exact schema:
+Each object in the JSON array must conform to this exact schema:
 {
   "description": "(string) A clear and concise description of the transaction.",
   "date": "(string) The date of the transaction. IMPORTANT: You must normalize this to YYYY-MM-DD format.",
@@ -34,6 +36,7 @@ The JSON array must be an array of objects, where each object conforms to this e
 - The 'amount' field MUST be a raw number.
 - If a clear category cannot be determined, you may omit the 'category' field.
 - If no transactions are found, return an empty array [].
+- Be exhaustive. Do not miss any line item that looks like a transaction.
 `;
 
   const jsonResponseText = await catalystService.generateTextFromImage(vlmUserPrompt, [base64Image], vlmSystemPrompt);
