@@ -15,9 +15,10 @@ import {
   GraduationCap,
   ArrowRight,
   Sparkles,
-  DollarSign,
+  Shield,
+  Heart,
   PieChart,
-  Megaphone,
+  Combine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,29 +52,56 @@ import { generateInvestmentIdeaAnalysisAction } from '@/app/actions';
 
 const db = getFirestore(app);
 
-const investmentWays = [
-    { 
-        title: "Start an Enterprise", 
-        description: "Analyze a business idea and create a detailed project report.", 
-        icon: Building2,
-        href: "#" // Changed to # to handle click manually
+const governmentSchemes = [
+    {
+        title: "Public Provident Fund (PPF)",
+        description: "A long-term, government-backed savings scheme with tax benefits, ideal for retirement planning.",
+        icon: Shield,
+        href: "https://www.indiapost.gov.in/Financial/Pages/Content/Post-Office-Saving-Schemes.aspx"
     },
-    { 
-        title: "Government Schemes", 
-        description: "Explore central and state schemes for personal investment and savings.", 
-        icon: Landmark,
-        href: "/launchpad" 
-    },
-    { 
-        title: "Stock Market", 
-        description: "Learn about investing in equities for long-term wealth creation.", 
+    {
+        title: "National Pension System (NPS)",
+        description: "A voluntary, defined contribution retirement savings scheme designed to enable a systematic saving habit.",
         icon: TrendingUp,
-        href: "#" 
+        href: "https://npscra.nsdl.co.in/what-is-nps.php"
     },
-    { 
-        title: "Mutual Funds", 
-        description: "Diversify your investments with professionally managed funds.", 
-        icon: Briefcase,
+    {
+        title: "Sukanya Samriddhi Yojana (SSY)",
+        description: "A small savings scheme specifically for the girl child, offering a high interest rate and tax benefits.",
+        icon: Heart,
+        href: "https://www.indiapost.gov.in/Financial/Pages/Content/Post-Office-Saving-Schemes.aspx"
+    },
+    {
+        title: "Senior Citizens' Saving Scheme (SCSS)",
+        description: "A secure investment option for senior citizens, providing a regular income stream post-retirement.",
+        icon: Landmark,
+        href: "https://www.indiapost.gov.in/Financial/Pages/Content/Post-Office-Saving-Schemes.aspx"
+    },
+];
+
+const investmentCategories = [
+    {
+        title: "Equity Mutual Funds",
+        description: "Invest in a diversified portfolio of stocks. Categories include Large, Mid, Small, and Multi-Cap funds.",
+        icon: PieChart,
+        href: "#"
+    },
+    {
+        title: "Debt Mutual Funds",
+        description: "A relatively safer investment option that invests in fixed-income securities like bonds and government securities.",
+        icon: FileText,
+        href: "#"
+    },
+    {
+        title: "Hybrid & Other Funds",
+        description: "A mix of equity and debt to balance risk and return. Includes balanced advantage, multi-asset, and arbitrage funds.",
+        icon: Combine,
+        href: "#"
+    },
+    {
+        title: "Direct Equity (Stocks)",
+        description: "Directly own shares of companies listed on indices like Nifty 50 and Sensex. Higher risk, higher potential reward.",
+        icon: Building2,
         href: "#"
     },
 ];
@@ -109,34 +137,6 @@ const curatedIdeas = [
     }
 ];
 
-const courses = [
-    { 
-        title: "Financial Literacy for Entrepreneurs", 
-        description: "Master budgeting, cash flow, and financial planning for your business.", 
-        icon: DollarSign,
-        href: "#"
-    },
-    { 
-        title: "Digital Marketing Fundamentals", 
-        description: "Learn how to market your product or service online effectively.", 
-        icon: Megaphone,
-        href: "#" 
-    },
-    { 
-        title: "Business Plan Development", 
-        description: "A step-by-step guide to creating a bank-ready business plan.", 
-        icon: PieChart,
-        href: "#" 
-    },
-    { 
-        title: "Sales and Customer Acquisition", 
-        description: "Strategies to find your first customers and grow your revenue.", 
-        icon: TrendingUp,
-        href: "#"
-    },
-];
-
-
 const IDEA_ANALYSIS_COST = 2;
 
 export default function BrainstormPage() {
@@ -150,10 +150,6 @@ export default function BrainstormPage() {
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: true })
   )
-
-  const handleScrollToIdeas = () => {
-    curatedIdeasRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const handleAnalyzeIdea = async (ideaToAnalyze: string) => {
     if (!ideaToAnalyze.trim()) {
@@ -219,16 +215,15 @@ export default function BrainstormPage() {
 
   return (
     <div className="space-y-8">
-      <Card>
+       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Investment Ways in India</CardTitle>
-          <CardDescription>Explore different ways to grow your wealth and build your enterprise.</CardDescription>
+          <CardTitle className="text-2xl flex items-center gap-2"><Landmark className="text-primary"/>Government Schemes</CardTitle>
+          <CardDescription>Explore popular government-backed investment schemes for secure, long-term growth.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {investmentWays.map((item) => {
-            const isEnterpriseCard = item.title === "Start an Enterprise";
-            const CardComponent = (
-                <Card className="h-full hover:border-primary transition-colors cursor-pointer" onClick={isEnterpriseCard ? handleScrollToIdeas : undefined}>
+          {governmentSchemes.map((item) => (
+              <a key={item.title} href={item.href} target="_blank" rel="noopener noreferrer" className="h-full">
+                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
                     <CardHeader>
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-primary/10 rounded-lg">
@@ -241,16 +236,8 @@ export default function BrainstormPage() {
                         <p className="text-sm text-muted-foreground">{item.description}</p>
                     </CardContent>
                 </Card>
-            );
-
-            return isEnterpriseCard ? (
-              <div key={item.title}>{CardComponent}</div>
-            ) : (
-              <Link key={item.title} href={item.href}>
-                {CardComponent}
-              </Link>
-            );
-          })}
+              </a>
+          ))}
         </CardContent>
       </Card>
       
@@ -323,11 +310,11 @@ export default function BrainstormPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2"><GraduationCap className="text-primary"/>Recommended Courses</CardTitle>
-          <CardDescription>Upskill yourself with these courses tailored for entrepreneurs.</CardDescription>
+          <CardTitle className="text-2xl flex items-center gap-2"><Briefcase className="text-primary"/>Explore Investment Categories</CardTitle>
+          <CardDescription>Learn about different categories to diversify your portfolio.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {courses.map((item) => (
+          {investmentCategories.map((item) => (
               <Link key={item.title} href={item.href}>
                 <Card className="h-full hover:border-primary transition-colors cursor-pointer">
                     <CardHeader>
