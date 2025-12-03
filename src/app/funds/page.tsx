@@ -525,7 +525,9 @@ export default function FundManagementPage() {
 
                  <div>
                     <h3 className="text-lg font-semibold mb-2">Tax Deductible Expenses</h3>
-                    <p className="text-sm text-muted-foreground mb-4">Mark your expenses to easily identify them for tax filing purposes.</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      A tax-deductible expense is a cost you incur to run your business that can be subtracted from your taxable income, lowering your tax bill. Common categories include office rent, employee salaries, raw materials, marketing costs, and travel expenses. Use the checklist below to mark your expenses and easily identify them for tax filing purposes.
+                    </p>
                      <div className="max-h-96 overflow-y-auto border rounded-md">
                         <Table>
                             <TableHeader className="sticky top-0 bg-muted">
@@ -565,5 +567,3 @@ export default function FundManagementPage() {
     </div>
   );
 }
-
-    
