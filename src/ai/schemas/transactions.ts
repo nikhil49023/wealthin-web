@@ -24,11 +24,6 @@ export const ExtractedTransactionSchema = z.object({
   amount: z
     .coerce.number()
     .describe("The transaction amount as a number."),
-  category: z
-    .string()
-    .nullable()
-    .optional()
-    .describe("The category of the transaction (e.g., 'Food', 'Transport')."),
   invoiceUrl: z.string().optional().describe("The URL of the attached invoice file in Firebase Storage."),
 });
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;

@@ -28,13 +28,11 @@ Each object in the JSON array must conform to this exact schema:
   "description": "(string) A clear and concise description of the transaction.",
   "date": "(string) The date of the transaction. IMPORTANT: You must normalize this to YYYY-MM-DD format.",
   "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals and 'income' for credits/deposits.",
-  "amount": "(number) The transaction amount as a raw number, without currency symbols or commas. Correctly parse Indian number formats (e.g., '1,23,456.78' becomes 123456.78).",
-  "category": "(string, optional) Categorize the transaction into one of the following: 'Food', 'Transport', 'Shopping', 'Bills & Utilities', 'Entertainment', 'Health', 'Rent', 'Salary', or 'Other'."
+  "amount": "(number) The transaction amount as a raw number, without currency symbols or commas. Correctly parse Indian number formats (e.g., '1,23,456.78' becomes 123456.78)."
 }
 
 - For dates, always convert them to a standard YYYY-MM-DD format. For example, '03/05/24' becomes '2024-05-03'.
 - The 'amount' field MUST be a raw number.
-- If a clear category cannot be determined, you may omit the 'category' field entirely.
 - If no transactions are found, return an empty array [].
 - Be exhaustive. Do not miss any line item that looks like a transaction.
 `;
