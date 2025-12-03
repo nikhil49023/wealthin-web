@@ -33,6 +33,8 @@ import {
   HelpCircle,
   Edit,
   AreaChart,
+  FileText,
+  Image,
 } from 'lucide-react';
 import {
   Dialog,
@@ -131,8 +133,9 @@ export default function FundManagementPage() {
   const [importStep, setImportStep] = useState<'upload' | 'confirm'>('upload');
   const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
 
-  // File Ref
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // File Refs
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   
@@ -333,17 +336,8 @@ export default function FundManagementPage() {
     }
   };
 
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) processFiles(files);
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragging(false);
-    const files = event.dataTransfer.files;
     if (files) processFiles(files);
   };
   
@@ -355,6 +349,26 @@ export default function FundManagementPage() {
       </div>
     );
   }
+
+  const Dropzone = ({ onDrop, fileInputRef, accept, title, icon: Icon }: { onDrop: (e: React.DragEvent<HTMLDivElement>) => void, fileInputRef: React.RefObject<HTMLInputElement>, accept: string, title: string, icon: React.ElementType }) => {
+    const [isDragging, setIsDragging] = useState(false);
+  
+    return (
+      <div
+        className={cn('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center', { 'bg-accent': isDragging })}
+        onDrop={onDrop} onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept={accept} className="hidden" multiple />
+        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <Icon className="w-8 h-8" />
+          <p className="font-semibold">{title}</p>
+          <p className="text-xs">Drag & drop or click to upload</p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -424,43 +438,23 @@ export default function FundManagementPage() {
                         <>
                             <DialogHeader>
                                 <DialogTitle>Import Transactions</DialogTitle>
-                                <DialogDescription>Upload a document (PDF, image, CSV) to automatically extract transactions.</DialogDescription>
+                                <DialogDescription>Choose an import method. The AI will extract and structure the data for you.</DialogDescription>
                             </DialogHeader>
                              <div className="grid md:grid-cols-2 gap-6 py-4">
-                                <div
-                                    className={cn('border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors flex flex-col items-center justify-center', { 'bg-accent': isDragging })}
-                                    onDrop={handleDrop} onDragOver={(e) => {e.preventDefault(); setIsDragging(true);}}
-                                    onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
-                                    onClick={() => fileInputRef.current?.click()}
-                                >
-                                    <input id="document" type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,.png,.jpg,.jpeg,.csv,.txt" className="hidden" multiple />
-                                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                                        <FileUp className="w-8 h-8" />
-                                        <p>Drag & drop file(s) or click to select</p>
-                                    </div>
-                                </div>
-                                <div className="p-4 bg-muted/50 rounded-lg">
-                                    <h4 className="font-semibold flex items-center gap-2 mb-2"><HelpCircle className="h-5 w-5 text-primary"/>For Best Results</h4>
-                                    <p className="text-sm text-muted-foreground mb-3">Ensure your document is clear and readable. For handwritten notes, use a simple table format:</p>
-                                    <Table className="bg-background text-xs">
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Description</TableHead>
-                                                <TableHead>Date</TableHead>
-                                                <TableHead>Type</TableHead>
-                                                <TableHead className="text-right">Amount</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            <TableRow>
-                                                <TableCell>Office Supplies</TableCell>
-                                                <TableCell>25/07/2024</TableCell>
-                                                <TableCell>Expense</TableCell>
-                                                <TableCell className="text-right">1500</TableCell>
-                                            </TableRow>
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                <Dropzone
+                                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFiles(e.dataTransfer.files); }}
+                                    fileInputRef={pdfInputRef}
+                                    accept=".pdf"
+                                    title="Bank Statement"
+                                    icon={FileText}
+                                />
+                                <Dropzone
+                                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFiles(e.dataTransfer.files); }}
+                                    fileInputRef={imageInputRef}
+                                    accept="image/*"
+                                    title="From Picture"
+                                    icon={Image}
+                                />
                             </div>
                         </>
                     )}
