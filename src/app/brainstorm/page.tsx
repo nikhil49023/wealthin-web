@@ -20,6 +20,7 @@ import {
   PieChart,
   Combine,
   Loader2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,12 +31,12 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -43,14 +44,14 @@ import { useAuth } from '@/context/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import Autoplay from "embla-carousel-autoplay"
-import React from 'react';
 import { doc, getFirestore, setDoc, updateDoc, collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { generateInvestmentIdeaAnalysisAction } from '@/app/actions';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
+import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
+import { FormattedText } from '@/components/financify/formatted-text';
 
 const db = getFirestore(app);
 
@@ -148,11 +149,10 @@ export default function BrainstormPage() {
   const { user, userProfile } = useAuth();
   const [showLimitAlert, setShowLimitAlert] = useState(false);
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const plugin = React.useRef(
-    Autoplay({ delay: 3000, stopOnInteraction: true })
-  )
+  const [analysisResult, setAnalysisResult] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
+  const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
   
   useEffect(() => {
     if (user) {
@@ -168,7 +168,6 @@ export default function BrainstormPage() {
     }
   }, [user]);
 
-
   const handleAnalyzeIdea = async (ideaToAnalyze: string) => {
     if (!ideaToAnalyze.trim()) {
       toast({
@@ -181,7 +180,7 @@ export default function BrainstormPage() {
 
     if (!user || !userProfile) {
       toast({ variant: 'destructive', description: 'Please log in to analyze an idea.'});
-      router.push('/');
+      router.push('/login');
       return;
     }
 
@@ -191,6 +190,8 @@ export default function BrainstormPage() {
     }
     
     setIsAnalyzing(true);
+    setAnalysisDialogOpen(true);
+    setAnalysisResult(null); // Clear previous results
     
     const initialAnalysisResult = await generateInvestmentIdeaAnalysisAction({ idea: ideaToAnalyze, transactions });
 
@@ -201,9 +202,13 @@ export default function BrainstormPage() {
         description: initialAnalysisResult.error,
       });
       setIsAnalyzing(false);
+      setAnalysisDialogOpen(false);
       return;
     }
 
+    setAnalysisResult(initialAnalysisResult.data);
+    
+    // Deduct credits after successful analysis
     const userDocRef = doc(db, 'users', user.uid);
     const newCredits = (userProfile.credits ?? 0) - IDEA_ANALYSIS_COST;
 
@@ -213,7 +218,6 @@ export default function BrainstormPage() {
             title: 'Credits Deducted',
             description: `You have been charged ${IDEA_ANALYSIS_COST} credits. Remaining: ${newCredits}`,
         });
-        router.push(`/investment-ideas/custom?idea=${encodeURIComponent(ideaToAnalyze)}`);
       })
       .catch((e) => {
         console.error("Failed to deduct credits:", e);
@@ -228,9 +232,14 @@ export default function BrainstormPage() {
             title: 'Error',
             description: 'Could not deduct credits. Please try again.',
         });
-      }).finally(() => {
-          setIsAnalyzing(false);
       });
+
+    setIsAnalyzing(false);
+  };
+  
+  const handleDialogClose = () => {
+    setAnalysisDialogOpen(false);
+    setAnalysisResult(null);
   };
 
   return (
@@ -266,39 +275,28 @@ export default function BrainstormPage() {
             <h2 className="text-2xl font-bold flex items-center gap-2">Curated Business Ideas</h2>
             <p className="text-muted-foreground">Explore some popular ideas to get started. Click any idea to analyze it instantly.</p>
         </header>
-
-        <Carousel 
-            opts={{ align: "start", loop: true }}
-            plugins={[plugin.current]}
-            onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
-            className="w-full"
-        >
-          <CarouselContent className="-ml-4">
-            {curatedIdeas.map((idea, index) => (
-              <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                <div className="p-1 h-full">
-                  <Card className="h-full flex flex-col justify-between cursor-pointer" onClick={() => handleAnalyzeIdea(idea.idea)}>
-                    <CardHeader>
-                        <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
-                            <div className="p-2 bg-primary/10 rounded-md">
-                                <idea.icon className="h-5 w-5 text-primary" />
-                            </div>
-                        </div>
-                         <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{idea.description}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="absolute left-[-10px] sm:left-[-20px]" />
-          <CarouselNext className="absolute right-[-10px] sm:right-[-20px]" />
-        </Carousel>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {curatedIdeas.map((idea, index) => (
+            <Card 
+              key={index} 
+              className="h-full flex flex-col justify-between cursor-pointer hover:border-primary transition-colors" 
+              onClick={() => handleAnalyzeIdea(idea.idea)}
+            >
+              <CardHeader>
+                  <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
+                      <div className="p-2 bg-primary/10 rounded-md">
+                          <idea.icon className="h-5 w-5 text-primary" />
+                      </div>
+                  </div>
+                    <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">{idea.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
        <Card>
@@ -316,12 +314,12 @@ export default function BrainstormPage() {
             />
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Button onClick={() => handleAnalyzeIdea(userIdea)} disabled={!userIdea.trim() || isAnalyzing} size="lg">
-                {isAnalyzing ? (
+                {isAnalyzing && !analysisResult ? (
                   <Loader2 className="mr-2 animate-spin" />
                 ) : (
                   <Send className="mr-2" />
                 )}
-                {isAnalyzing ? 'Analyzing...' : `Get AI Insights (${IDEA_ANALYSIS_COST} Credits)`}
+                {isAnalyzing && !analysisResult ? 'Analyzing...' : `Get AI Insights (${IDEA_ANALYSIS_COST} Credits)`}
             </Button>
             <Button variant="outline" asChild>
               <Link href="/my-ideas">
@@ -372,6 +370,46 @@ export default function BrainstormPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={analysisDialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            {isAnalyzing ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="animate-spin" />
+                <DialogTitle>Analyzing Idea...</DialogTitle>
+              </div>
+            ) : analysisResult ? (
+              <>
+                <DialogTitle>{analysisResult.title}</DialogTitle>
+                <DialogDescription>{analysisResult.summary}</DialogDescription>
+              </>
+            ) : null}
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto space-y-4">
+            {isAnalyzing ? (
+              <p className="text-muted-foreground text-center">AI is generating insights, please wait...</p>
+            ) : analysisResult ? (
+                Object.entries(analysisResult).map(([key, value]) => {
+                  if (key !== 'title' && key !== 'summary' && value) {
+                    const section = curatedIdeas.find(s => s.idea === key) || { title: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) };
+                    return (
+                        <div key={key}>
+                            <h3 className="font-semibold text-lg mb-2">{section.title}</h3>
+                            <FormattedText text={value as string}/>
+                        </div>
+                    );
+                  }
+                  return null;
+                })
+            ) : (
+                 <p className="text-destructive-foreground text-center">Could not load analysis.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+    

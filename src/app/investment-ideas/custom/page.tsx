@@ -1,7 +1,7 @@
 
 'use client';
 
-import {useEffect, useState, Suspense, useCallback, useRef} from 'react';
+import {useEffect, useState, Suspense, useCallback} from 'react';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {
   Card,
@@ -22,8 +22,6 @@ import {
   ChevronsRight,
   Landmark,
   FileText,
-  Timer,
-  Check,
 } from 'lucide-react';
 import {Skeleton} from '@/components/ui/skeleton';
 import {Button} from '@/components/ui/button';
@@ -45,7 +43,6 @@ import {app} from '@/lib/firebase';
 import { generateInvestmentIdeaAnalysisAction, generateIdeaSectionAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { Progress } from '@/components/ui/progress';
 
 const db = getFirestore(app);
 
@@ -103,8 +100,6 @@ const sectionConfig: Omit<AnalysisSection, 'content' | 'status'>[] = [
   },
 ];
 
-const COOLDOWN_SECONDS = 10;
-
 function InvestmentIdeaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -113,9 +108,6 @@ function InvestmentIdeaContent() {
   const [initialAnalysis, setInitialAnalysis] = useState<{title: string; summary: string} | null>(null);
   const [sections, setSections] = useState<AnalysisSection[]>(() => sectionConfig.map(s => ({ ...s, content: null, status: 'pending' })));
   
-  const [visibleSectionIndex, setVisibleSectionIndex] = useState(-1);
-  const [generatingSectionIndex, setGeneratingSectionIndex] = useState(0);
-
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,11 +115,6 @@ function InvestmentIdeaContent() {
   const {toast} = useToast();
   
   const {translations} = useLanguage();
-  
-  const [cooldown, setCooldown] = useState(0);
-  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const isComplete = visibleSectionIndex >= sections.length - 1;
 
   const handleBuildDpr = () => {
     if (!isSaved) {
@@ -193,119 +180,68 @@ function InvestmentIdeaContent() {
     [user, toast, translations]
   );
   
-  const generateSection = useCallback(async (index: number) => {
-    if (index >= sections.length || !idea) return;
-
-    const sectionConf = sectionConfig[index];
-    setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'loading' } : s));
-
-    try {
-        const result = await generateIdeaSectionAction({
-            idea: idea,
-            section: sectionConf.key,
-            basePrompt: sectionConf.prompt,
-        });
-
-        if (result.success && result.data.content) {
-            setSections(prev => prev.map((s, i) => i === index ? { ...s, content: result.data.content, status: 'done' } : s));
-        } else {
-            throw new Error(result.error || `Failed to generate content for ${sectionConf.title}`);
-        }
-    } catch (err) {
-         setSections(prev => prev.map((s, i) => i === index ? { ...s, content: (err as Error).message, status: 'error' } : s));
-    }
-  }, [idea]);
-  
-  // Effect for initial analysis (title and summary)
+  // Effect for initial analysis and sequential section generation
   useEffect(() => {
-    const generateInitialAnalysis = async () => {
-      if (!idea) {
-        setError(translations.investmentIdea.errorNoIdea);
-        return;
-      }
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+    if (!idea) {
+      setError(translations.investmentIdea.errorNoIdea);
+      return;
+    }
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-      setError(null);
-      
-      try {
-        const result = await generateInvestmentIdeaAnalysisAction({ idea });
+    const generateAnalysis = async () => {
+        setError(null);
         
-        if (result.success) {
-            setInitialAnalysis({ title: result.data.title, summary: result.data.summary });
-            // This triggers the first section generation
-            setVisibleSectionIndex(0); 
-            setGeneratingSectionIndex(0);
-        } else {
-            throw new Error(result.error || 'Failed to generate initial analysis.');
+        // 1. Generate Title and Summary
+        const initialResult = await generateInvestmentIdeaAnalysisAction({ idea });
+        if (!initialResult.success) {
+            setError(initialResult.error || 'Failed to generate initial analysis.');
+            return;
         }
-      } catch (err: any) {
-        setError(err.message);
-      }
+        setInitialAnalysis({ title: initialResult.data.title, summary: initialResult.data.summary });
+
+        // 2. Generate each section sequentially
+        const generatedSections: { [key: string]: string } = {};
+        for (let i = 0; i < sectionConfig.length; i++) {
+            const sectionConf = sectionConfig[i];
+            setSections(prev => prev.map((s, idx) => i === idx ? { ...s, status: 'loading' } : s));
+
+            try {
+                const sectionResult = await generateIdeaSectionAction({
+                    idea: idea,
+                    section: sectionConf.key,
+                    basePrompt: sectionConf.prompt,
+                });
+
+                if (sectionResult.success && sectionResult.data.content) {
+                    generatedSections[sectionConf.key] = sectionResult.data.content;
+                    setSections(prev => prev.map((s, idx) => i === idx ? { ...s, content: sectionResult.data.content, status: 'done' } : s));
+                } else {
+                    throw new Error(sectionResult.error || `Failed to generate content for ${sectionConf.title}`);
+                }
+            } catch (err) {
+                setSections(prev => prev.map((s, idx) => i === idx ? { ...s, content: (err as Error).message, status: 'error' } : s));
+            }
+        }
+        
+        // 3. Save the complete analysis once all sections are done
+        const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = {
+            title: initialResult.data.title,
+            summary: initialResult.data.summary,
+            ...generatedSections
+        } as GenerateInvestmentIdeaAnalysisOutput;
+        
+        await saveAnalysis(fullAnalysis);
     };
-    generateInitialAnalysis();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    generateAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idea, user, router]);
 
 
-  // Effect for sequential section generation
-  useEffect(() => {
-    if (initialAnalysis && generatingSectionIndex < sections.length) {
-      generateSection(generatingSectionIndex);
-    }
-  }, [initialAnalysis, generatingSectionIndex, generateSection, sections.length]);
-
-  // Effect to handle cooldown and next section generation
-  useEffect(() => {
-    const currentSection = sections[visibleSectionIndex];
-    if (currentSection?.status === 'done' || currentSection?.status === 'error') {
-      // Current section is done, start cooldown
-      setCooldown(COOLDOWN_SECONDS);
-
-      // And immediately start generating the NEXT section in the background
-      if (generatingSectionIndex < sections.length - 1) {
-          setGeneratingSectionIndex(prev => prev + 1);
-      }
-    }
-  }, [sections, visibleSectionIndex, generatingSectionIndex]);
-  
-  // Cooldown timer effect
-  useEffect(() => {
-    if (cooldown > 0) {
-      cooldownIntervalRef.current = setInterval(() => {
-        setCooldown(prev => prev - 1);
-      }, 1000);
-    }
-    return () => {
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current);
-      }
-    };
-  }, [cooldown]);
-
-  // Effect to save analysis when all sections are done
-  useEffect(() => {
-    const allGenerated = sections.every(s => s.status === 'done' || s.status === 'error');
-    if (allGenerated && initialAnalysis && !isSaved) {
-        const fullAnalysis: GenerateInvestmentIdeaAnalysisOutput = sections.reduce((acc, section) => {
-            if (section.content && section.status === 'done') {
-                (acc as any)[section.key] = section.content;
-            }
-            return acc;
-        }, { title: initialAnalysis.title, summary: initialAnalysis.summary } as any);
-        saveAnalysis(fullAnalysis);
-    }
-  }, [sections, initialAnalysis, isSaved, saveAnalysis]);
-
-  const handleContinue = () => {
-    if (cooldown > 0) return;
-    if (visibleSectionIndex < sections.length - 1) {
-        setVisibleSectionIndex(prev => prev + 1);
-    }
-  };
-
+  const allSectionsLoaded = sections.every(s => s.status === 'done');
 
   if (error) {
     return (
@@ -330,6 +266,35 @@ function InvestmentIdeaContent() {
             {translations.investmentIdea.backToBrainstorm}
           </Link>
         </Button>
+
+         <div className="flex flex-wrap gap-2 justify-end">
+              <Button
+                onClick={() => {
+                  const fullAnalysis = sections.reduce((acc, section) => ({...acc, [section.key]: section.content}), {title: initialAnalysis?.title, summary: initialAnalysis?.summary}) as any;
+                  saveAnalysis(fullAnalysis);
+                }}
+                disabled={isSaving || isSaved || !user || !allSectionsLoaded}
+                variant="outline"
+              >
+                {isSaved ? (
+                  <>
+                    <CheckCircle className="mr-2" /> {translations.investmentIdea.ideaSaved}
+                  </>
+                ) : isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 animate-spin" /> {translations.investmentIdea.saving}
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2" /> {translations.investmentIdea.addToMyIdeas}
+                  </>
+                )}
+              </Button>
+              <Button onClick={handleBuildDpr} disabled={!allSectionsLoaded || !user || !isSaved}>
+                  <ChevronsRight className="mr-2" />
+                  Build DPR
+              </Button>
+            </div>
       </div>
 
       <Card className="overflow-hidden">
@@ -357,7 +322,7 @@ function InvestmentIdeaContent() {
         <AnimatePresence>
           {sections.map(
             (section, index) => (
-              (index <= visibleSectionIndex && initialAnalysis) &&
+              (section.status !== 'pending' && initialAnalysis) &&
                 <motion.div
                   key={section.key}
                   initial={{opacity: 0, y: 20}}
@@ -377,11 +342,6 @@ function InvestmentIdeaContent() {
                         </div>
                       ) : section.status === 'error' ? (
                          <div className="text-destructive font-semibold">Failed to generate this section.</div>
-                      ) : section.status === 'pending' ? (
-                          <div className="flex items-center justify-center flex-col text-muted-foreground gap-2 h-24">
-                             <Timer className="h-8 w-8" />
-                             <span>Waiting to generate...</span>
-                         </div>
                       ) : (
                         <FormattedText text={section.content || ''} />
                       )}
@@ -392,55 +352,6 @@ function InvestmentIdeaContent() {
           )}
         </AnimatePresence>
       </div>
-      
-      {!isComplete && initialAnalysis && (
-        <div className="flex justify-center mt-8">
-          <Button onClick={handleContinue} disabled={cooldown > 0} size="lg">
-              {cooldown > 0 ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Next section in {cooldown}s
-                </>
-              ) : "Continue"}
-          </Button>
-        </div>
-      )}
-
-
-       {isComplete && (
-          <Card>
-            <CardHeader>
-                <CardTitle>Next Steps</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
-                <Button
-                    onClick={() => saveAnalysis(sections.reduce((acc, section) => ({...acc, [section.key]: section.content}), {title: initialAnalysis?.title, summary: initialAnalysis?.summary}) as any)}
-                    disabled={isSaving || isSaved || !user}
-                    variant="outline"
-                >
-                    {isSaved ? (
-                    <>
-                        <CheckCircle className="mr-2" /> {translations.investmentIdea.ideaSaved}
-                    </>
-                    ) : isSaving ? (
-                    <>
-                        <Loader2 className="mr-2 animate-spin" /> {translations.investmentIdea.saving}
-                    </>
-                    ) : (
-                    <>
-                        <Save className="mr-2" /> {translations.investmentIdea.addToMyIdeas}
-                    </>
-                    )}
-                </Button>
-
-                <Button onClick={handleBuildDpr}>
-                    <ChevronsRight className="mr-2" />
-                    Build DPR
-                </Button>
-            </CardContent>
-          </Card>
-       )}
-
     </div>
   );
 }
@@ -461,3 +372,5 @@ export default function CustomInvestmentIdeaPage() {
     </Suspense>
   );
 }
+
+    
