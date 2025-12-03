@@ -354,7 +354,7 @@ export default function FundManagementPage() {
             <TabsList className="grid w-full grid-cols-3 sm:w-auto">
                 <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
                 <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                <TabsTrigger value="tax">Tax Compliance</TabsTrigger>
+                <TabsTrigger value="tax">Tax</TabsTrigger>
             </TabsList>
             <Dialog open={importDialogOpen} onOpenChange={open => { if (!open) resetImportDialog(); else setImportDialogOpen(true); }}>
                 <DialogTrigger asChild>
@@ -494,7 +494,7 @@ export default function FundManagementPage() {
         <TabsContent value="tax">
           <Card>
             <CardHeader>
-              <CardTitle>Tax Compliance</CardTitle>
+              <CardTitle>Tax</CardTitle>
               <CardDescription>Manage tax-related transactions and access resources.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
