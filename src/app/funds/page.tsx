@@ -33,6 +33,8 @@ import {
   HelpCircle,
   Edit,
   AreaChart,
+  CalendarClock,
+  Check,
 } from 'lucide-react';
 import {
   Dialog,
@@ -80,6 +82,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
@@ -88,6 +91,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
 import CashflowForecast from '@/components/financify/cashflow-forecast';
+import { format, isPast, differenceInDays } from 'date-fns';
 
 
 const db = getFirestore(app);
@@ -95,6 +99,16 @@ const db = getFirestore(app);
 // Data types for new features
 type Investment = { id: string; name: string; type: string; amount: number };
 type Debt = { id: string; name: string; type: string; totalAmount: number; amountPaid: number };
+type ScheduledPayment = { 
+    id: string; 
+    title: string; 
+    amount: number; 
+    dueDate: string; 
+    isPaid: boolean; 
+    type: 'one-time' | 'recurring'; 
+    recurrence?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+};
+
 
 export default function FundManagementPage() {
   const { user, loading: loadingAuth } = useAuth();
@@ -105,11 +119,13 @@ export default function FundManagementPage() {
   const [transactions, setTransactions] = useState<(ExtractedTransaction & { id: string })[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [scheduledPayments, setScheduledPayments] = useState<ScheduledPayment[]>([]);
 
   // Loading states
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [loadingInvestments, setLoadingInvestments] = useState(true);
   const [loadingDebts, setLoadingDebts] = useState(true);
+  const [loadingScheduled, setLoadingScheduled] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -118,6 +134,7 @@ export default function FundManagementPage() {
   const [addInvestmentDialogOpen, setAddInvestmentDialogOpen] = useState(false);
   const [addDebtDialogOpen, setAddDebtDialogOpen] = useState(false);
   const [addTransactionDialogOpen, setAddTransactionDialogOpen] = useState(false);
+  const [addScheduleDialogOpen, setAddScheduleDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -125,6 +142,7 @@ export default function FundManagementPage() {
   const [newInvestment, setNewInvestment] = useState({ name: '', type: 'Stocks', amount: '' });
   const [newDebt, setNewDebt] = useState({ name: '', type: 'Personal Loan', totalAmount: '', amountPaid: '0' });
   const [newTransaction, setNewTransaction] = useState({ description: '', date: '', time: '', type: 'expense' as 'income' | 'expense', amount: '' });
+  const [newScheduledPayment, setNewScheduledPayment] = useState({ title: '', amount: '', dueDate: '', type: 'one-time' as 'one-time' | 'recurring', recurrence: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly' });
 
   // Import flow state
   const [importStep, setImportStep] = useState<'upload' | 'confirm'>('upload');
@@ -145,24 +163,27 @@ export default function FundManagementPage() {
   // Data fetching effects
   useEffect(() => {
     if (!user) return;
-    const collections = {
-      transactions: setLoadingTransactions,
-      investments: setLoadingInvestments,
-      debts: setLoadingDebts,
+    const collections: { [key: string]: React.Dispatch<React.SetStateAction<boolean>> } = {
+        transactions: setLoadingTransactions,
+        investments: setLoadingInvestments,
+        debts: setLoadingDebts,
+        scheduledPayments: setLoadingScheduled,
     };
 
-    const unsubscribes = Object.entries(collections).map(([col, setter]) => {
+    const unsubscribes = Object.entries(collections).map(([colName, setter]) => {
       setter(true);
-      const ref = collection(db, 'users', user.uid, col);
-      const q = col === 'transactions' ? query(ref, orderBy('date', 'desc')) : ref;
+      const ref = collection(db, 'users', user.uid, colName);
+      const q = ['transactions', 'scheduledPayments'].includes(colName) ? query(ref, orderBy('dueDate' in newScheduledPayment ? 'dueDate' : 'date', 'desc')) : ref;
+      
       return onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-        if (col === 'transactions') setTransactions(data);
-        if (col === 'investments') setInvestments(data);
-        if (col === 'debts') setDebts(data);
+        if (colName === 'transactions') setTransactions(data);
+        if (colName === 'investments') setInvestments(data);
+        if (colName === 'debts') setDebts(data);
+        if (colName === 'scheduledPayments') setScheduledPayments(data);
         setter(false);
       }, (error) => {
-        console.error(`Error fetching ${col}:`, error);
+        console.error(`Error fetching ${colName}:`, error);
         setter(false);
       });
     });
@@ -177,7 +198,7 @@ export default function FundManagementPage() {
     }
   }, [user]);
 
-  const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts;
+  const loading = loadingAuth || loadingTransactions || loadingInvestments || loadingDebts || loadingScheduled;
 
   // Financial Health Score Calculation
   const financialHealth = useMemo(() => {
@@ -222,12 +243,12 @@ export default function FundManagementPage() {
         ...data,
         createdAt: serverTimestamp(),
       });
-      toast({ title: 'Success', description: `${collectionName.slice(0, -1)} added.` });
+      toast({ title: 'Success', description: `${collectionName.replace(/([A-Z])/g, ' $1').trim().slice(0, -1)} added.` });
       dialogSetter(false);
-      invalidateDashboardCache();
+      if (collectionName === 'transactions') invalidateDashboardCache();
     } catch (error) {
       console.error(`Error adding ${collectionName}:`, error);
-      toast({ variant: 'destructive', title: 'Error', description: `Could not add ${collectionName.slice(0, -1)}.` });
+      toast({ variant: 'destructive', title: 'Error', description: `Could not add ${collectionName.replace(/([A-Z])/g, ' $1').trim().slice(0, -1)}.` });
     } finally {
       setIsAdding(false);
     }
@@ -238,13 +259,26 @@ export default function FundManagementPage() {
     if (!user) return;
     try {
       await deleteDoc(doc(db, 'users', user.uid, collectionName, id));
-      toast({ title: 'Success', description: `${collectionName.slice(0, -1)} removed.` });
-      invalidateDashboardCache();
+      toast({ title: 'Success', description: `${collectionName.replace(/([A-Z])/g, ' $1').trim().slice(0, -1)} removed.` });
+      if (collectionName === 'transactions') invalidateDashboardCache();
     } catch (error) {
         console.error(`Error deleting ${collectionName}:`, error);
-        toast({ variant: 'destructive', title: 'Error', description: `Could not remove ${collectionName.slice(0, -1)}.` });
+        toast({ variant: 'destructive', title: 'Error', description: `Could not remove ${collectionName.replace(/([A-Z])/g, ' $1').trim().slice(0, -1)}.` });
     }
   };
+  
+   const handleTogglePaidStatus = async (payment: ScheduledPayment) => {
+    if (!user) return;
+    try {
+        const paymentDocRef = doc(db, 'users', user.uid, 'scheduledPayments', payment.id);
+        await updateDoc(paymentDocRef, { isPaid: !payment.isPaid });
+        toast({ title: 'Status Updated', description: `"${payment.title}" marked as ${!payment.isPaid ? 'paid' : 'unpaid'}.` });
+    } catch (e) {
+        console.error('Error updating payment status:', e);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not update payment status.' });
+    }
+  };
+
 
   const startProgressAnimation = () => {
     setImportProgress(0);
@@ -345,7 +379,7 @@ export default function FundManagementPage() {
     if (files) processFiles(files);
   };
   
-  if (loadingAuth || loadingTransactions || loadingInvestments || loadingDebts) {
+  if (loadingAuth || loading) {
     return (
       <div className="flex flex-col justify-center items-center h-full text-center">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
@@ -359,12 +393,7 @@ export default function FundManagementPage() {
     if (!dateString || isNaN(new Date(dateString).getTime())) {
       return "Invalid Date";
     }
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }).format(date);
+    return format(new Date(dateString), 'dd MMM yyyy');
   };
 
   return (
@@ -417,11 +446,12 @@ export default function FundManagementPage() {
 
       <Tabs defaultValue="cashflow">
         <div className="flex flex-wrap gap-4 justify-between items-center">
-            <TabsList className="grid w-full grid-cols-4 sm:w-auto">
+            <TabsList className="grid w-full grid-cols-5 sm:w-auto">
                 <TabsTrigger value="cashflow">Cashflow</TabsTrigger>
                 <TabsTrigger value="transactions">Transactions</TabsTrigger>
                 <TabsTrigger value="investments">Investments</TabsTrigger>
                 <TabsTrigger value="debts">Debts</TabsTrigger>
+                <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
             </TabsList>
             <Dialog open={importDialogOpen} onOpenChange={open => { if (!open) resetImportDialog(); else setImportDialogOpen(true); }}>
                 <DialogTrigger asChild>
@@ -549,7 +579,6 @@ export default function FundManagementPage() {
                           type: newTransaction.type,
                           date: newTransaction.date,
                           time: newTransaction.time,
-                          createdAt: serverTimestamp(),
                         };
                         handleAdd('transactions', dataToSave, setAddTransactionDialogOpen);
                     }}>
@@ -704,8 +733,111 @@ export default function FundManagementPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {/* Scheduled Payments Tab */}
+        <TabsContent value="scheduled">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Scheduled Payments</CardTitle>
+                    <CardDescription>Manage your upcoming and recurring payments.</CardDescription>
+                    <Dialog open={addScheduleDialogOpen} onOpenChange={setAddScheduleDialogOpen}>
+                        <DialogTrigger asChild><Button className="w-fit"><PlusCircle className="mr-2"/> Add Schedule</Button></DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader><DialogTitle>Add New Scheduled Payment</DialogTitle></DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <Input placeholder="Payment Title (e.g., Rent)" value={newScheduledPayment.title} onChange={e => setNewScheduledPayment({...newScheduledPayment, title: e.target.value})}/>
+                                <Input placeholder="Amount" type="number" value={newScheduledPayment.amount} onChange={e => setNewScheduledPayment({...newScheduledPayment, amount: e.target.value})}/>
+                                <Input type="date" value={newScheduledPayment.dueDate} onChange={e => setNewScheduledPayment({...newScheduledPayment, dueDate: e.target.value})}/>
+                                <Select value={newScheduledPayment.type} onValueChange={(v: 'one-time' | 'recurring') => setNewScheduledPayment({...newScheduledPayment, type: v})}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="one-time">One-Time</SelectItem>
+                                        <SelectItem value="recurring">Recurring</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {newScheduledPayment.type === 'recurring' && (
+                                    <Select value={newScheduledPayment.recurrence} onValueChange={(v: 'daily' | 'weekly' | 'monthly' | 'yearly') => setNewScheduledPayment({...newScheduledPayment, recurrence: v})}>
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="daily">Daily</SelectItem>
+                                            <SelectItem value="weekly">Weekly</SelectItem>
+                                            <SelectItem value="monthly">Monthly</SelectItem>
+                                            <SelectItem value="yearly">Yearly</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                                <Button disabled={isAdding} onClick={() => {
+                                    const dataToSave: Partial<ScheduledPayment> = {
+                                        title: newScheduledPayment.title,
+                                        amount: parseFloat(newScheduledPayment.amount),
+                                        dueDate: newScheduledPayment.dueDate,
+                                        isPaid: false,
+                                        type: newScheduledPayment.type,
+                                    };
+                                    if (newScheduledPayment.type === 'recurring') {
+                                        dataToSave.recurrence = newScheduledPayment.recurrence;
+                                    }
+                                    handleAdd('scheduledPayments', dataToSave, setAddScheduleDialogOpen);
+                                }}>
+                                    {isAdding && <Loader2 className="mr-2 animate-spin"/>} Add
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </CardHeader>
+                <CardContent>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-10"></TableHead>
+                                <TableHead>Title</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="w-[80px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {loadingScheduled ? <TableRow><TableCell colSpan={5} className="text-center"><Loader2 className="mx-auto animate-spin"/></TableCell></TableRow> :
+                        scheduledPayments.map(p => {
+                            const isPaymentOverdue = !p.isPaid && isPast(new Date(p.dueDate));
+                            return (
+                            <TableRow key={p.id} className={cn({'opacity-50': p.isPaid})}>
+                                <TableCell>
+                                    <Button size="icon" variant="ghost" onClick={() => handleTogglePaidStatus(p)}>
+                                        <div className={cn("h-5 w-5 rounded-full border-2 flex items-center justify-center", p.isPaid ? "border-green-500 bg-green-500" : "border-muted-foreground")}>
+                                            {p.isPaid && <Check className="h-4 w-4 text-white"/>}
+                                        </div>
+                                    </Button>
+                                </TableCell>
+                                <TableCell>
+                                    <p className={cn("font-medium", {'line-through': p.isPaid})}>{p.title}</p>
+                                    <p className="text-xs text-muted-foreground">{formatDate(p.dueDate)} {p.type === 'recurring' && `(${p.recurrence})`}</p>
+                                </TableCell>
+                                <TableCell>
+                                    {p.isPaid ? <Badge variant="default" className="bg-green-600">Paid</Badge> : 
+                                    isPaymentOverdue ? <Badge variant="destructive">Overdue</Badge> :
+                                    <Badge variant="outline">Upcoming</Badge>
+                                    }
+                                </TableCell>
+                                <TableCell className={cn("text-right font-mono", {'line-through': p.isPaid})}>{formatCurrency(p.amount)}</TableCell>
+                                <TableCell>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDelete('scheduledPayments', p.id)}><Trash2 className="h-4 w-4"/></Button>
+                                </TableCell>
+                            </TableRow>
+                            )
+                        })}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+        </TabsContent>
 
       </Tabs>
     </div>
   );
 }
+
+    
