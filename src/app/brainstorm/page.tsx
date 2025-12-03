@@ -37,6 +37,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -249,55 +256,76 @@ export default function BrainstormPage() {
           <CardTitle className="text-2xl flex items-center gap-2"><Landmark className="text-primary"/>Government Schemes</CardTitle>
           <CardDescription>Explore popular government-backed investment schemes for secure, long-term growth.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {governmentSchemes.map((item) => (
-              <a key={item.title} href={item.href} target="_blank" rel="noopener noreferrer" className="h-full">
-                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg">
-                                <item.icon className="h-6 w-6 text-primary" />
-                            </div>
-                            <CardTitle className="text-lg">{item.title}</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </CardContent>
-                </Card>
-              </a>
-          ))}
+        <CardContent>
+             <Carousel
+                opts={{ align: 'start', loop: true }}
+                className="w-full"
+            >
+                <CarouselContent>
+                    {governmentSchemes.map((item) => (
+                        <CarouselItem key={item.title} className="md:basis-1/2">
+                             <a href={item.href} target="_blank" rel="noopener noreferrer" className="block h-full p-1">
+                                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
+                                    <CardHeader>
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-primary/10 rounded-lg">
+                                                <item.icon className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <CardTitle className="text-lg">{item.title}</CardTitle>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                                    </CardContent>
+                                </Card>
+                            </a>
+                        </CarouselItem>
+                    ))}
+                 </CarouselContent>
+                 <CarouselPrevious className="hidden md:flex" />
+                 <CarouselNext className="hidden md:flex" />
+            </Carousel>
         </CardContent>
       </Card>
       
-      <div className="space-y-4">
-        <header>
+      <Card>
+        <CardHeader>
             <h2 className="text-2xl font-bold flex items-center gap-2">Curated Business Ideas</h2>
             <p className="text-muted-foreground">Explore some popular ideas to get started. Click any idea to analyze it instantly.</p>
-        </header>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {curatedIdeas.map((idea, index) => (
-            <Card 
-              key={index} 
-              className="h-full flex flex-col justify-between cursor-pointer hover:border-primary transition-colors" 
-              onClick={() => handleAnalyzeIdea(idea.idea)}
+        </CardHeader>
+        <CardContent>
+           <Carousel
+                opts={{ align: 'start', loop: true }}
+                className="w-full"
             >
-              <CardHeader>
-                  <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
-                      <div className="p-2 bg-primary/10 rounded-md">
-                          <idea.icon className="h-5 w-5 text-primary" />
-                      </div>
-                  </div>
-                    <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{idea.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+                <CarouselContent>
+                    {curatedIdeas.map((idea, index) => (
+                        <CarouselItem key={index} className="md:basis-1/2">
+                            <Card 
+                            className="h-full flex flex-col justify-between cursor-pointer hover:border-primary transition-colors p-1" 
+                            onClick={() => handleAnalyzeIdea(idea.idea)}
+                            >
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
+                                        <div className="p-2 bg-primary/10 rounded-md">
+                                            <idea.icon className="h-5 w-5 text-primary" />
+                                        </div>
+                                    </div>
+                                        <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">{idea.description}</p>
+                                </CardContent>
+                            </Card>
+                        </CarouselItem>
+                    ))}
+                 </CarouselContent>
+                 <CarouselPrevious className="hidden md:flex" />
+                 <CarouselNext className="hidden md:flex" />
+            </Carousel>
+        </CardContent>
+      </Card>
 
        <Card>
         <CardHeader>
@@ -336,24 +364,35 @@ export default function BrainstormPage() {
           <CardTitle className="text-2xl flex items-center gap-2"><Briefcase className="text-primary"/>Explore Investment Categories</CardTitle>
           <CardDescription>Learn about different categories to diversify your portfolio.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {investmentCategories.map((item) => (
-              <Link key={item.title} href={item.href}>
-                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
-                    <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-primary/10 rounded-lg">
-                                <item.icon className="h-6 w-6 text-primary" />
-                            </div>
-                            <CardTitle className="text-lg">{item.title}</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </CardContent>
-                </Card>
-              </Link>
-          ))}
+        <CardContent>
+            <Carousel
+                opts={{ align: 'start', loop: true }}
+                className="w-full"
+            >
+                <CarouselContent>
+                    {investmentCategories.map((item) => (
+                        <CarouselItem key={item.title} className="md:basis-1/2">
+                           <Link href={item.href} className="block p-1 h-full">
+                                <Card className="h-full hover:border-primary transition-colors cursor-pointer">
+                                    <CardHeader>
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-3 bg-primary/10 rounded-lg">
+                                                <item.icon className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <CardTitle className="text-lg">{item.title}</CardTitle>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                                    </CardContent>
+                                </Card>
+                            </Link>
+                        </CarouselItem>
+                    ))}
+                 </CarouselContent>
+                 <CarouselPrevious className="hidden md:flex" />
+                 <CarouselNext className="hidden md:flex" />
+            </Carousel>
         </CardContent>
       </Card>
 
