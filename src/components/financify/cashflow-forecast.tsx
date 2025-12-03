@@ -1,9 +1,9 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { AlertTriangle, CheckCircle, Calendar, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Calendar, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 import {
   Carousel,
@@ -12,6 +12,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Button } from '@/components/ui/button';
 
 // --- Types ---
 type DailyData = {
@@ -30,6 +31,15 @@ type CashflowForecastProps = {
 
 export default function CashflowForecast({ transactions, isLoading }: CashflowForecastProps) {
   const LOW_BALANCE_THRESHOLD = 5000;
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const handlePreviousMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+  
+  const handleNextMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
 
   // --- Core Forecasting Logic ---
   const { historicalData, lowestPoint } = useMemo(() => {
@@ -37,17 +47,12 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
       return { historicalData: [], lowestPoint: null };
     }
 
-    // 1. Find the latest transaction date
-    const latestDate = new Date(
-      Math.max(
-        ...transactions.map(t => new Date(t.date).getTime())
-      )
-    );
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
 
-    // 2. Set the 30-day window
-    const endDate = new Date(latestDate);
-    const startDate = new Date(latestDate);
-    startDate.setDate(startDate.getDate() - 29); // 30 days total including end date
+    // 2. Set the window for the selected month
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
 
     // 3. Calculate initial balance before the window starts
     let runningBalance = transactions
@@ -60,12 +65,18 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     const data: DailyData[] = [];
     const tempDate = new Date(startDate);
 
-    // 4. Iterate through the 30-day window
+    // 4. Iterate through the selected month
     while (tempDate <= endDate) {
       const currentDateString = tempDate.toISOString().split('T')[0];
       
       const todaysTransactions = transactions.filter(
-        t => new Date(t.date).toISOString().split('T')[0] === currentDateString
+        t => {
+            try {
+                return new Date(t.date).toISOString().split('T')[0] === currentDateString;
+            } catch (e) {
+                return false;
+            }
+        }
       );
 
       let dailyIncome = 0;
@@ -104,7 +115,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     const finalLowestPoint = data.reduce((min, p) => (p.balance < min.balance ? p : min), data[0] || null);
 
     return { historicalData: data, lowestPoint: finalLowestPoint };
-  }, [transactions]);
+  }, [transactions, currentDate]);
 
   const weeklyChunks = useMemo(() => {
     const chunks = [];
@@ -128,6 +139,10 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
   };
+  
+  const formatMonthYear = (date: Date) => {
+    return new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(date);
+  }
 
   if (isLoading) {
       return (
@@ -188,7 +203,16 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Cashflow Analysis</h2>
-          <p className="text-slate-500 text-sm">Reviewing your balance over the last 30 days of activity.</p>
+          <p className="text-slate-500 text-sm">Reviewing your account balance over time.</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full bg-muted p-1">
+            <Button size="icon" variant="ghost" onClick={handlePreviousMonth}>
+                <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <span className="font-semibold text-sm w-32 text-center">{formatMonthYear(currentDate)}</span>
+            <Button size="icon" variant="ghost" onClick={handleNextMonth}>
+                <ChevronRight className="h-5 w-5" />
+            </Button>
         </div>
       </div>
 
@@ -201,7 +225,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
             
             <div>
               <h3 className="font-semibold text-slate-800">
-                {lowestPoint.status === 'danger' ? 'Critical Cashflow Event' : lowestPoint.status === 'warning' ? 'Low Balance Recorded' : 'Historical Snapshot'}
+                {lowestPoint.status === 'danger' ? 'Critical Cashflow Event' : lowestPoint.status === 'warning' ? 'Low Balance Recorded' : 'Monthly Snapshot'}
               </h3>
               <p className="text-sm text-slate-600 mt-1">
                 Your balance hit a low of <span className="font-bold">{formatINR(lowestPoint.balance)}</span> on <strong>{formatDate(lowestPoint.date)}</strong> during this period.
@@ -242,7 +266,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
 
       <div className="space-y-3">
         <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-          <Calendar className="w-4 h-4" /> 30-Day Breakdown
+          <Calendar className="w-4 h-4" /> Daily Breakdown
         </h3>
         
         {/* Mobile Carousel View */}
@@ -263,7 +287,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
         </div>
 
         {/* Desktop Grid View */}
-        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {historicalData.map((day) => (
             <BreakdownCard key={day.date.toISOString()} day={day} />
           ))}
@@ -272,5 +296,3 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     </div>
   );
 }
-
-    
