@@ -13,15 +13,30 @@ class CatalystService {
   private tokenExpiry: Date | null = null;
 
   constructor() {
-    this.clientId = process.env.ZOHO_CLIENT_ID!;
-    this.clientSecret = process.env.ZOHO_CLIENT_SECRET!;
-    this.refreshToken = process.env.ZOHO_REFRESH_TOKEN!;
-    this.projectId = process.env.ZOHO_PROJECT_ID!;
-    this.orgId = process.env.ZOHO_CATALYST_ORG_ID!;
+    // --- Environment Variable Validation ---
+    const requiredVars = {
+      ZOHO_CLIENT_ID: process.env.ZOHO_CLIENT_ID,
+      ZOHO_CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET,
+      ZOHO_REFRESH_TOKEN: process.env.ZOHO_REFRESH_TOKEN,
+      ZOHO_PROJECT_ID: process.env.ZOHO_PROJECT_ID,
+      ZOHO_CATALYST_ORG_ID: process.env.ZOHO_CATALYST_ORG_ID,
+    };
 
-    if (!this.clientId || !this.clientSecret || !this.refreshToken || !this.projectId || !this.orgId) {
-        console.error("CRITICAL: One or more Zoho Catalyst environment variables are not configured.");
+    const missingVars = Object.entries(requiredVars).filter(([key, value]) => !value);
+
+    if (missingVars.length > 0) {
+      const missingVarKeys = missingVars.map(([key]) => key).join(', ');
+      throw new Error(
+        `CRITICAL STARTUP ERROR: The following environment variables are missing from the deployment environment: [${missingVarKeys}]. Please set them in your hosting provider's configuration.`
+      );
     }
+    // --- End Validation ---
+
+    this.clientId = requiredVars.ZOHO_CLIENT_ID!;
+    this.clientSecret = requiredVars.ZOHO_CLIENT_SECRET!;
+    this.refreshToken = requiredVars.ZOHO_REFRESH_TOKEN!;
+    this.projectId = requiredVars.ZOHO_PROJECT_ID!;
+    this.orgId = requiredVars.ZOHO_CATALYST_ORG_ID!;
   }
 
   private async getValidAccessToken(): Promise<string> {
@@ -46,7 +61,7 @@ class CatalystService {
 
       if (data.error) {
         if (data.error === 'invalid_client') {
-            console.error("Zoho 'invalid_client' error: This usually means ZOHO_CLIENT_ID or ZOHO_CLIENT_SECRET are incorrect. Please verify your .env file.");
+            console.error("Zoho 'invalid_client' error: This usually means ZOHO_CLIENT_ID or ZOHO_CLIENT_SECRET are incorrect in the deployment environment. Please verify your hosting provider's environment variable settings.");
         }
         throw new Error(`Zoho token refresh failed: ${data.error}`);
       }
