@@ -86,7 +86,9 @@ ${transactionsSample}
       suggestion: suggestion || 'Review your spending to find potential savings opportunities.',
     };
   } catch (e: any) {
-    if (e.message.includes('Access Denied')) {
+    // This is the new, more robust error handling.
+    // It specifically checks for the configuration error and provides a user-friendly message.
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
        return {
         totalIncome,
         totalExpenses,
@@ -94,6 +96,7 @@ ${transactionsSample}
         suggestion: 'AI features are temporarily unavailable due to a configuration issue. Please contact support.',
       };
     }
-    throw e; // Re-throw other errors
+    // Re-throw other, unexpected errors so they can still be debugged.
+    throw e; 
   }
 }

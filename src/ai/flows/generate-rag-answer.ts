@@ -38,7 +38,8 @@ Based on the transaction history and the user's query, provide a helpful answer.
 
     return { answer: answer?.trim() || 'I apologize, but I could not generate financial advice at this moment. Please try again or rephrase your question.' };
   } catch (e: any) {
-    if (e.message.includes('Access Denied')) {
+    // This is the new, more robust error handling.
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
         return { answer: 'The AI Advisor is temporarily unavailable due to a configuration issue. Please contact support.'};
     }
     console.error('Failed to get response from AI service:', e);

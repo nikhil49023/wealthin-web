@@ -32,6 +32,9 @@ Generate the content now.
     return { content: text };
   } catch (e: any) {
     console.error("Failed to generate AI response for section \"" + section + "\":", e.message);
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+      return { content: `<p class="text-destructive">Error: AI features are temporarily unavailable due to a configuration issue.</p>` };
+    }
     throw new Error("The AI returned an invalid format for the " + section + " section.");
   }
 }

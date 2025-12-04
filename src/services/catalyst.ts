@@ -1,4 +1,6 @@
 
+'use server';
+
 import type { GenerateRagAnswerInput } from '@/ai/schemas/rag-answer';
 import fetch from 'node-fetch';
 
@@ -14,7 +16,7 @@ class CatalystService {
   private isInitialized = false;
 
   constructor() {
-    // Defer initialization to an explicit method
+    // Constructor is now intentionally empty. Initialization is deferred.
   }
 
   private initialize() {
@@ -35,6 +37,7 @@ class CatalystService {
 
     if (missingVars.length > 0) {
       const missingVarKeys = missingVars.map(([key]) => key).join(', ');
+      // This error will now only be thrown at runtime when an API call is made.
       throw new Error(
         `CRITICAL RUNTIME ERROR: The following environment variables are missing from the deployment environment: [${missingVarKeys}]. Please set them in your hosting provider's configuration.`
       );
@@ -51,7 +54,8 @@ class CatalystService {
   }
 
   private async getValidAccessToken(): Promise<string> {
-    this.initialize(); // Ensure service is initialized before use
+    // Defer initialization to the first moment it's actually needed.
+    this.initialize(); 
 
     if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
       return this.accessToken;
