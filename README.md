@@ -65,7 +65,7 @@ This section provides resources and community connections to help you launch and
 - **Generative AI**: [Google AI (Gemini)](https://ai.google/)
 - **Icons**: [Lucide React](https://lucide.dev/guide/packages/lucide-react)
 
-## 🛠️ Getting Started & Pushing to Your Own Repository
+## 🛠️ Pushing to Your Own GitHub Repository
 
 To get this project's code into your own GitHub repository, follow these steps in your local terminal.
 
@@ -77,10 +77,12 @@ git remote set-url origin https://github.com/nikhil49023/wealthin
 ```
 
 ### 2. Push the Code
-Finally, push all the code to your new repository. The `-u` flag sets the new remote as the default for future pushes.
+Next, you will "force push" the `main` branch. This is necessary to overwrite the initial commit that GitHub may have created automatically.
+
+**Warning**: Use the `-f` (force) flag with caution. It is safe here because you are setting up the repository for the first time.
 
 ```bash
-git push -u origin main
+git push -u -f origin main
 ```
 
-Now, your new GitHub repository at `https://github.com/nikhil49023/wealthin will contain all the code for the WealthIn app.
+Now, your new GitHub repository at `https://github.com/nikhil49023/wealthin` will contain all the code for the WealthIn app, and you can push future changes with a simple `git push`.
