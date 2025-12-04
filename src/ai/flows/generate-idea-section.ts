@@ -35,6 +35,7 @@ Generate the content now.
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
       return { content: `<p class="text-destructive">Error: AI features are temporarily unavailable due to a configuration issue.</p>` };
     }
-    throw new Error("The AI returned an invalid format for the " + section + " section.");
+    // Re-throwing the error to be caught by the action
+    throw new Error(`The AI returned an invalid format for the ${section} section.`);
   }
 }

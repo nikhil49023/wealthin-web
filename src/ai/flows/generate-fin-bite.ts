@@ -35,6 +35,9 @@ Provide one update for each of the three categories.
     const parsed = JSON.parse(cleanedText);
     return GenerateFinBiteOutputSchema.parse(parsed);
   } catch (e: any) {
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+       throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
+    }
     console.error('Failed to parse JSON from model response:', e.message);
     throw new Error('Could not generate Fin Bites. The AI returned an invalid format.');
   }

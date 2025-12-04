@@ -57,6 +57,9 @@ Structure your response as a valid JSON object:
     };
 
   } catch (e: any) {
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+       throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
+    }
     console.error('Failed to parse JSON from model response:', e);
     throw new Error('Could not generate the idea analysis. The AI returned an invalid format.');
   }

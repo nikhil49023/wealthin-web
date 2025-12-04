@@ -119,6 +119,9 @@ ${transactionsList}
     return GenerateBudgetReportOutputSchema.parse(parsed);
     
   } catch (e: any) {
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+       throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
+    }
     console.error('Failed to parse JSON from model response:', e.message);
     throw new Error('Could not generate budget report. The AI returned an invalid format.');
   }

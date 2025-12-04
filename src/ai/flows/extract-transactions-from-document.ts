@@ -91,6 +91,9 @@ export async function extractTransactionsFromDocument(
     return validatedData;
 
   } catch (e: any) {
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+       throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
+    }
     console.error('Error during transaction extraction flow:', e);
     // If it's a Zod validation error, the message will be more informative
     const errorMessage = e.errors ? JSON.stringify(e.errors, null, 2) : e.message;

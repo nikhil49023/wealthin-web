@@ -125,6 +125,9 @@ Do NOT include any other text, markdown, titles, or explanations in your respons
     return { content: content };
 
   } catch (e: any) {
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+       throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
+    }
     console.error(`Failed to generate or parse DPR section "${input.section}" from AI:`, e);
     // Correctly extract Zod error messages if they exist
     const errorMessage = e instanceof z.ZodError ? JSON.stringify(e.errors, null, 2) : e.message;
