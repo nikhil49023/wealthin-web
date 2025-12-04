@@ -72,26 +72,31 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
     }
   }, [user]);
 
+  // Effect to handle the entire initial message flow
   useEffect(() => {
     const welcomeMessage: Message = {
       id: getUniqueMessageId(),
       text: translations.aiAdvisor.welcome,
       sender: 'ai',
     };
+    
+    // Set initial state
+    setMessages([welcomeMessage]);
 
+    // If there's an initial message, handle the user message and AI response
     if (initialMessage) {
         const initialUserMessage: Message = {
             id: getUniqueMessageId(),
             text: initialMessage,
             sender: 'user',
         };
-        setMessages([welcomeMessage, initialUserMessage]);
+        setMessages(prev => [...prev, initialUserMessage]);
+        // Trigger the AI response for the initial message
         handleSendMessage(undefined, initialMessage);
-    } else {
-        setMessages([welcomeMessage]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage]);
+
 
   const scrollToBottom = () => {
     bottomOfChatRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -103,12 +108,13 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
 
   const handleSendMessage = async (
     e?: React.FormEvent,
-    messageText?: string
+    messageText?: string,
   ) => {
     e?.preventDefault();
     const queryText = messageText || input;
     if (!queryText.trim() || isLoading) return;
 
+    // Only add the user message if it's not an initial message flow
     if (!messageText) {
       const newUserMessage: Message = {
         id: getUniqueMessageId(),
@@ -175,7 +181,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
                     : 'bg-muted'
                 }`}
               >
-                {message.sender === 'user' ? <p>{message.text}</p> : <FormattedText text={message.text} />}
+                {message.sender === 'user' ? <p>{message.text}</p> : <FormattedText html={message.text} />}
                  {message.sender === 'ai' && index > 0 && (
                   <Badge variant="outline" className="mt-3 border-blue-200 bg-blue-50 text-blue-800 text-xs">
                     Powered by WealthIn AI

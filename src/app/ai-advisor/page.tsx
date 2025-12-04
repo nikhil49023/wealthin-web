@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShieldAlert, Lightbulb, Send } from 'lucide-react';
 
 export default function AIAdvisorPage() {
+  // The key is now used to force-remount the chat component with a new initial question.
+  const [chatKey, setChatKey] = useState(Date.now());
   const [initialQuestion, setInitialQuestion] = useState<string | undefined>();
   
   const sampleQuestions = [
@@ -18,9 +20,8 @@ export default function AIAdvisorPage() {
   ];
 
   const handleSampleQuestionClick = (question: string) => {
-    // By changing the key of the AIAdvisorChat component, we force it to remount
-    // with the new initial question.
     setInitialQuestion(question);
+    setChatKey(Date.now()); // Change the key to force a remount
   };
 
   return (
@@ -59,7 +60,7 @@ export default function AIAdvisorPage() {
 
       <Card className="flex-1 flex flex-col h-full overflow-hidden">
         <CardContent className="flex-1 flex flex-col p-0">
-          <AIAdvisorChat key={initialQuestion} initialMessage={initialQuestion} />
+          <AIAdvisorChat key={chatKey} initialMessage={initialQuestion} />
         </CardContent>
       </Card>
     </div>

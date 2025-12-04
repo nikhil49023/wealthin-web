@@ -18,15 +18,14 @@ export async function generateRagAnswer(
         ?.map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
         .join('\n') || 'No transaction history provided.';
 
-    const systemPrompt = `You are a helpful financial advisor for an app named "WealthIn". Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting. ALWAYS provide a helpful answer, even if you have to give general advice when context is limited.`;
+    const systemPrompt = `You are a helpful financial advisor for an app named "WealthIn". Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting (like **bold** and lists). ALWAYS provide a helpful answer, even if you have to give general advice when context is limited.`;
 
-    const fullPrompt = `
-Here is my transaction history for context:
+    const fullPrompt = `My question is: "${input.query}"
+
+Here is my recent transaction history for context:
 ---
 ${transactionsList}
 ---
-
-My question is: "${input.query}"
 `;
     
     const answer = await generateText(fullPrompt, systemPrompt);
@@ -41,6 +40,7 @@ My question is: "${input.query}"
         return { answer: 'The AI Advisor is temporarily unavailable due to a configuration issue. Please contact support.'};
     }
     console.error('Failed to get response from AI service:', e);
-    throw new Error(`An error occurred while processing the AI response: ${e.message}`);
+    // Return a user-friendly error message instead of throwing
+    return { answer: `I'm sorry, an error occurred while trying to get your answer: ${e.message}` };
   }
 }
