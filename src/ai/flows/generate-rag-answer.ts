@@ -14,31 +14,29 @@ export async function generateRagAnswer(
   input: GenerateRagAnswerInput
 ): Promise<GenerateRagAnswerOutput> {
   try {
-    // Construct the prompt for the new llm/chat endpoint
     const transactionsList = input.transactions
         ?.map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
-        .join('\n') || 'No transactions provided.';
+        .join('\n') || 'No transaction history provided.';
 
-    const systemPrompt = `You are a helpful financial advisor named WealthIn. Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting. Be concise.`;
+    const systemPrompt = `You are a helpful financial advisor for an app named "WealthIn". Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting. ALWAYS provide a helpful answer, even if you have to give general advice when context is limited.`;
 
     const fullPrompt = `
-Context: You are providing financial advice.
-
-Recent User Transactions (for context):
+Here is my transaction history for context:
 ---
 ${transactionsList}
 ---
 
-User Query: "${input.query}"
-
-Based on the transaction history and the user's query, provide a helpful answer.
+My question is: "${input.query}"
 `;
     
     const answer = await generateText(fullPrompt, systemPrompt);
 
-    return { answer: answer?.trim() || 'I apologize, but I could not generate financial advice at this moment. Please try again or rephrase your question.' };
+    if (!answer?.trim()) {
+        return { answer: 'I apologize, but I could not generate a specific answer for that. Could you please rephrase your question or provide more details?' };
+    }
+
+    return { answer: answer.trim() };
   } catch (e: any) {
-    // This is the new, more robust error handling.
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
         return { answer: 'The AI Advisor is temporarily unavailable due to a configuration issue. Please contact support.'};
     }
