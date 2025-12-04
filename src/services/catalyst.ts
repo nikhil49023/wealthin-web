@@ -170,14 +170,21 @@ class CatalystService {
   }
 }
 
-// Create a single instance of the service
-const catalystService = new CatalystService();
+// --- Lazy-loading Singleton Pattern ---
+let catalystServiceInstance: CatalystService | null = null;
+
+function getCatalystService(): CatalystService {
+    if (!catalystServiceInstance) {
+        catalystServiceInstance = new CatalystService();
+    }
+    return catalystServiceInstance;
+}
 
 // Export the public methods as async functions
 export const generateText = async (prompt: string, system_prompt?: string, model?: string): Promise<any> => {
-  return catalystService.generateText(prompt, system_prompt, model);
+  return getCatalystService().generateText(prompt, system_prompt, model);
 };
 
 export const generateTextFromImage = async (prompt: string, base64Images: string[], system_prompt: string): Promise<any> => {
-  return catalystService.generateTextFromImage(prompt, base64Images, system_prompt);
+  return getCatalystService().generateTextFromImage(prompt, base64Images, system_prompt);
 };
