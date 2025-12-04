@@ -1,3 +1,4 @@
+
 'use client';
 
 import './globals.css';
@@ -133,7 +134,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-body antialiased`}>
         <LanguageProvider>
           <AuthProvider>
-            <Suspense>
+            <Suspense key="firebase-error-listener">
               <FirebaseErrorListener />
             </Suspense>
             <AppContent>{children}</AppContent>
