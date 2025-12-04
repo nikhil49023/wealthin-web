@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Error in refine-dpr-section API:', error);
     return NextResponse.json(
-      { message: \`Failed to refine section: \${error.message}\` },
+      { message: `Failed to refine section: ${error.message}` },
       { status: 500 }
     );
   }
