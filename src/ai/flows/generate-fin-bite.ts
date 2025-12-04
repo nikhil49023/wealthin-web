@@ -7,6 +7,7 @@
 import { generateText } from '@/services/catalyst';
 import type {GenerateFinBiteOutput} from '@/ai/schemas/fin-bite';
 import { GenerateFinBiteOutputSchema } from '@/ai/schemas/fin-bite';
+import { cleanAndParseJSON } from '@/lib/cleanJson';
 
 export async function generateFinBite(): Promise<GenerateFinBiteOutput> {
   const systemPrompt = `You are "WealthIn," a specialized financial news anchor for early-stage entrepreneurs in India.
@@ -31,14 +32,13 @@ Provide one update for each of the three categories.
 
   try {
     const responseText = await generateText(userPrompt, systemPrompt);
-    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(cleanedText);
+    const parsed = cleanAndParseJSON(responseText);
     return GenerateFinBiteOutputSchema.parse(parsed);
   } catch (e: any) {
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
        throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
     }
-    console.error('Failed to parse JSON from model response:', e.message);
+    console.error('Failed to parse JSON from model response:', e);
     throw new Error('Could not generate Fin Bites. The AI returned an invalid format.');
   }
 }
