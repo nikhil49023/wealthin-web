@@ -24,7 +24,6 @@ import Link from 'next/link';
 
 function DPREditorContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [analysisData, setAnalysisData] = useState<GenerateInvestmentIdeaAnalysisOutput | null>(null);
   const [quizData, setQuizData] = useState<DprQuizData | null>(null);
@@ -118,4 +117,3 @@ export default function DPREditorPage() {
         </Suspense>
     );
 }
-

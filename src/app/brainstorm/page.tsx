@@ -19,9 +19,6 @@ import {
   Heart,
   PieChart,
   Combine,
-  Loader2,
-  X,
-  Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,17 +49,6 @@ import { useAuth } from '@/context/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { doc, getFirestore, setDoc, updateDoc, collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { app } from '@/lib/firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { generateInvestmentIdeaAnalysisAction, generateIdeaSectionAction } from '@/app/actions';
-import type { ExtractedTransaction } from '@/ai/schemas/transactions';
-import type { GenerateInvestmentIdeaAnalysisOutput } from '@/ai/schemas/investment-idea-analysis';
-import { FormattedText } from '@/components/wealthin/formatted-text';
-import { Skeleton } from '@/components/ui/skeleton';
-
-const db = getFirestore(app);
 
 const governmentSchemes = [
     {
@@ -124,147 +110,45 @@ const curatedIdeas = [
         category: "Services",
         description: "Provide affordable social media management, SEO, and content creation services for small businesses.",
         icon: BookOpen,
-        idea: "Digital Marketing Agency for local MSMEs"
+        href: '/investment-ideas/custom?idea=Digital+Marketing+Agency+for+local+MSMEs',
     },
     {
         title: "Organic Farming & Delivery",
         category: "AgriTech",
         description: "Cultivate and deliver fresh, organic produce directly to consumers in urban areas through a subscription model.",
         icon: Sprout,
-        idea: "Organic Farming & Delivery service"
+        href: '/investment-ideas/custom?idea=Organic+Farming+%26+Delivery+service',
     },
     {
         title: "Online Tutoring Platform",
         category: "EdTech",
         description: "Connect students with tutors for various subjects, leveraging the demand for online education.",
         icon: GraduationCap,
-        idea: "Online Tutoring Platform for K-12 students"
+        href: '/investment-ideas/custom?idea=Online+Tutoring+Platform+for+K-12+students',
     },
     {
         title: "Eco-Friendly Packaging Production",
         category: "Manufacturing",
         description: "Manufacture and supply biodegradable packaging solutions to local businesses.",
         icon: Sparkles,
-        idea: "Eco-Friendly Packaging Production"
+        href: '/investment-ideas/custom?idea=Eco-Friendly+Packaging+Production',
     }
 ];
-
-const analysisSections: {
-  key: keyof Omit<GenerateInvestmentIdeaAnalysisOutput, 'title' | 'summary'>;
-  title: string;
-  icon: React.ElementType;
-}[] = [
-  { key: 'investmentStrategy', title: 'Investment Strategy', icon: Briefcase },
-  { key: 'targetAudience', title: 'Target Audience & Marketing', icon: Target },
-  { key: 'roi', title: 'Return on Investment (ROI)', icon: TrendingUp },
-  { key: 'futureProofing', title: 'Future-Proofing & Scalability', icon: Shield },
-  { key: 'relevantSchemes', title: 'Relevant Government Schemes', icon: Landmark },
-  { key: 'legalRequirements', title: 'Legal & Regulatory Requirements', icon: FileText },
-];
-
-const IDEA_ANALYSIS_COST = 2;
 
 export default function BrainstormPage() {
   const { toast } = useToast();
   const [userIdea, setUserIdea] = useState('');
   const router = useRouter();
-  const { user, userProfile } = useAuth();
-  const [showLimitAlert, setShowLimitAlert] = useState(false);
-  const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
+  const { user } = useAuth();
   
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<Partial<GenerateInvestmentIdeaAnalysisOutput> | null>(null);
-  const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
-  const [currentIdea, setCurrentIdea] = useState('');
-  
-  useEffect(() => {
-    if (user) {
-      const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-      const q = query(transactionsRef, orderBy('date', 'desc'), limit(20));
-      const unsubscribe = onSnapshot(q, snapshot => {
-        setTransactions(snapshot.docs.map(doc => doc.data() as ExtractedTransaction));
-      },
-      (error) => {
-        console.error("Error fetching transactions for brainstorm page:", error);
-      });
-      return () => unsubscribe();
-    }
-  }, [user]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<{title: string, description: string, ideas: any[]}>({title: '', description: '', ideas: []});
 
-  const handleAnalyzeIdea = useCallback(async (ideaToAnalyze: string) => {
-    if (!ideaToAnalyze.trim()) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please enter an idea to analyze.' });
-      return;
-    }
-    if (!user || !userProfile) {
-      toast({ variant: 'destructive', description: 'Please log in to analyze an idea.'});
-      router.push('/login');
-      return;
-    }
-    if ((userProfile.credits ?? 0) < IDEA_ANALYSIS_COST) {
-      setShowLimitAlert(true);
-      return;
-    }
-    
-    setIsAnalyzing(true);
-    setCurrentIdea(ideaToAnalyze);
-    setAnalysisDialogOpen(true);
-    setAnalysisResult(null);
-
-    // Step 1: Generate Title and Summary
-    const initialResult = await generateInvestmentIdeaAnalysisAction({ idea: ideaToAnalyze, transactions });
-    if (!initialResult.success) {
-      toast({ variant: 'destructive', title: 'Analysis Failed', description: initialResult.error });
-      setIsAnalyzing(false);
-      setAnalysisDialogOpen(false);
-      return;
-    }
-
-    setAnalysisResult({
-      title: initialResult.data.title,
-      summary: initialResult.data.summary,
-    });
-    
-    // Step 2: Generate each section sequentially
-    let finalAnalysis: Partial<GenerateInvestmentIdeaAnalysisOutput> = { ...initialResult.data };
-
-    for (const section of analysisSections) {
-      try {
-        const sectionResult = await generateIdeaSectionAction({
-          idea: ideaToAnalyze,
-          section: section.key,
-        });
-
-        if (sectionResult.success && sectionResult.data.content) {
-          finalAnalysis[section.key] = sectionResult.data.content;
-          setAnalysisResult(prev => ({ ...prev, [section.key]: sectionResult.data.content }));
-        } else {
-          throw new Error(sectionResult.error || `Failed to generate content for ${section.title}`);
-        }
-      } catch (err: any) {
-        setAnalysisResult(prev => ({ ...prev, [section.key]: `<p class="text-destructive">${err.message}</p>` }));
-      }
-    }
-    
-    // Step 3: Deduct credits after successful analysis
-    const userDocRef = doc(db, 'users', user.uid);
-    const newCredits = (userProfile.credits ?? 0) - IDEA_ANALYSIS_COST;
-    updateDoc(userDocRef, { credits: newCredits }).catch((e) => {
-        console.error("Failed to deduct credits:", e);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: userDocRef.path, operation: 'update', requestResourceData: { credits: newCredits }
-        }));
-    });
-
-    setIsAnalyzing(false);
-  }, [user, userProfile, transactions, toast, router]);
-
-  const handleDialogClose = () => {
-    setAnalysisDialogOpen(false);
-    setAnalysisResult(null);
-    setCurrentIdea('');
+  const handleCategoryClick = (category: {title: string, description: string, ideas: any[]}) => {
+    setSelectedCategory(category);
+    setDialogOpen(true);
   };
-
+  
   const handleCompatibilityCheck = (context: string) => {
     if (!user) {
         toast({ variant: 'destructive', description: 'Please log in to use the AI Advisor.' });
@@ -318,23 +202,22 @@ export default function BrainstormPage() {
                 <CarouselContent>
                     {curatedIdeas.map((idea, index) => (
                         <CarouselItem key={index} className="md:basis-1/2">
-                            <Card 
-                            className="h-full flex flex-col justify-between cursor-pointer hover:border-primary transition-colors p-1" 
-                            onClick={() => handleAnalyzeIdea(idea.idea)}
-                            >
-                                <CardHeader>
-                                    <div className="flex justify-between items-start">
-                                        <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
-                                        <div className="p-2 bg-primary/10 rounded-md">
-                                            <idea.icon className="h-5 w-5 text-primary" />
+                            <Link href={idea.href} className="h-full block">
+                                <Card className="h-full flex flex-col justify-between cursor-pointer hover:border-primary transition-colors p-1">
+                                    <CardHeader>
+                                        <div className="flex justify-between items-start">
+                                            <CardTitle className="text-lg leading-tight">{idea.title}</CardTitle>
+                                            <div className="p-2 bg-primary/10 rounded-md">
+                                                <idea.icon className="h-5 w-5 text-primary" />
+                                            </div>
                                         </div>
-                                    </div>
-                                        <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">{idea.description}</p>
-                                </CardContent>
-                            </Card>
+                                            <Badge variant="secondary" className="w-fit">{idea.category}</Badge>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{idea.description}</p>
+                                    </CardContent>
+                                </Card>
+                            </Link>
                         </CarouselItem>
                     ))}
                  </CarouselContent>
@@ -404,51 +287,21 @@ export default function BrainstormPage() {
         </CardContent>
       </Card>
 
-      <AlertDialog open={showLimitAlert} onOpenChange={setShowLimitAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Insufficient Credits</AlertDialogTitle>
-            <AlertDialogDescription>
-              You do not have enough credits to perform this action. An idea analysis costs {IDEA_ANALYSIS_COST} credits. You can recharge your credits on your profile page.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowLimitAlert(false)}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={analysisDialogOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            {isAnalyzing && !analysisResult ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="animate-spin" />
-                <DialogTitle>Analyzing {currentIdea}...</DialogTitle>
-              </div>
-            ) : analysisResult?.title ? (
-              <>
-                <DialogTitle>{analysisResult.title}</DialogTitle>
-                <DialogDescription>{analysisResult.summary}</DialogDescription>
-              </>
-            ) : <Skeleton className="h-8 w-3/4" />}
+            <DialogTitle>{selectedCategory.title}</DialogTitle>
+            <DialogDescription>{selectedCategory.description}</DialogDescription>
           </DialogHeader>
-          <div className="py-4 max-h-[60vh] overflow-y-auto space-y-6">
-            {analysisSections.map((section, index) => (
-                <div key={section.key}>
-                    <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                        <section.icon className="h-5 w-5 text-primary" />
-                        {section.title}
-                    </h3>
-                    {analysisResult && analysisResult[section.key] ? (
-                        <FormattedText text={analysisResult[section.key] as string}/>
-                    ) : (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin"/>
-                            <span>Generating...</span>
-                        </div>
-                    )}
-                </div>
+          <div className="py-4 space-y-2">
+            {selectedCategory.ideas.map((idea: any) => (
+                <Link href={idea.href} key={idea.title} className="block">
+                    <Card className="hover:bg-accent/50 transition-colors">
+                        <CardHeader>
+                            <CardTitle className="text-base">{idea.title}</CardTitle>
+                        </CardHeader>
+                    </Card>
+                </Link>
             ))}
           </div>
         </DialogContent>
