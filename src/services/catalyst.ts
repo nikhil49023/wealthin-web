@@ -3,16 +3,25 @@ import type { GenerateRagAnswerInput } from '@/ai/schemas/rag-answer';
 import fetch from 'node-fetch';
 
 class CatalystService {
-  private clientId: string;
-  private clientSecret: string;
-  private refreshToken: string;
-  private projectId: string;
-  private orgId: string;
+  private clientId?: string;
+  private clientSecret?: string;
+  private refreshToken?: string;
+  private projectId?: string;
+  private orgId?: string;
 
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
+  private isInitialized = false;
 
   constructor() {
+    // Defer initialization to an explicit method
+  }
+
+  private initialize() {
+    if (this.isInitialized) {
+      return;
+    }
+    
     // --- Environment Variable Validation ---
     const requiredVars = {
       ZOHO_CLIENT_ID: process.env.ZOHO_CLIENT_ID,
@@ -27,28 +36,32 @@ class CatalystService {
     if (missingVars.length > 0) {
       const missingVarKeys = missingVars.map(([key]) => key).join(', ');
       throw new Error(
-        `CRITICAL STARTUP ERROR: The following environment variables are missing from the deployment environment: [${missingVarKeys}]. Please set them in your hosting provider's configuration.`
+        `CRITICAL RUNTIME ERROR: The following environment variables are missing from the deployment environment: [${missingVarKeys}]. Please set them in your hosting provider's configuration.`
       );
     }
     // --- End Validation ---
 
-    this.clientId = requiredVars.ZOHO_CLIENT_ID!;
-    this.clientSecret = requiredVars.ZOHO_CLIENT_SECRET!;
-    this.refreshToken = requiredVars.ZOHO_REFRESH_TOKEN!;
-    this.projectId = requiredVars.ZOHO_PROJECT_ID!;
-    this.orgId = requiredVars.ZOHO_CATALYST_ORG_ID!;
+    this.clientId = requiredVars.ZOHO_CLIENT_ID;
+    this.clientSecret = requiredVars.ZOHO_CLIENT_SECRET;
+    this.refreshToken = requiredVars.ZOHO_REFRESH_TOKEN;
+    this.projectId = requiredVars.ZOHO_PROJECT_ID;
+    this.orgId = requiredVars.ZOHO_CATALYST_ORG_ID;
+
+    this.isInitialized = true;
   }
 
   private async getValidAccessToken(): Promise<string> {
+    this.initialize(); // Ensure service is initialized before use
+
     if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
       return this.accessToken;
     }
 
     const tokenUrl = 'https://accounts.zoho.in/oauth/v2/token';
     const params = new URLSearchParams();
-    params.append('refresh_token', this.refreshToken);
-    params.append('client_id', this.clientId);
-    params.append('client_secret', this.clientSecret);
+    params.append('refresh_token', this.refreshToken!);
+    params.append('client_id', this.clientId!);
+    params.append('client_secret', this.clientSecret!);
     params.append('grant_type', 'refresh_token');
 
     try {
@@ -94,7 +107,7 @@ class CatalystService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'CATALYST-ORG': this.orgId,
+        'CATALYST-ORG': this.orgId!,
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
@@ -135,7 +148,7 @@ class CatalystService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'CATALYST-ORG': this.orgId,
+        'CATALYST-ORG': this.orgId!,
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(body),
@@ -157,5 +170,14 @@ class CatalystService {
   }
 }
 
-const catalystService = new CatalystService();
+// Singleton pattern to ensure only one instance is created
+let catalystServiceInstance: CatalystService | null = null;
+const getCatalystService = (): CatalystService => {
+    if (!catalystServiceInstance) {
+        catalystServiceInstance = new CatalystService();
+    }
+    return catalystServiceInstance;
+};
+
+const catalystService = getCatalystService();
 export default catalystService;
