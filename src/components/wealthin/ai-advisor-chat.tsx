@@ -52,21 +52,17 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
   useEffect(() => {
     if (user) {
       const transactionsRef = collection(db, 'users', user.uid, 'transactions');
-      // Get the last 20 transactions to use as context
       const q = query(transactionsRef, orderBy('date', 'desc'), limit(20));
       const unsubscribe = onSnapshot(q, snapshot => {
-        const fetchedTransactions = snapshot.docs.map(
+        setTransactions(snapshot.docs.map(
           doc => doc.data() as ExtractedTransaction
-        );
-        setTransactions(fetchedTransactions);
+        ));
       },
-      async (error) => {
+      (error) => {
         console.error("AI Advisor transactions snapshot error", error);
-        const permissionError = new FirestorePermissionError({
-            path: transactionsRef.path,
-            operation: 'list'
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: transactionsRef.path, operation: 'list'
+        }));
       });
       return () => unsubscribe();
     }
@@ -80,22 +76,19 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
       sender: 'ai',
     };
     
-    // Set initial state
-    setMessages([welcomeMessage]);
-
-    // If there's an initial message, handle the user message and AI response
     if (initialMessage) {
         const initialUserMessage: Message = {
             id: getUniqueMessageId(),
             text: initialMessage,
             sender: 'user',
         };
-        setMessages(prev => [...prev, initialUserMessage]);
-        // Trigger the AI response for the initial message
+        setMessages([welcomeMessage, initialUserMessage]);
         handleSendMessage(undefined, initialMessage);
+    } else {
+        setMessages([welcomeMessage]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMessage]);
+  }, [initialMessage, translations.aiAdvisor.welcome]);
 
 
   const scrollToBottom = () => {
@@ -114,7 +107,6 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
     const queryText = messageText || input;
     if (!queryText.trim() || isLoading) return;
 
-    // Only add the user message if it's not an initial message flow
     if (!messageText) {
       const newUserMessage: Message = {
         id: getUniqueMessageId(),

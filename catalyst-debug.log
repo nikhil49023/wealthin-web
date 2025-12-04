@@ -1,0 +1,29 @@
+[debug] [2025-12-04T15:40:13.112Z] : 
+[debug] [2025-12-04T15:40:13.113Z] : ----------------------------------------------------------------------
+[debug] [2025-12-04T15:40:13.113Z] : Command:      /nix/store/ws50yvm6vzlzf7jzz6n7xh4szddrack1-nodejs-20.19.1/bin/node /home/user/.global_modules/bin/catalyst deploy appsail
+[debug] [2025-12-04T15:40:13.114Z] : CLI Version:  1.22.0
+[debug] [2025-12-04T15:40:13.114Z] : Platform:     linux
+[debug] [2025-12-04T15:40:13.114Z] : Node Version: v20.19.1
+[debug] [2025-12-04T15:40:13.114Z] : Time:         Thu Dec 04 2025 15:40:13 GMT+0000 (Coordinated Universal Time)
+[debug] [2025-12-04T15:40:13.115Z] : ----------------------------------------------------------------------
+[debug] [2025-12-04T15:40:13.115Z] : 
+[debug] [2025-12-04T15:40:13.642Z] : > authorizing via signed-in user option
+[debug] [2025-12-04T15:40:13.644Z] : > command requires scopes: ["ZohoCatalyst.projects.ALL","ZohoCatalyst.appsail.Update"]
+[debug] [2025-12-04T15:40:13.698Z] : > refreshing access token <
+[debug] [2025-12-04T15:40:13.704Z] : >>>> HTTP REQUEST : POST https://accounts.zoho.in/oauth/v2/token 
+<request body omitted>
+
+[debug] [2025-12-04T15:40:14.192Z] : <<<< HTTP RESPONSE : 200
+Response Headers: {"server":"ZGS","date":"Thu, 04 Dec 2025 15:40:14 GMT","content-type":"application/json;charset=UTF-8","content-length":"168","connection":"keep-alive","cache-control":"no-store","x-content-type-options":"nosniff","pragma":"no-cache","x-frame-options":"SAMEORIGIN","content-language":"en-US","strict-transport-security":"max-age=64072000; includeSubDomains; preload"}
+
+[debug] [2025-12-04T15:40:14.214Z] : >>>> HTTP REQUEST : GET https://api.catalyst.zoho.in/baas/v1/project/24392000000011167 
+
+[debug] [2025-12-04T15:40:14.597Z] : <<<< HTTP RESPONSE : 200
+Response Headers: {"server":"ZGS","date":"Thu, 04 Dec 2025 15:40:14 GMT","content-type":"application/vnd.catalyst.v2+json","transfer-encoding":"chunked","connection":"keep-alive","x-content-type-options":"nosniff","cache-control":"private,no-cache,no-store,max-age=0,must-revalidate","pragma":"no-cache","expires":"Thu, 01 Jan 1970 00:00:00 GMT","x-frame-options":"DENY","strict-transport-security":"max-age=64072000; includeSubDomains; preload"}
+
+[debug] [2025-12-04T15:40:14.605Z] : >>>> HTTP REQUEST : GET https://api.catalyst.zoho.in/baas/v1/project/24392000000011167/environment 
+
+[debug] [2025-12-04T15:40:14.733Z] : <<<< HTTP RESPONSE : 200
+Response Headers: {"server":"ZGS","date":"Thu, 04 Dec 2025 15:40:14 GMT","content-type":"application/vnd.catalyst.v2+json","transfer-encoding":"chunked","connection":"keep-alive","x-content-type-options":"nosniff","cache-control":"private,no-cache,no-store,max-age=0,must-revalidate","pragma":"no-cache","expires":"Thu, 01 Jan 1970 00:00:00 GMT","x-frame-options":"DENY","strict-transport-security":"max-age=64072000; includeSubDomains; preload"}
+
+[debug] [2025-12-04T15:40:14.824Z] : --source option not specified. Hence, using Catalyst runtime
