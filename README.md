@@ -73,7 +73,7 @@ To get this project's code into your own GitHub repository, follow these steps i
 From your project's directory in your terminal, update the remote `origin` to point to your new repository.
 
 ```bash
-git remote set-url origin https://github.com/nikhil49023/Financifyv3.git
+git remote set-url origin https://github.com/nikhil49023/wealthin
 ```
 
 ### 2. Push the Code
@@ -83,4 +83,4 @@ Finally, push all the code to your new repository. The `-u` flag sets the new re
 git push -u origin main
 ```
 
-Now, your new GitHub repository at `https://github.com/nikhil49023/Financifyv3.git` will contain all the code for the WealthIn app.
+Now, your new GitHub repository at `https://github.com/nikhil49023/wealthin will contain all the code for the WealthIn app.

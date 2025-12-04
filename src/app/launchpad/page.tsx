@@ -570,44 +570,55 @@ export default function GrowthHubPage() {
 
 
                 {isLoadingMsmes ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+                    <div className="flex gap-4">
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full md:w-1/3" />)}
                     </div>
                 ) : filteredMsmes.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredMsmes.map((msme) => (
-                           <Card key={msme.id} className="glassmorphic flex flex-col hover:border-primary transition-colors duration-300">
-                                <CardHeader>
-                                    <CardTitle className="text-lg">{msme.msmeName}</CardTitle>
-                                    <CardDescription>{msme.msmeService}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-1 space-y-4">
-                                     <p className="text-sm text-muted-foreground line-clamp-3">{(msme as any).msmeDescription || 'No description provided.'}</p>
-                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                        <User className="h-4 w-4" />
-                                        <span>{msme.displayName}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm text-muted-foreground gap-2">
-                                        <MapPin className="h-4 w-4" />
-                                        <span>{msme.msmeLocation}</span>
-                                    </div>
-                                </CardContent>
-                                <CardContent className="pt-0 flex items-center justify-end gap-2">
-                                    <Button onClick={() => handleContactClick(msme)} size="sm">
-                                        <MessageSquare className="mr-2"/>
-                                        Contact
-                                    </Button>
-                                    {msme.msmeWebsite && (
-                                        <Button asChild variant="outline" size="icon">
-                                            <a href={msme.msmeWebsite.startsWith('http') ? msme.msmeWebsite : `https://${msme.msmeWebsite}`} target="_blank" rel="noopener noreferrer">
-                                                <Globe/>
-                                            </a>
-                                        </Button>
-                                    )}
-                                </CardContent>
-                           </Card>
-                        ))}
-                    </div>
+                    <Carousel
+                        opts={{ align: 'start', loop: false }}
+                        className="w-full"
+                    >
+                        <CarouselContent>
+                            {filteredMsmes.map((msme) => (
+                                <CarouselItem key={msme.id} className="md:basis-1/2 lg:basis-1/3">
+                                    <div className="p-1 h-full">
+                                        <Card className="glassmorphic flex flex-col h-full hover:border-primary transition-colors duration-300">
+                                            <CardHeader>
+                                                <CardTitle className="text-lg">{msme.msmeName}</CardTitle>
+                                                <CardDescription>{msme.msmeService}</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="flex-1 space-y-4">
+                                                <p className="text-sm text-muted-foreground line-clamp-3">{(msme as any).msmeDescription || 'No description provided.'}</p>
+                                                <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                                    <User className="h-4 w-4" />
+                                                    <span>{msme.displayName}</span>
+                                                </div>
+                                                <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                                    <MapPin className="h-4 w-4" />
+                                                    <span>{msme.msmeLocation}</span>
+                                                </div>
+                                            </CardContent>
+                                            <CardContent className="pt-0 flex items-center justify-end gap-2">
+                                                <Button onClick={() => handleContactClick(msme)} size="sm">
+                                                    <MessageSquare className="mr-2"/>
+                                                    Contact
+                                                </Button>
+                                                {msme.msmeWebsite && (
+                                                    <Button asChild variant="outline" size="icon">
+                                                        <a href={msme.msmeWebsite.startsWith('http') ? msme.msmeWebsite : `https://${msme.msmeWebsite}`} target="_blank" rel="noopener noreferrer">
+                                                            <Globe/>
+                                                        </a>
+                                                    </Button>
+                                                )}
+                                            </CardContent>
+                                    </Card>
+                                   </div>
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="hidden md:flex" />
+                        <CarouselNext className="hidden md:flex" />
+                    </Carousel>
                 ) : (
                     <div className="text-center py-10">
                         <p className="text-muted-foreground">No matching MSMEs found. Try adjusting your filters.</p>
