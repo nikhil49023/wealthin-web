@@ -1,3 +1,4 @@
+
 import type { GenerateRagAnswerInput } from '@/ai/schemas/rag-answer';
 import fetch from 'node-fetch';
 
@@ -44,6 +45,9 @@ class CatalystService {
       const data: any = await response.json();
 
       if (data.error) {
+        if (data.error === 'invalid_client') {
+            console.error("Zoho 'invalid_client' error: This usually means ZOHO_CLIENT_ID or ZOHO_CLIENT_SECRET are incorrect. Please verify your .env file.");
+        }
         throw new Error(`Zoho token refresh failed: ${data.error}`);
       }
 
