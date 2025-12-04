@@ -1,7 +1,7 @@
 
 'use server';
 
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type {
   GenerateBudgetReportInput,
   GenerateBudgetReportOutput,
@@ -62,7 +62,7 @@ ${transactionsList}
 `;
 
   try {
-    const responseText = await catalystService.generateText(userPrompt, systemPrompt);
+    const responseText = await generateText(userPrompt, systemPrompt);
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("AI did not return a valid JSON object.");

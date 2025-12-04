@@ -4,7 +4,7 @@
 /**
  * @fileOverview A flow for generating "Fin Bites" using the Zoho Catalyst LLM.
  */
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type {GenerateFinBiteOutput} from '@/ai/schemas/fin-bite';
 import { GenerateFinBiteOutputSchema } from '@/ai/schemas/fin-bite';
 
@@ -30,7 +30,7 @@ Provide one update for each of the three categories.
 `;
 
   try {
-    const responseText = await catalystService.generateText(userPrompt, systemPrompt);
+    const responseText = await generateText(userPrompt, systemPrompt);
     const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanedText);
     return GenerateFinBiteOutputSchema.parse(parsed);

@@ -16,7 +16,7 @@ class CatalystService {
   private isInitialized = false;
 
   constructor() {
-    // Constructor is now intentionally empty. Initialization is deferred.
+    // Initialization is deferred to the first API call.
   }
 
   private initialize() {
@@ -24,7 +24,6 @@ class CatalystService {
       return;
     }
     
-    // --- Environment Variable Validation ---
     const requiredVars = {
       ZOHO_CLIENT_ID: process.env.ZOHO_CLIENT_ID,
       ZOHO_CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET,
@@ -37,12 +36,10 @@ class CatalystService {
 
     if (missingVars.length > 0) {
       const missingVarKeys = missingVars.map(([key]) => key).join(', ');
-      // This error will now only be thrown at runtime when an API call is made.
       throw new Error(
         `CRITICAL RUNTIME ERROR: The following environment variables are missing from the deployment environment: [${missingVarKeys}]. Please set them in your hosting provider's configuration.`
       );
     }
-    // --- End Validation ---
 
     this.clientId = requiredVars.ZOHO_CLIENT_ID;
     this.clientSecret = requiredVars.ZOHO_CLIENT_SECRET;
@@ -54,7 +51,6 @@ class CatalystService {
   }
 
   private async getValidAccessToken(): Promise<string> {
-    // Defer initialization to the first moment it's actually needed.
     this.initialize(); 
 
     if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
@@ -174,14 +170,14 @@ class CatalystService {
   }
 }
 
-// Singleton pattern to ensure only one instance is created
-let catalystServiceInstance: CatalystService | null = null;
-const getCatalystService = (): CatalystService => {
-    if (!catalystServiceInstance) {
-        catalystServiceInstance = new CatalystService();
-    }
-    return catalystServiceInstance;
+// Create a single instance of the service
+const catalystService = new CatalystService();
+
+// Export the public methods as async functions
+export const generateText = async (prompt: string, system_prompt?: string, model?: string): Promise<any> => {
+  return catalystService.generateText(prompt, system_prompt, model);
 };
 
-const catalystService = getCatalystService();
-export default catalystService;
+export const generateTextFromImage = async (prompt: string, base64Images: string[], system_prompt: string): Promise<any> => {
+  return catalystService.generateTextFromImage(prompt, base64Images, system_prompt);
+};

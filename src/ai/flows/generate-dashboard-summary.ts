@@ -4,7 +4,7 @@
  * @fileOverview A flow to generate a dashboard summary using the Zoho Catalyst LLM.
  * It calculates financial metrics and gets an AI-powered suggestion.
  */
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type {
   GenerateDashboardSummaryInput,
   GenerateDashboardSummaryOutput,
@@ -74,7 +74,7 @@ ${transactionsSample}
 
   try {
     // Removed the model override, as the default service model is now correct.
-    const suggestion = await catalystService.generateText(
+    const suggestion = await generateText(
         userPrompt, 
         systemPrompt
     );

@@ -5,7 +5,7 @@
  * @fileOverview A flow for generating a detailed analysis of a business idea using the Zoho Catalyst LLM.
  * This flow now only generates the title and summary. The individual sections are handled by generate-idea-section.
  */
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type {
   GenerateInvestmentIdeaAnalysisInput,
   GenerateInvestmentIdeaAnalysisOutput,
@@ -37,7 +37,7 @@ Structure your response as a valid JSON object:
 `;
 
   try {
-    const responseText = await catalystService.generateText(userPrompt, systemPrompt);
+    const responseText = await generateText(userPrompt, systemPrompt);
     const parsed = cleanAndParseJSON(responseText);
     
     // We only expect title and summary here. The rest will be populated by the sectional generator.

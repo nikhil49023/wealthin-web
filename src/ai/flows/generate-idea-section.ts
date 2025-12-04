@@ -3,7 +3,7 @@
 /**
  * @fileOverview A flow for generating a single section of a business idea analysis using the Zoho Catalyst LLM.
  */
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type { GenerateIdeaSectionInput, GenerateIdeaSectionOutput } from '@/ai/schemas/investment-idea-analysis';
 
 export async function generateIdeaSection(
@@ -28,7 +28,7 @@ Generate the content now.
 `;
 
   try {
-    const text = await catalystService.generateText(finalPrompt, systemPrompt);
+    const text = await generateText(finalPrompt, systemPrompt);
     return { content: text };
   } catch (e: any) {
     console.error("Failed to generate AI response for section \"" + section + "\":", e.message);

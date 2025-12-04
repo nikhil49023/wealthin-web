@@ -1,7 +1,7 @@
 
 'use server';
 
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type { GenerateDprSectionInput, GenerateDprSectionOutput } from '@/ai/schemas/dpr';
 import { FinancialProjectionsSchema } from '@/ai/schemas/dpr';
 import { cleanAndParseJSON } from '@/lib/cleanJson';
@@ -14,7 +14,7 @@ const DPR_MODEL = 'crm-di-qwen_text_14b-fp8-it';
 async function generateHtmlContent(prompt: string, idea: any): Promise<string> {
     const finalUserMessage = prompt.replace('{{idea}}', JSON.stringify(idea, null, 2));
     const systemPrompt = `You are an expert consultant writing a Detailed Project Report (DPR). The output MUST be ONLY a raw HTML string. Do NOT include any other text, markdown, or explanations.`;
-    return await catalystService.generateText(finalUserMessage, systemPrompt, DPR_MODEL);
+    return await generateText(finalUserMessage, systemPrompt, DPR_MODEL);
 }
 
 // Helper to generate specific JSON data for charts
@@ -23,7 +23,7 @@ async function generateChartData(prompt: string, idea: any, schema: z.ZodType<an
     const systemPrompt = `You are a financial analyst. Your response MUST be ONLY a single, valid JSON array that conforms to the output schema. Do NOT include any other text, markdown, or explanations.`;
     const finalUserMessage = `${prompt.replace('{{idea}}', JSON.stringify(idea, null, 2))}\n\nYour response must be a JSON array that conforms exactly to this JSON schema:\n${JSON.stringify(jsonSchema, null, 2)}`;
     
-    const responseText = await catalystService.generateText(finalUserMessage, systemPrompt, DPR_MODEL);
+    const responseText = await generateText(finalUserMessage, systemPrompt, DPR_MODEL);
     const parsedJson = cleanAndParseJSON(responseText);
     
     // Validate the parsed JSON against the provided Zod schema
@@ -121,7 +121,7 @@ Do NOT include any other text, markdown, titles, or explanations in your respons
         finalUserMessage = input.basePrompt.replace('{{idea}}', ideaJson);
     }
     
-    const content = await catalystService.generateText(finalUserMessage, systemPrompt, DPR_MODEL);
+    const content = await generateText(finalUserMessage, systemPrompt, DPR_MODEL);
     return { content: content };
 
   } catch (e: any) {

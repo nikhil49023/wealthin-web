@@ -5,7 +5,7 @@
  * Stage 1: A vision model performs OCR to extract raw text.
  * Stage 2: An instruction-following text model structures the data from the raw text.
  */
-import catalystService from '@/services/catalyst';
+import { generateText, generateTextFromImage } from '@/services/catalyst';
 import type {
   ExtractTransactionsInput,
   ExtractTransactionsOutput,
@@ -18,7 +18,7 @@ import { cleanAndParseJSON } from '@/lib/cleanJson';
 async function extractTextWithVisionModel(base64Image: string): Promise<string> {
     const ocrSystemPrompt = "You are an expert at optical character recognition. Extract all text content from the provided image of a document page. Return only the raw text, preserving the layout as best as possible. Do not summarize, interpret, or format the text.";
     const ocrUserPrompt = "Extract all text from this document image.";
-    const rawText = await catalystService.generateTextFromImage(ocrSystemPrompt, [base64Image], ocrUserPrompt);
+    const rawText = await generateTextFromImage(ocrUserPrompt, [base64Image], ocrSystemPrompt);
     return rawText;
 }
 
@@ -41,7 +41,7 @@ ${rawText}
 ---
 `;
     // Using a powerful instruction-following model for this task.
-    const jsonResponseText = await catalystService.generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
+    const jsonResponseText = await generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
     return cleanAndParseJSON(jsonResponseText);
 }
 

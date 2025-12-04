@@ -4,7 +4,7 @@
  * @fileOverview A flow for answering questions using the Zoho Catalyst LLM Chat endpoint.
  * It uses a centralized service to handle authentication and API calls.
  */
-import catalystService from '@/services/catalyst';
+import { generateText } from '@/services/catalyst';
 import type {
   GenerateRagAnswerInput,
   GenerateRagAnswerOutput,
@@ -34,7 +34,7 @@ User Query: "${input.query}"
 Based on the transaction history and the user's query, provide a helpful answer.
 `;
     
-    const answer = await catalystService.generateText(fullPrompt, systemPrompt);
+    const answer = await generateText(fullPrompt, systemPrompt);
 
     return { answer: answer?.trim() || 'I apologize, but I could not generate financial advice at this moment. Please try again or rephrase your question.' };
   } catch (e: any) {
