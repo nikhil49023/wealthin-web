@@ -48,7 +48,7 @@ Generate the content now.
   } catch (e: any) {
     console.error("Failed to generate AI response for section \"" + section + "\":", e.message);
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
-      return { content: `<p class="text-destructive">Error: AI features are temporarily unavailable due to a configuration issue.</p>` };
+      throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
     }
     // Re-throwing the error to be caught by the action
     throw new Error(`The AI returned an invalid format for the ${section} section.`);
