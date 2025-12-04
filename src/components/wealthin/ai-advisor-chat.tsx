@@ -181,7 +181,7 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
                     : 'bg-muted'
                 }`}
               >
-                {message.sender === 'user' ? <p>{message.text}</p> : <FormattedText html={message.text} />}
+                {message.sender === 'user' ? <p>{message.text}</p> : <FormattedText text={message.text} />}
                  {message.sender === 'ai' && index > 0 && (
                   <Badge variant="outline" className="mt-3 border-blue-200 bg-blue-50 text-blue-800 text-xs">
                     Powered by WealthIn AI

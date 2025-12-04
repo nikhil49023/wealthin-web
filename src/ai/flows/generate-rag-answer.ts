@@ -28,10 +28,10 @@ ${transactionsList}
 ---
 `;
     
-    const answer = await generateText(fullPrompt, systemPrompt);
+    let answer = await generateText(fullPrompt, systemPrompt);
 
     if (!answer?.trim()) {
-        return { answer: 'I apologize, but I could not generate a specific answer for that. Could you please rephrase your question or provide more details?' };
+        answer = 'I apologize, but I could not generate a specific answer for that. Could you please rephrase your question or provide more details?';
     }
 
     return { answer: answer.trim() };
