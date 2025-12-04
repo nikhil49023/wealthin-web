@@ -6,10 +6,25 @@
 import { generateText } from '@/services/catalyst';
 import type { GenerateIdeaSectionInput, GenerateIdeaSectionOutput } from '@/ai/schemas/investment-idea-analysis';
 
+const sectionPrompts: { [key: string]: string } = {
+  investmentStrategy: 'Provide a detailed breakdown of the required investment. Include estimated initial capital for equipment, setup, licenses, and initial marketing. Also, estimate the monthly operational costs (working capital). Present the data in a structured way using lists.',
+  targetAudience: 'Describe the primary and secondary target audience in detail. Outline a practical, step-by-step marketing and sales strategy to reach these customers.',
+  roi: 'Give a realistic analysis of the potential Return on Investment. Detail the projected revenue streams, key profitability drivers, and an estimated timeline to break even and achieve profitability.',
+  futureProofing: "Analyze the business's long-term viability. Discuss potential for scalability (e.g., expanding product lines, entering new markets), how to handle competition, and strategies to adapt to future market trends.",
+  relevantSchemes: 'List 2-3 specific and relevant Indian government schemes that could support this business. For each scheme, clearly explain the benefits (e.g., subsidy amount, loan terms) and the primary eligibility criteria.',
+  legalRequirements: 'Summarize the key legal and regulatory requirements for starting this business in India. Include necessary registrations (like GST, Udyam), important licenses, and permits required to operate legally.',
+};
+
+
 export async function generateIdeaSection(
   input: GenerateIdeaSectionInput
 ): Promise<GenerateIdeaSectionOutput> {
-  const { idea, section, basePrompt } = input;
+  const { idea, section } = input;
+  const basePrompt = sectionPrompts[section];
+
+  if (!basePrompt) {
+    throw new Error(`Invalid section key provided: ${section}`);
+  }
 
   const systemPrompt = `You are a specialist consultant for entrepreneurs in India.
 Your task is to provide a detailed, well-structured, and professional analysis for a specific section of a business idea.

@@ -50,7 +50,6 @@ type AnalysisSection = {
   key: keyof Omit<GenerateInvestmentIdeaAnalysisOutput, 'title' | 'summary'>;
   title: string;
   icon: React.ElementType;
-  prompt: string;
   content: string | null;
   status: 'pending' | 'loading' | 'done' | 'error';
 };
@@ -60,43 +59,31 @@ const sectionConfig: Omit<AnalysisSection, 'content' | 'status'>[] = [
     key: 'investmentStrategy',
     title: 'Investment Strategy',
     icon: Briefcase,
-    prompt:
-      'Provide a detailed breakdown of the required investment. Include estimated initial capital for equipment, setup, licenses, and initial marketing. Also, estimate the monthly operational costs (working capital). Present the data in a structured way using lists.',
   },
   {
     key: 'targetAudience',
     title: 'Target Audience & Marketing',
     icon: Target,
-    prompt:
-      'Describe the primary and secondary target audience in detail. Outline a practical, step-by-step marketing and sales strategy to reach these customers.',
   },
   {
     key: 'roi',
     title: 'Return on Investment (ROI)',
     icon: TrendingUp,
-    prompt:
-      'Give a realistic analysis of the potential Return on Investment. Detail the projected revenue streams, key profitability drivers, and an estimated timeline to break even and achieve profitability.',
   },
   {
     key: 'futureProofing',
     title: 'Future-Proofing & Scalability',
     icon: Shield,
-    prompt:
-      "Analyze the business's long-term viability. Discuss potential for scalability (e.g., expanding product lines, entering new markets), how to handle competition, and strategies to adapt to future market trends.",
   },
   {
     key: 'relevantSchemes',
     title: 'Relevant Government Schemes',
     icon: Landmark,
-    prompt:
-      'List 2-3 specific and relevant Indian government schemes that could support this business. For each scheme, clearly explain the benefits (e.g., subsidy amount, loan terms) and the primary eligibility criteria.',
   },
   {
     key: 'legalRequirements',
     title: 'Legal & Regulatory Requirements',
     icon: FileText,
-    prompt:
-      'Summarize the key legal and regulatory requirements for starting this business in India. Include necessary registrations (like GST, Udyam), important licenses, and permits required to operate legally.',
   },
 ];
 
@@ -212,7 +199,6 @@ function InvestmentIdeaContent() {
                 const sectionResult = await generateIdeaSectionAction({
                     idea: idea,
                     section: sectionConf.key,
-                    basePrompt: sectionConf.prompt,
                 });
 
                 if (sectionResult.success && sectionResult.data.content) {

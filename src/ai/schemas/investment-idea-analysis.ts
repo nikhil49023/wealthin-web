@@ -55,7 +55,6 @@ export type GenerateInvestmentIdeaAnalysisOutput = z.infer<
 export const GenerateIdeaSectionInputSchema = z.object({
     idea: z.string().describe("The user's initial business idea."),
     section: z.string().describe("The specific section to generate (e.g., 'investmentStrategy')."),
-    basePrompt: z.string().describe("The detailed base prompt for the AI to generate the content for this specific section."),
 });
 export type GenerateIdeaSectionInput = z.infer<typeof GenerateIdeaSectionInputSchema>;
 
