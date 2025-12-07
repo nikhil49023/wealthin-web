@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Loader2, Briefcase, Building, Phone, MapPin, Edit, Link as LinkIcon, Trash2, Gem, Crown, Check, Plus, Minus, History } from 'lucide-react';
+import { LogOut, Loader2, Briefcase, Building, Phone, MapPin, Edit, Link as LinkIcon, Trash2, Gem, Crown, Check, Plus, Minus, History, MessageSquare } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -215,7 +215,13 @@ export default function ProfilePage() {
           <CardTitle className="text-2xl">{user.displayName || 'User'}</CardTitle>
           <CardDescription>{user.email}</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+           <Button asChild variant="outline">
+              <a href="https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4" target="_blank" rel="noopener noreferrer">
+                <MessageSquare className="mr-2" />
+                Feedback & Support
+              </a>
+           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">
@@ -240,7 +246,7 @@ export default function ProfilePage() {
           </AlertDialog>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">
+              <Button variant="destructive" className="sm:col-span-2 lg:col-span-1">
                 <Trash2 className="mr-2" />
                 Delete Account
               </Button>
