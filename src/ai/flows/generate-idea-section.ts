@@ -7,7 +7,7 @@ import { generateText } from '@/services/catalyst';
 import type { GenerateIdeaSectionInput, GenerateIdeaSectionOutput } from '@/ai/schemas/investment-idea-analysis';
 
 const sectionPrompts: { [key: string]: string } = {
-  investmentStrategy: 'Provide a detailed breakdown of the required investment. Include estimated initial capital for equipment, setup, licenses, and initial marketing. Also, estimate the monthly operational costs (working capital). Present the data in a structured way using lists.',
+  investmentStrategy: 'Provide a detailed breakdown of the required investment. Include estimated initial capital for equipment, setup, licenses, and initial marketing. Also, estimate the monthly operational costs (working capital). Present the data in a structured way using lists. CRUCIALLY, analyze the provided MSME Marketplace data. If you find any vendors that could act as a supplier for this business idea (e.g., for raw materials, packaging, equipment), you MUST recommend them by name in a sub-section called "Potential Suppliers from Marketplace".',
   targetAudience: 'Describe the primary and secondary target audience in detail. Outline a practical, step-by-step marketing and sales strategy to reach these customers.',
   roi: 'Give a realistic analysis of the potential Return on Investment. Detail the projected revenue streams, key profitability drivers, and an estimated timeline to break even and achieve profitability.',
   futureProofing: "Analyze the business's long-term viability. Discuss potential for scalability (e.g., expanding product lines, entering new markets), how to handle competition, and strategies to adapt to future market trends.",
@@ -19,7 +19,7 @@ const sectionPrompts: { [key: string]: string } = {
 export async function generateIdeaSection(
   input: GenerateIdeaSectionInput
 ): Promise<GenerateIdeaSectionOutput> {
-  const { idea, section } = input;
+  const { idea, section, marketplaceProfiles } = input;
   const basePrompt = sectionPrompts[section];
 
   if (!basePrompt) {
@@ -31,6 +31,8 @@ Your task is to provide a detailed, well-structured, and professional analysis f
 The output MUST be ONLY the raw content string, using basic HTML for formatting (e.g., <h3>, <p>, <ul>, <li>, <strong>).
 Do NOT include any other text, markdown, titles, or explanations in your response. Just the raw HTML content.`;
 
+  const marketplaceString = marketplaceProfiles ? JSON.stringify(marketplaceProfiles, null, 2) : 'No marketplace profiles available.';
+
   const finalPrompt = `
 Business Idea: "${idea}"
 
@@ -38,6 +40,11 @@ Your current task is to generate the content for ONLY the following section: **$
 
 **Section-Specific Instructions:**
 ${basePrompt}
+
+Here is the list of businesses in the MSME marketplace for you to use in your analysis if relevant:
+---
+${marketplaceString}
+---
 
 Generate the content now.
 `;

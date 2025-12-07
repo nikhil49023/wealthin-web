@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ExtractedTransactionSchema } from './transactions';
 
 // A simplified schema for the user profile to be passed to the AI
-const UserProfileForAISchema = z.object({
+export const UserProfileForAISchema = z.object({
   displayName: z.string().nullable(),
   role: z.enum(['individual', 'msme']),
   msmeName: z.string().optional(),
@@ -12,7 +12,7 @@ const UserProfileForAISchema = z.object({
 }).passthrough(); // Allow other fields
 
 // A simplified schema for MSME marketplace profiles
-const MarketplaceProfileSchema = z.object({
+export const MarketplaceProfileSchema = z.object({
   displayName: z.string().nullable(),
   msmeName: z.string().optional(),
   msmeService: z.string().optional(),

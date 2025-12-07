@@ -1,6 +1,7 @@
 
 import { z } from 'zod';
 import { ExtractedTransactionSchema } from './transactions';
+import { MarketplaceProfileSchema } from './rag-answer';
 
 // Schema for the original, full analysis generation
 export const GenerateInvestmentIdeaAnalysisInputSchema = z.object({
@@ -55,6 +56,7 @@ export type GenerateInvestmentIdeaAnalysisOutput = z.infer<
 export const GenerateIdeaSectionInputSchema = z.object({
     idea: z.string().describe("The user's initial business idea."),
     section: z.string().describe("The specific section to generate (e.g., 'investmentStrategy')."),
+    marketplaceProfiles: z.array(MarketplaceProfileSchema).optional().describe('A list of all MSME profiles from the marketplace.'),
 });
 export type GenerateIdeaSectionInput = z.infer<typeof GenerateIdeaSectionInputSchema>;
 

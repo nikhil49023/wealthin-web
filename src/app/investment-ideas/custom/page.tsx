@@ -29,7 +29,7 @@ import Link from 'next/link';
 import {motion, AnimatePresence} from 'framer-motion';
 import type {GenerateInvestmentIdeaAnalysisOutput} from '@/ai/schemas/investment-idea-analysis';
 import {FormattedText} from '@/components/wealthin/formatted-text';
-import {useAuth} from '@/context/auth-provider';
+import {useAuth, type UserProfile} from '@/context/auth-provider';
 import {useToast} from '@/hooks/use-toast';
 import {useLanguage} from '@/hooks/use-language';
 import {Badge} from '@/components/ui/badge';
@@ -38,6 +38,7 @@ import {
   collection,
   addDoc,
   serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import {app} from '@/lib/firebase';
 import { generateInvestmentIdeaAnalysisAction, generateIdeaSectionAction } from '@/app/actions';
@@ -101,7 +102,25 @@ function InvestmentIdeaContent() {
   const {user} = useAuth();
   const {toast} = useToast();
   
+  const [marketplaceProfiles, setMarketplaceProfiles] = useState<UserProfile[]>([]);
+
   const {translations} = useLanguage();
+
+  useEffect(() => {
+    if (user) {
+      const msmeRef = collection(db, 'msme-profiles');
+      const unsubMsme = onSnapshot(msmeRef, snapshot => {
+        setMarketplaceProfiles(snapshot.docs.map(doc => doc.data() as UserProfile));
+      },
+      (error) => {
+        console.error("Idea Analysis - MSME profiles snapshot error", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: msmeRef.path, operation: 'list'
+        }));
+      });
+      return () => unsubMsme();
+    }
+  }, [user]);
 
   const handleBuildDpr = () => {
     if (!isSaved) {
@@ -177,6 +196,12 @@ function InvestmentIdeaContent() {
       router.push('/login');
       return;
     }
+    // Wait until marketplace profiles are loaded
+    if (marketplaceProfiles.length === 0) {
+        // You might want a loading state here, but for now we just wait.
+        // If marketplace is optional, you can remove this check.
+        return;
+    }
 
     const generateAnalysis = async () => {
         setError(null);
@@ -199,6 +224,7 @@ function InvestmentIdeaContent() {
                 const sectionResult = await generateIdeaSectionAction({
                     idea: idea,
                     section: sectionConf.key,
+                    marketplaceProfiles: marketplaceProfiles,
                 });
 
                 if (sectionResult.success && sectionResult.data.content) {
@@ -224,7 +250,7 @@ function InvestmentIdeaContent() {
 
     generateAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idea, user, router]);
+  }, [idea, user, router, marketplaceProfiles]);
 
 
   const allSectionsLoaded = sections.every(s => s.status === 'done');
