@@ -98,6 +98,11 @@ export async function extractTransactionsFromDocument(
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client') || e.message.includes('Internal Server Error')) {
        throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
     }
+    if (e.message.includes('Bad Request')) {
+      throw new Error(
+        'The document could not be processed. Please check the quality of the PDF. It may be a scanned image without readable text.'
+      );
+    }
     // Add more detailed logging for debugging
     console.error('Error during transaction extraction flow:', e);
     console.error(`Raw text length at time of error: ${rawText.length}`);
