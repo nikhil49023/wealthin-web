@@ -34,8 +34,8 @@ async function extractTextFromPdf(dataUri: string): Promise<string> {
 // --- Stage 2: Text Model for Structuring ---
 async function structureTextWithLLM(rawText: string): Promise<any> {
     // Truncate the text to avoid exceeding payload or context limits.
-    // 12000 characters is a safe limit for most dense bank statements.
-    const truncatedText = rawText.substring(0, 12000);
+    // 24000 characters is a safe limit for dense bank statements.
+    const truncatedText = rawText.substring(0, 24000);
 
     const systemPrompt = `You are an expert financial analyst. Your task is to exhaustively extract all transactions from the provided text. You MUST return ONLY a valid JSON array of transaction objects. Do not include any other text, markdown, or explanations.`;
     const userPrompt = `
