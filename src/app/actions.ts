@@ -1,7 +1,6 @@
 
 'use server';
 
-import {extractTransactionsFromDocument} from '@/ai/flows/extract-transactions-from-document';
 import type {
   ExtractTransactionsInput,
   ExtractTransactionsOutput,
@@ -37,24 +36,6 @@ import type {GenerateTtsInput, GenerateTtsOutput} from '@/ai/schemas/tts';
 import { generateDprSection } from '@/ai/flows/generate-dpr-section';
 import { generateIdeaSection } from '@/ai/flows/generate-idea-section';
 
-
-export async function extractTransactionsAction(
-  input: ExtractTransactionsInput
-): Promise<
-  | {success: true; data: ExtractTransactionsOutput}
-  | {success: false; error: string}
-> {
-  try {
-    const result = await extractTransactionsFromDocument(input);
-    return {success: true, data: result};
-  } catch (error: any) {
-    console.error(error);
-    return {
-      success: false,
-      error: `Failed to extract transactions: ${error.message}`,
-    };
-  }
-}
 
 export async function generateDashboardSummaryAction(input: {
   transactions: ExtractedTransaction[];

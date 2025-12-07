@@ -71,11 +71,10 @@ import {
 } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
-import { extractTransactionsAction } from '@/app/actions';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
-import CashflowForecast from '@/components/financify/cashflow-forecast';
+import CashflowForecast from '@/components/wealthin/cashflow-forecast';
 import { Checkbox } from '@/components/ui/checkbox';
 
 
@@ -242,17 +241,18 @@ export default function FundManagementPage() {
     startProgressAnimation();
 
     try {
-        const dataUri = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = error => reject(error);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/process-pdf", {
+            method: "POST",
+            body: formData,
         });
 
-      const result = await extractTransactionsAction({ documentDataUri: dataUri });
+        const result = await response.json();
 
-      if (result.success && result.data.transactions.length > 0) {
-        setExtractedData(result.data.transactions);
+      if (response.ok && result.success && result.transactions.length > 0) {
+        setExtractedData(result.transactions);
         setImportStep('confirm');
       } else {
         throw new Error(result.error || 'No transactions were extracted from the document.');
@@ -379,10 +379,10 @@ export default function FundManagementPage() {
                                 onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                 onClick={() => fileInputRef.current?.click()}
                               >
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/*" className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" />
                                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                   <FileUp className="w-8 h-8" />
-                                  <p className="font-semibold">Upload a Document</p>
+                                  <p className="font-semibold">Upload a PDF Document</p>
                                   <p className="text-xs">Drag & drop or click to upload</p>
                                 </div>
                               </div>
