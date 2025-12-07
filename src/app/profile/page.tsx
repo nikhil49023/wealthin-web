@@ -37,6 +37,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -451,27 +452,11 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">Open Feedback Form</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl w-[95%] h-[95vh] p-0">
-              <DialogHeader className="p-6 pb-0">
-                <DialogTitle>Feedback & Support</DialogTitle>
-                <DialogDescription>
-                    Your feedback helps us improve WealthIn.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="h-full px-1 pb-1">
-                  <iframe 
-                      aria-label='Wealhin Feedback' 
-                      frameBorder="0" 
-                      style={{height: '100%', width: '100%', border: 'none'}} 
-                      src='https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4'>
-                  </iframe>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/feedback">
+              Open Feedback Form
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
