@@ -78,7 +78,6 @@ import { useRouter } from 'next/navigation';
 import CashflowForecast from '@/components/financify/cashflow-forecast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { extractTransactionsAction } from '../actions';
-import { PDFDocument } from 'pdf-lib';
 
 
 const db = getFirestore(app);
@@ -265,38 +264,6 @@ export default function FundManagementPage() {
     });
   };
 
-  // --- PDF to Image Data URIs Conversion ---
-  const pdfToImageDataUris = async (file: File): Promise<string[]> => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(arrayBuffer);
-    const uris: string[] = [];
-
-    // Render each page to a canvas, then get data URI
-    for (let i = 0; i < pdfDoc.getPageCount(); i++) {
-        const page = pdfDoc.getPage(i);
-        const { width, height } = page.getSize();
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const context = canvas.getContext('2d');
-        
-        // This is a placeholder for actual rendering logic.
-        // A full implementation would require a library like pdf.js to render the page onto the canvas.
-        // For this example, we'll create a blank image with text.
-        if (context) {
-            context.fillStyle = 'white';
-            context.fillRect(0, 0, width, height);
-            context.fillStyle = 'black';
-            context.font = '20px Arial';
-            context.fillText(`PDF Page ${i+1}`, 10, 50);
-            uris.push(canvas.toDataURL('image/png'));
-        }
-    }
-    // Since direct PDF-to-image rendering is complex on the client,
-    // we will pass the PDF's raw data URI and let the backend handle it.
-    return [await fileToDataUri(file)];
-  };
-  
   const processFile = async (file: File) => {
     if (!user) return;
     setImportStep('uploading');
