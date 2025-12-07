@@ -33,6 +33,7 @@ import {
   Landmark,
   FileText,
   Percent,
+  Info,
 } from 'lucide-react';
 import {
   Dialog,
@@ -54,6 +55,7 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-provider';
 import { app } from '@/lib/firebase';
@@ -386,6 +388,12 @@ export default function FundManagementPage() {
                                   Choose a document to import transactions from (e.g., PDF, JPG, PNG).
                                 </DialogDescription>
                             </DialogHeader>
+                             <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-900 [&>svg]:text-blue-600">
+                                <Info className="h-4 w-4" />
+                                <AlertDescription>
+                                For best results, please ensure PDF documents do not exceed 4-5 pages.
+                                </AlertDescription>
+                            </Alert>
                              <div
                                 className={cn('border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors flex flex-col items-center justify-center mt-4', { 'bg-accent': isDragging })}
                                 onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); processFile(e.dataTransfer.files[0]); }}
@@ -592,3 +600,5 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
+    
