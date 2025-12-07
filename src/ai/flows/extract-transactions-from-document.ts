@@ -91,7 +91,7 @@ export async function extractTransactionsFromDocument(
     return validatedData;
 
   } catch (e: any) {
-    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client')) {
+    if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client') || e.message.includes('Internal Server Error')) {
        throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
     }
     console.error('Error during transaction extraction flow:', e);
