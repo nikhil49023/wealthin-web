@@ -13,6 +13,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // --- Types ---
 type DailyData = {
@@ -24,6 +25,13 @@ type DailyData = {
   status: 'safe' | 'warning' | 'danger';
 };
 
+type MonthlyData = {
+  date: Date; // First day of the month
+  balance: number;
+  income: number;
+  expense: number;
+};
+
 type CashflowForecastProps = {
     transactions: (ExtractedTransaction & { id: string })[];
     isLoading: boolean;
@@ -31,30 +39,37 @@ type CashflowForecastProps = {
 
 export default function CashflowForecast({ transactions, isLoading }: CashflowForecastProps) {
   const LOW_BALANCE_THRESHOLD = 5000;
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
+  const [currentDate, setCurrentDate] = useState(new Date()); // For monthly view
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear()); // For yearly view
 
-  const handlePreviousMonth = () => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const handlePrevious = () => {
+    if (viewMode === 'monthly') {
+      setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    } else {
+      setCurrentYear(prev => prev - 1);
+    }
   };
   
-  const handleNextMonth = () => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handleNext = () => {
+    if (viewMode === 'monthly') {
+      setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    } else {
+      setCurrentYear(prev => prev + 1);
+    }
   };
 
-  // --- Core Forecasting Logic ---
+  // --- Core Forecasting Logic for Monthly View ---
   const { historicalData, lowestPoint } = useMemo(() => {
-    if (transactions.length === 0) {
+    if (viewMode !== 'monthly' || transactions.length === 0) {
       return { historicalData: [], lowestPoint: null };
     }
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
-    // 2. Set the window for the selected month
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
 
-    // 3. Calculate initial balance before the window starts
     let runningBalance = transactions
       .filter(t => new Date(t.date) < startDate)
       .reduce((acc, t) => {
@@ -65,19 +80,9 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     const data: DailyData[] = [];
     const tempDate = new Date(startDate);
 
-    // 4. Iterate through the selected month
     while (tempDate <= endDate) {
       const currentDateString = tempDate.toISOString().split('T')[0];
-      
-      const todaysTransactions = transactions.filter(
-        t => {
-            try {
-                return new Date(t.date).toISOString().split('T')[0] === currentDateString;
-            } catch (e) {
-                return false;
-            }
-        }
-      );
+      const todaysTransactions = transactions.filter(t => new Date(t.date).toISOString().split('T')[0] === currentDateString);
 
       let dailyIncome = 0;
       let dailyExpense = 0;
@@ -115,7 +120,43 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     const finalLowestPoint = data.reduce((min, p) => (p.balance < min.balance ? p : min), data[0] || null);
 
     return { historicalData: data, lowestPoint: finalLowestPoint };
-  }, [transactions, currentDate]);
+  }, [transactions, currentDate, viewMode]);
+
+  // --- Core Forecasting Logic for Yearly View ---
+  const yearlyData = useMemo(() => {
+    if (viewMode !== 'yearly' || transactions.length === 0) {
+      return [];
+    }
+
+    const data: MonthlyData[] = [];
+    let runningBalance = transactions
+      .filter(t => new Date(t.date).getFullYear() < currentYear)
+      .reduce((acc, t) => (t.type === 'income' ? acc + Number(t.amount) : acc - Number(t.amount)), 0);
+
+    for (let month = 0; month < 12; month++) {
+      const monthStart = new Date(currentYear, month, 1);
+      const monthEnd = new Date(currentYear, month + 1, 0);
+
+      const monthTransactions = transactions.filter(t => {
+        const txDate = new Date(t.date);
+        return txDate >= monthStart && txDate <= monthEnd;
+      });
+
+      const monthlyIncome = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+      const monthlyExpense = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      runningBalance += monthlyIncome - monthlyExpense;
+
+      data.push({
+        date: monthStart,
+        balance: runningBalance,
+        income: monthlyIncome,
+        expense: monthlyExpense,
+      });
+    }
+
+    return data;
+  }, [transactions, currentYear, viewMode]);
 
   const weeklyChunks = useMemo(() => {
     const chunks = [];
@@ -125,24 +166,10 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
     return chunks;
   }, [historicalData]);
 
-
-  // --- Helper to format currency ---
-  const formatINR = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // --- Helper to format date ---
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
-  };
-  
-  const formatMonthYear = (date: Date) => {
-    return new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(date);
-  }
+  const formatINR = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+  const formatDate = (date: Date) => new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short' }).format(date);
+  const formatMonthYear = (date: Date) => new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(date);
+  const formatMonth = (date: Date) => new Intl.DateTimeFormat('en-IN', { month: 'short' }).format(date);
 
   if (isLoading) {
       return (
@@ -179,7 +206,7 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
       
       <div className="space-y-1">
         {day.events.length > 0 ? (
-          day.events.slice(0, 2).map((event, i) => ( // Show max 2 events
+          day.events.slice(0, 2).map((event, i) => (
             <div key={i} className="flex items-center gap-1 text-xs">
               {event.startsWith('+') ? (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
@@ -205,18 +232,28 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
           <h2 className="text-2xl font-bold text-slate-800">Cashflow Analysis</h2>
           <p className="text-slate-500 text-sm">Reviewing your account balance over time.</p>
         </div>
-        <div className="flex items-center gap-2 rounded-full bg-muted p-1">
-            <Button size="icon" variant="ghost" onClick={handlePreviousMonth}>
-                <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span className="font-semibold text-sm w-32 text-center">{formatMonthYear(currentDate)}</span>
-            <Button size="icon" variant="ghost" onClick={handleNextMonth}>
-                <ChevronRight className="h-5 w-5" />
-            </Button>
+        <div className="flex items-center gap-4">
+            <Tabs defaultValue="monthly" onValueChange={(v) => setViewMode(v as 'monthly' | 'yearly')} className="w-auto">
+              <TabsList>
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                <TabsTrigger value="yearly">Yearly</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="flex items-center gap-2 rounded-full bg-muted p-1">
+                <Button size="icon" variant="ghost" onClick={handlePrevious}>
+                    <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <span className="font-semibold text-sm w-32 text-center">
+                    {viewMode === 'monthly' ? formatMonthYear(currentDate) : currentYear}
+                </span>
+                <Button size="icon" variant="ghost" onClick={handleNext}>
+                    <ChevronRight className="h-5 w-5" />
+                </Button>
+            </div>
         </div>
       </div>
 
-      {lowestPoint && (
+      {viewMode === 'monthly' && lowestPoint && (
         <div className={`p-4 rounded-xl border-l-4 shadow-sm ${lowestPoint.status === 'danger' ? 'bg-red-50 border-red-500' : lowestPoint.status === 'warning' ? 'bg-amber-50 border-amber-500' : 'bg-emerald-50 border-emerald-500'}`}>
           <div className="flex items-start gap-3">
             {lowestPoint.status === 'danger' && <AlertTriangle className="text-red-500 w-6 h-6 mt-1" />}
@@ -237,20 +274,29 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={historicalData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+          <LineChart 
+            data={viewMode === 'monthly' ? historicalData : yearlyData} 
+            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+          >
             <XAxis 
               dataKey="date" 
-              tickFormatter={formatDate} 
+              tickFormatter={viewMode === 'monthly' ? formatDate : formatMonth} 
               tick={{fontSize: 12}} 
               minTickGap={30}
             />
             <YAxis tick={{fontSize: 12}} tickFormatter={(val) => formatINR(val).replace('₹', '')} />
             <Tooltip 
-              formatter={(value: number) => [formatINR(value), "Balance"]}
-              labelFormatter={(label) => formatDate(new Date(label))}
+              formatter={(value: number, name: string) => {
+                const formattedValue = formatINR(value);
+                if (name === 'balance') return [formattedValue, 'Ending Balance'];
+                if (name === 'income') return [formattedValue, 'Monthly Income'];
+                if (name === 'expense') return [formattedValue, 'Monthly Expense'];
+                return [formattedValue, name];
+              }}
+              labelFormatter={(label) => viewMode === 'monthly' ? formatDate(new Date(label)) : formatMonth(new Date(label))}
             />
             <ReferenceLine y={0} stroke="red" strokeDasharray="3 3" />
-            <ReferenceLine y={LOW_BALANCE_THRESHOLD} stroke="orange" strokeDasharray="3 3" label="Low Funds" />
+            {viewMode === 'monthly' && <ReferenceLine y={LOW_BALANCE_THRESHOLD} stroke="orange" strokeDasharray="3 3" label="Low Funds" />}
             
             <Line 
               type="monotone" 
@@ -260,16 +306,22 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
               dot={false}
               activeDot={{ r: 6 }}
             />
+             {viewMode === 'yearly' && (
+              <>
+                <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Monthly Income"/>
+                <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={1} strokeDasharray="3 3" dot={false} name="Monthly Expense"/>
+              </>
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>
 
+     {viewMode === 'monthly' && (
       <div className="space-y-3">
         <h3 className="font-semibold text-slate-700 flex items-center gap-2">
           <Calendar className="w-4 h-4" /> Daily Breakdown
         </h3>
         
-        {/* Mobile Carousel View */}
         <div className="md:hidden">
           <Carousel className="w-full">
             <CarouselContent>
@@ -286,13 +338,13 @@ export default function CashflowForecast({ transactions, isLoading }: CashflowFo
           </Carousel>
         </div>
 
-        {/* Desktop Grid View */}
         <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {historicalData.map((day) => (
             <BreakdownCard key={day.date.toISOString()} day={day} />
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
