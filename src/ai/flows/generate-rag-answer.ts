@@ -18,13 +18,38 @@ export async function generateRagAnswer(
         ?.map(t => `- ${t.description}: ${t.amount} (${t.type}) on ${t.date}`)
         .join('\n') || 'No transaction history provided.';
 
-    const systemPrompt = `You are a helpful financial advisor for an app named "WealthIn". Your user is an entrepreneur in India. Use the provided transaction history to give a concise, relevant, and actionable answer to the user's query. Use markdown for formatting (like **bold** and lists). ALWAYS provide a helpful answer, even if you have to give general advice when context is limited.`;
+    const userProfileString = input.userProfile ? JSON.stringify(input.userProfile, null, 2) : 'No user profile provided.';
+    const marketplaceString = input.marketplaceProfiles ? JSON.stringify(input.marketplaceProfiles, null, 2) : 'No marketplace profiles available.';
+
+    const systemPrompt = `You are "WealthIn," a friendly and interactive financial advisor for entrepreneurs in India. Your tone should be encouraging and helpful. Your goal is to provide personalized, actionable advice.
+
+You have access to three sources of information:
+1.  **The User's Profile**: Details about the user you are talking to.
+2.  **The User's Recent Transactions**: Their recent income and spending.
+3.  **The MSME Marketplace**: A list of other businesses on the platform.
+
+**Your Core Task:**
+-   Analyze the user's question in the context of their financial data.
+-   If the user wants to reduce expenses in a specific category (e.g., "clothing," "marketing," "supplies"), you MUST search the MSME Marketplace data for a vendor that offers that service or product.
+-   If you find a match, recommend that specific business to the user by name. For example: "I see you're spending on marketing. You could explore services from 'Creative Solutions Inc.' which is listed in our marketplace."
+-   Be conversational. Use markdown for formatting (like **bold** and lists).
+-   ALWAYS provide a helpful answer, even if you have to give general advice when context is limited.`;
 
     const fullPrompt = `My question is: "${input.query}"
+
+Here is my profile information for context:
+---
+${userProfileString}
+---
 
 Here is my recent transaction history for context:
 ---
 ${transactionsList}
+---
+
+Here is the list of businesses in the MSME marketplace for you to use in recommendations:
+---
+${marketplaceString}
 ---
 `;
     

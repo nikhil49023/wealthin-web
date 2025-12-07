@@ -8,7 +8,7 @@ import {Send, Sparkles, User, Loader2} from 'lucide-react';
 import {Avatar, AvatarFallback} from '@/components/ui/avatar';
 import {motion, AnimatePresence} from 'framer-motion';
 import type {ExtractedTransaction} from '@/ai/schemas/transactions';
-import {useAuth} from '@/context/auth-provider';
+import {useAuth, type UserProfile} from '@/context/auth-provider';
 import {useLanguage} from '@/hooks/use-language';
 import {
   getFirestore,
@@ -45,15 +45,17 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const bottomOfChatRef = useRef<HTMLDivElement>(null);
 
-  const {user, loading: loadingAuth} = useAuth();
+  const {user, userProfile, loading: loadingAuth} = useAuth();
   const [transactions, setTransactions] = useState<ExtractedTransaction[]>([]);
+  const [marketplaceProfiles, setMarketplaceProfiles] = useState<UserProfile[]>([]);
   const {translations} = useLanguage();
 
   useEffect(() => {
     if (user) {
+      // --- Listener for recent transactions ---
       const transactionsRef = collection(db, 'users', user.uid, 'transactions');
       const q = query(transactionsRef, orderBy('date', 'desc'), limit(20));
-      const unsubscribe = onSnapshot(q, snapshot => {
+      const unsubTransactions = onSnapshot(q, snapshot => {
         setTransactions(snapshot.docs.map(
           doc => doc.data() as ExtractedTransaction
         ));
@@ -64,7 +66,23 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
             path: transactionsRef.path, operation: 'list'
         }));
       });
-      return () => unsubscribe();
+
+      // --- Listener for MSME marketplace profiles ---
+      const msmeRef = collection(db, 'msme-profiles');
+      const unsubMsme = onSnapshot(msmeRef, snapshot => {
+        setMarketplaceProfiles(snapshot.docs.map(doc => doc.data() as UserProfile));
+      },
+      (error) => {
+        console.error("AI Advisor MSME profiles snapshot error", error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: msmeRef.path, operation: 'list'
+        }));
+      });
+
+      return () => {
+        unsubTransactions();
+        unsubMsme();
+      };
     }
   }, [user]);
 
@@ -120,7 +138,13 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
     setIsLoading(true);
 
     try {
-      const result = await generateRagAnswerAction({query: queryText, transactions: transactions});
+      const result = await generateRagAnswerAction({
+        query: queryText, 
+        transactions: transactions,
+        userProfile: userProfile || undefined,
+        marketplaceProfiles: marketplaceProfiles,
+      });
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to get a response from the AI.');
       }
