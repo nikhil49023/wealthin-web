@@ -33,6 +33,10 @@ async function extractTextFromPdf(dataUri: string): Promise<string> {
 
 // --- Stage 2: Text Model for Structuring ---
 async function structureTextWithLLM(rawText: string): Promise<any> {
+    // Truncate the text to avoid exceeding payload or context limits.
+    // 12000 characters is a safe limit for most dense bank statements.
+    const truncatedText = rawText.substring(0, 12000);
+
     const systemPrompt = `You are an expert financial analyst. Your task is to exhaustively extract all transactions from the provided text. You MUST return ONLY a valid JSON array of transaction objects. Do not include any other text, markdown, or explanations.`;
     const userPrompt = `
 Analyze the following text from a financial statement and extract all transactions.
@@ -46,11 +50,11 @@ Each transaction object in the JSON array must conform to this exact schema:
 
 Here is the text to process:
 ---
-${rawText}
+${truncatedText}
 ---
 `;
-    // Using a powerful instruction-following model for this task.
-    const jsonResponseText = await generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
+    // Use the default, powerful model for this complex structuring task.
+    const jsonResponseText = await generateText(userPrompt, systemPrompt);
     return cleanAndParseJSON(jsonResponseText);
 }
 
@@ -59,9 +63,9 @@ ${rawText}
 export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
+  let rawText = '';
   try {
     const { documentDataUri, mimeType } = input;
-    let rawText: string;
 
     // STAGE 1: Extract raw text based on file type
     if (mimeType.startsWith('image/')) {
@@ -90,10 +94,14 @@ export async function extractTransactionsFromDocument(
     return validatedData;
 
   } catch (e: any) {
+    // Special handling for Zoho Catalyst config errors
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client') || e.message.includes('Internal Server Error')) {
        throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
     }
+    // Add more detailed logging for debugging
     console.error('Error during transaction extraction flow:', e);
+    console.error(`Raw text length at time of error: ${rawText.length}`);
+    
     // If it's a Zod validation error, the message will be more informative
     const errorMessage = e.errors ? JSON.stringify(e.errors, null, 2) : e.message;
     throw new Error(`Could not extract transactions. ${errorMessage}`);
