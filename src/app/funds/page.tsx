@@ -93,7 +93,6 @@ export default function FundManagementPage() {
   // Loading states
   const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
 
   // Dialog states
@@ -105,7 +104,7 @@ export default function FundManagementPage() {
   const [newTransaction, setNewTransaction] = useState({ description: '', date: '', time: '', type: 'expense' as 'income' | 'expense', amount: '' });
 
   // Import flow state
-  const [importStep, setImportStep] = useState<'upload' | 'confirm'>('upload');
+  const [importStep, setImportStep] = useState<'upload' | 'uploading' | 'confirm'>('upload');
   const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
 
   // File Refs
@@ -210,7 +209,7 @@ export default function FundManagementPage() {
     progressIntervalRef.current = setInterval(() => {
         setImportProgress(prev => {
             if (prev >= 95) {
-                clearInterval(progressIntervalRef.current!);
+                if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
                 return 95;
             }
             return prev + 1;
@@ -224,20 +223,21 @@ export default function FundManagementPage() {
     }
     setImportProgress(100);
     setTimeout(() => {
-        setIsImporting(false);
         setImportProgress(0);
-    }, 1000);
+    }, 500);
   };
 
   const resetImportDialog = () => {
     setImportDialogOpen(false);
-    setExtractedData([]);
-    setImportStep('upload');
+    setTimeout(() => {
+        setExtractedData([]);
+        setImportStep('upload');
+    }, 300); // Delay to allow dialog to close before state resets
   };
 
   const processFile = async (file: File) => {
     if (!user) return;
-    setIsImporting(true);
+    setImportStep('uploading');
     startProgressAnimation();
 
     try {
@@ -250,19 +250,19 @@ export default function FundManagementPage() {
         });
 
         const result = await response.json();
+        finishProgressAnimation();
 
       if (response.ok && result.success && result.transactions.length > 0) {
-        setExtractedData(result.transactions);
-        setImportStep('confirm');
+        setTimeout(() => {
+            setExtractedData(result.transactions);
+            setImportStep('confirm');
+        }, 500);
       } else {
         throw new Error(result.error || 'No transactions were extracted from the document.');
       }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Import Failed', description: error.message });
       resetImportDialog();
-    } finally {
-      finishProgressAnimation();
-      setIsImporting(false);
     }
   };
 
@@ -335,20 +335,7 @@ export default function FundManagementPage() {
           </div>
         </CardContent>
       </Card>
-
-      {isImporting && importStep === 'upload' && (
-        <Card>
-            <CardHeader>
-                <CardTitle>Importing Transactions...</CardTitle>
-                <CardDescription>AI is analyzing your document. Please wait.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Progress value={importProgress} className="w-full" />
-                <p className="text-center text-sm text-muted-foreground mt-2">{Math.round(importProgress)}%</p>
-            </CardContent>
-        </Card>
-      )}
-
+      
       <Tabs defaultValue="cashflow">
         <div className="flex flex-wrap gap-4 justify-between items-center">
             <TabsList className="grid w-full grid-cols-3 sm:w-auto">
@@ -358,7 +345,7 @@ export default function FundManagementPage() {
             </TabsList>
             <Dialog open={importDialogOpen} onOpenChange={open => { if (!open) resetImportDialog(); else setImportDialogOpen(true); }}>
                 <DialogTrigger asChild>
-                    <Button variant="outline" disabled={isImporting} className="w-full sm:w-auto">
+                    <Button variant="outline" className="w-full sm:w-auto">
                         <Upload className="mr-2 h-4 w-4" />
                         Import
                     </Button>
@@ -374,7 +361,7 @@ export default function FundManagementPage() {
                             </DialogHeader>
                              <div
                                 className={cn('border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors flex flex-col items-center justify-center mt-4', { 'bg-accent': isDragging })}
-                                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); processFile(e.dataTransfer.files[0]); }}
+                                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); processFile(e.dataTransfer.files[0]); }}
                                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                                 onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                 onClick={() => fileInputRef.current?.click()}
@@ -386,6 +373,18 @@ export default function FundManagementPage() {
                                   <p className="text-xs">Drag & drop or click to upload</p>
                                 </div>
                               </div>
+                        </>
+                    )}
+                    {importStep === 'uploading' && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>Importing Transactions...</DialogTitle>
+                                <DialogDescription>AI is analyzing your document. Please wait.</DialogDescription>
+                            </DialogHeader>
+                            <div className="py-8">
+                                <Progress value={importProgress} className="w-full" />
+                                <p className="text-center text-sm text-muted-foreground mt-2">{Math.round(importProgress)}%</p>
+                            </div>
                         </>
                     )}
                     {importStep === 'confirm' && (
@@ -568,4 +567,5 @@ export default function FundManagementPage() {
   );
 }
 
+    
     
