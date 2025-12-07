@@ -235,20 +235,27 @@ export default function GrowthHubPage() {
     return Array.from(services).sort();
   }, [msmeList]);
 
+  const isSearchActive = useMemo(() => {
+    return searchQuery.trim() !== '' || filterService !== '' || filterLocation !== '';
+  }, [searchQuery, filterService, filterLocation]);
 
-  const filteredMsmes = msmeList.filter(msme => {
-      const searchMatch = (
-        msme.msmeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msme.msmeService?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        msme.msmeLocation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (msme as any).msmeDescription?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      const serviceMatch = filterService ? msme.msmeService === filterService : true;
-      const locationMatch = filterLocation ? msme.msmeLocation === filterLocation : true;
+  const filteredMsmes = useMemo(() => {
+    if (!isSearchActive) return [];
+    
+    return msmeList.filter(msme => {
+        const searchMatch = (
+          msme.msmeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          msme.msmeService?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          msme.msmeLocation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (msme as any).msmeDescription?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        const serviceMatch = filterService ? msme.msmeService === filterService : true;
+        const locationMatch = filterLocation ? msme.msmeLocation === filterLocation : true;
+  
+        return searchMatch && serviceMatch && locationMatch;
+      });
+  }, [msmeList, searchQuery, filterService, filterLocation, isSearchActive]);
 
-      return searchMatch && serviceMatch && locationMatch;
-    }
-  );
 
   const startupSteps = [
     {
@@ -568,16 +575,24 @@ export default function GrowthHubPage() {
                     <X className="mr-2 h-3 w-3" /> Clear Filters
                 </Button>
 
-
-                {isLoadingMsmes ? (
-                    <div className="flex gap-4">
-                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full md:w-1/3" />)}
+                {isLoadingMsmes && (
+                     <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                     </div>
+                )}
+                
+                {!isLoadingMsmes && !isSearchActive && (
+                    <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                        <Search className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-2 text-lg font-semibold">Discover Services</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Use the search bar or filters above to find MSMEs.
+                        </p>
                     </div>
-                ) : filteredMsmes.length > 0 ? (
-                    <Carousel
-                        opts={{ align: 'start', loop: false }}
-                        className="w-full"
-                    >
+                )}
+
+                {isSearchActive && filteredMsmes.length > 0 && (
+                     <Carousel opts={{ align: 'start', loop: false }} className="w-full">
                         <CarouselContent>
                             {filteredMsmes.map((msme) => (
                                 <CarouselItem key={msme.id} className="md:basis-1/2 lg:basis-1/3">
@@ -619,7 +634,9 @@ export default function GrowthHubPage() {
                         <CarouselPrevious className="hidden md:flex" />
                         <CarouselNext className="hidden md:flex" />
                     </Carousel>
-                ) : (
+                )}
+
+                {isSearchActive && !isLoadingMsmes && filteredMsmes.length === 0 && (
                     <div className="text-center py-10">
                         <p className="text-muted-foreground">No matching MSMEs found. Try adjusting your filters.</p>
                     </div>

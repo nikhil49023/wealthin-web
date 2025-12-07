@@ -86,6 +86,16 @@ const db = getFirestore(app);
 
 type TaxDeductibleTransaction = ExtractedTransaction & { id: string, isTaxDeductible?: boolean };
 
+const importCaptions = [
+    "Reading your document...",
+    "Identifying transaction patterns...",
+    "Extracting dates and amounts...",
+    "Categorizing income vs. expenses...",
+    "Cross-validating entries...",
+    "Finalizing the transaction list...",
+    "Almost there...",
+];
+
 export default function FundManagementPage() {
   const { user, loading: loadingAuth } = useAuth();
   const { toast } = useToast();
@@ -110,11 +120,12 @@ export default function FundManagementPage() {
   // Import flow state
   const [importStep, setImportStep] = useState<'upload' | 'uploading' | 'confirm'>('upload');
   const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
+  const [currentCaption, setCurrentCaption] = useState(importCaptions[0]);
 
   // File Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+  const captionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const formatCurrency = (amount: number | string | undefined): string => {
     if (amount === undefined || amount === null || amount === '') return '₹0.00';
@@ -223,23 +234,35 @@ export default function FundManagementPage() {
       }
   };
 
+   const stopProgressAnimation = () => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    if (captionIntervalRef.current) clearInterval(captionIntervalRef.current);
+  };
+
   const startProgressAnimation = () => {
     setImportProgress(0);
+    stopProgressAnimation(); // Clear any existing intervals
+
     progressIntervalRef.current = setInterval(() => {
         setImportProgress(prev => {
             if (prev >= 95) {
                 if(progressIntervalRef.current) clearInterval(progressIntervalRef.current);
                 return 95;
             }
-            return prev + 1;
+            return prev + 5;
         });
     }, 200);
+
+    let captionIndex = 0;
+    setCurrentCaption(importCaptions[0]);
+    captionIntervalRef.current = setInterval(() => {
+        captionIndex = (captionIndex + 1) % importCaptions.length;
+        setCurrentCaption(importCaptions[captionIndex]);
+    }, 2000);
   };
 
   const finishProgressAnimation = () => {
-    if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-    }
+    stopProgressAnimation();
     setImportProgress(100);
     setTimeout(() => {
         setImportProgress(0);
@@ -248,6 +271,7 @@ export default function FundManagementPage() {
 
   const resetImportDialog = () => {
     setImportDialogOpen(false);
+    stopProgressAnimation();
     setTimeout(() => {
         setExtractedData([]);
         setImportStep('upload');
@@ -418,7 +442,7 @@ export default function FundManagementPage() {
                             </DialogHeader>
                             <div className="py-8">
                                 <Progress value={importProgress} className="w-full" />
-                                <p className="text-center text-sm text-muted-foreground mt-2">{Math.round(importProgress)}%</p>
+                                <p className="text-center text-sm text-muted-foreground mt-2">{currentCaption}</p>
                             </div>
                         </>
                     )}
