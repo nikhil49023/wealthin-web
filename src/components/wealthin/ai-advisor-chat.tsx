@@ -17,6 +17,7 @@ import {
   query,
   orderBy,
   limit,
+  Timestamp,
 } from 'firebase/firestore';
 import {app} from '@/lib/firebase';
 import { generateRagAnswerAction } from '@/app/actions';
@@ -138,9 +139,22 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
     setIsLoading(true);
 
     try {
+       // Sanitize transactions before sending to server action
+      const plainTransactions = transactions.map(t => {
+        const plainT: { [key: string]: any } = { ...t };
+        for (const key in plainT) {
+            if (plainT[key] instanceof Timestamp) {
+                plainT[key] = plainT[key].toDate().toISOString();
+            } else if (plainT[key] && typeof plainT[key] === 'object' && 'toDate' in plainT[key]) {
+                plainT[key] = (plainT[key] as Timestamp).toDate().toISOString();
+            }
+        }
+        return plainT as ExtractedTransaction;
+      });
+      
       const result = await generateRagAnswerAction({
         query: queryText, 
-        transactions: transactions,
+        transactions: plainTransactions,
         userProfile: userProfile || undefined,
         marketplaceProfiles: marketplaceProfiles,
       });
