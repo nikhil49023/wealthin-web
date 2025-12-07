@@ -74,7 +74,7 @@ import type { ExtractedTransaction } from '@/ai/schemas/transactions';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useRouter } from 'next/navigation';
-import CashflowForecast from '@/components/wealthin/cashflow-forecast';
+import CashflowForecast from '@/components/financify/cashflow-forecast';
 import { Checkbox } from '@/components/ui/checkbox';
 
 
@@ -567,3 +567,5 @@ export default function FundManagementPage() {
     </div>
   );
 }
+
+    
