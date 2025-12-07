@@ -68,6 +68,7 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import type { ExtractedTransaction } from '@/ai/schemas/transactions';
@@ -170,38 +171,53 @@ export default function FundManagementPage() {
     return { score: Math.round(score), feedback };
   }, [transactions, loading]);
 
-  // Generic add function for transactions
   const handleAddTransaction = async () => {
     if (!user) return;
     setIsAdding(true);
+    const transactionData = {
+      ...newTransaction,
+      amount: parseFloat(newTransaction.amount),
+      createdAt: serverTimestamp(),
+    };
     try {
-      await addDoc(collection(db, 'users', user.uid, 'transactions'), {
-        ...newTransaction,
-        amount: parseFloat(newTransaction.amount),
-        createdAt: serverTimestamp(),
-      });
+      await addDoc(collection(db, 'users', user.uid, 'transactions'), transactionData);
       toast({ title: 'Success', description: `Transaction added.` });
       setAddTransactionDialogOpen(false);
       invalidateDashboardCache();
     } catch (error) {
       console.error(`Error adding transaction:`, error);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: `users/${user.uid}/transactions`, operation: 'create', requestResourceData: transactionData }));
       toast({ variant: 'destructive', title: 'Error', description: `Could not add transaction.` });
     } finally {
       setIsAdding(false);
     }
   };
 
-  // Generic delete function for transactions
   const handleDeleteTransaction = async (id: string) => {
     if (!user) return;
+    const docRef = doc(db, 'users', user.uid, 'transactions', id);
     try {
-      await deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
+      await deleteDoc(docRef);
       toast({ title: 'Success', description: `Transaction removed.` });
       invalidateDashboardCache();
     } catch (error) {
         console.error(`Error deleting transaction:`, error);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
         toast({ variant: 'destructive', title: 'Error', description: `Could not remove transaction.` });
     }
+  };
+
+  const handleUpdateTaxDeductible = async (id: string, isTaxDeductible: boolean) => {
+      if (!user) return;
+      const docRef = doc(db, 'users', user.uid, 'transactions', id);
+      try {
+          await updateDoc(docRef, { isTaxDeductible });
+          setTransactions(prev => prev.map(t => t.id === id ? { ...t, isTaxDeductible } : t));
+      } catch (error) {
+          console.error('Error updating tax deductible status:', error);
+          errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: { isTaxDeductible } }));
+          toast({ variant: 'destructive', title: 'Error', description: `Could not update transaction.` });
+      }
   };
 
   const startProgressAnimation = () => {
@@ -232,7 +248,7 @@ export default function FundManagementPage() {
     setTimeout(() => {
         setExtractedData([]);
         setImportStep('upload');
-    }, 300); // Delay to allow dialog to close before state resets
+    }, 300);
   };
 
   const processFile = async (file: File) => {
@@ -274,7 +290,7 @@ export default function FundManagementPage() {
         const transactionsRef = collection(db, 'users', user.uid, 'transactions');
         extractedData.forEach(transaction => {
             const docRef = doc(transactionsRef);
-            batch.set(docRef, transaction);
+            batch.set(docRef, { ...transaction, createdAt: serverTimestamp() });
         });
         await batch.commit();
         invalidateDashboardCache();
@@ -366,10 +382,10 @@ export default function FundManagementPage() {
                                 onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                 onClick={() => fileInputRef.current?.click()}
                               >
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/png,image/jpeg" className="hidden" />
                                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                   <FileUp className="w-8 h-8" />
-                                  <p className="font-semibold">Upload a PDF Document</p>
+                                  <p className="font-semibold">Upload a PDF or Image</p>
                                   <p className="text-xs">Drag & drop or click to upload</p>
                                 </div>
                               </div>
@@ -545,8 +561,7 @@ export default function FundManagementPage() {
                                             <Checkbox
                                                 checked={t.isTaxDeductible}
                                                 onCheckedChange={(checked) => {
-                                                    // This would update the document in a real app
-                                                    console.log(`Set transaction ${t.id} deductible status to: ${checked}`);
+                                                    handleUpdateTaxDeductible(t.id, Boolean(checked));
                                                 }}
                                             />
                                         </TableCell>
@@ -566,6 +581,3 @@ export default function FundManagementPage() {
     </div>
   );
 }
-
-    
-    

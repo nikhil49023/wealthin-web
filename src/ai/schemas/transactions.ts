@@ -41,6 +41,7 @@ export type ExtractTransactionsInput = z.infer<
 export const ExtractTransactionsOutputSchema = z.object({
   transactions: z
     .array(ExtractedTransactionSchema)
+    .min(1, { message: "No transactions were found in the document." })
     .describe('An array of extracted transactions.'),
 });
 export type ExtractTransactionsOutput = z.infer<
