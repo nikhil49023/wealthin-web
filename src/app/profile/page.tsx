@@ -440,7 +440,7 @@ export default function ProfilePage() {
         </div>
       </div>
       
-      {/* Feedback Form */}
+      {/* Feedback Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -451,12 +451,27 @@ export default function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <iframe
-            aria-label="Wealhin Feedback"
-            frameBorder="0"
-            style={{ height: '500px', width: '100%', border: 'none' }}
-            src="https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4"
-          ></iframe>
+          <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">Open Feedback Form</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>Feedback & Support</DialogTitle>
+                <DialogDescription>
+                    Your feedback helps us improve WealthIn.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="h-full py-4">
+                  <iframe 
+                      aria-label='Wealhin Feedback' 
+                      frameBorder="0" 
+                      style={{height: '100%', width: '100%', border: 'none'}} 
+                      src='https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4'>
+                  </iframe>
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
     </div>
