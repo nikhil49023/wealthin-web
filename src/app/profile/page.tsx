@@ -455,14 +455,14 @@ export default function ProfilePage() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="w-full">Open Feedback Form</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl h-[90vh]">
-              <DialogHeader>
+            <DialogContent className="max-w-3xl h-[90vh] p-0">
+              <DialogHeader className="p-6 pb-0">
                 <DialogTitle>Feedback & Support</DialogTitle>
                 <DialogDescription>
                     Your feedback helps us improve WealthIn.
                 </DialogDescription>
               </DialogHeader>
-              <div className="h-full py-4">
+              <div className="h-full px-1 pb-1">
                   <iframe 
                       aria-label='Wealhin Feedback' 
                       frameBorder="0" 
