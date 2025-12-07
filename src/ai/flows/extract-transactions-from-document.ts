@@ -53,8 +53,8 @@ Here is the text to process:
 ${truncatedText}
 ---
 `;
-    // Use the default, powerful model for this complex structuring task.
-    const jsonResponseText = await generateText(userPrompt, systemPrompt);
+    // Explicitly use the more powerful model for this complex structuring task.
+    const jsonResponseText = await generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
     return cleanAndParseJSON(jsonResponseText);
 }
 
