@@ -455,7 +455,7 @@ export default function ProfilePage() {
             <DialogTrigger asChild>
                 <Button variant="outline" className="w-full">Open Feedback Form</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl h-[90vh] p-0">
+            <DialogContent className="max-w-4xl w-[95%] h-[95vh] p-0">
               <DialogHeader className="p-6 pb-0">
                 <DialogTitle>Feedback & Support</DialogTitle>
                 <DialogDescription>
