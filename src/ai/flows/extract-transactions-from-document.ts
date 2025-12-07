@@ -1,9 +1,8 @@
 
 'use server';
 /**
- * @fileOverview A flow for extracting financial transactions from a document using a two-stage pipeline.
- * Stage 1: A vision model performs OCR to extract raw text.
- * Stage 2: An instruction-following text model structures the data from the raw text.
+ * @fileOverview A flow for extracting financial transactions from a document.
+ * It uses different strategies based on the file type (PDF vs. Image).
  */
 import { generateText, generateTextFromImage } from '@/services/catalyst';
 import type {
@@ -13,14 +12,24 @@ import type {
 } from '@/ai/schemas/transactions';
 import { ExtractTransactionsOutputSchema } from '@/ai/schemas/transactions';
 import { cleanAndParseJSON } from '@/lib/cleanJson';
+import pdf from 'pdf-parse';
 
-// --- Stage 1: Vision Model for OCR ---
-async function extractTextWithVisionModel(base64Image: string): Promise<string> {
+// --- Stage 1, Option A: Vision Model for Image OCR ---
+async function extractTextWithVision(base64Image: string): Promise<string> {
     const ocrSystemPrompt = "You are an expert at optical character recognition. Extract all text content from the provided image of a document page. Return only the raw text, preserving the layout as best as possible. Do not summarize, interpret, or format the text.";
     const ocrUserPrompt = "Extract all text from this document image.";
     const rawText = await generateTextFromImage(ocrUserPrompt, [base64Image], ocrSystemPrompt);
     return rawText;
 }
+
+// --- Stage 1, Option B: Direct Text Extraction for PDF ---
+async function extractTextFromPdf(dataUri: string): Promise<string> {
+    const base64Data = dataUri.split(',')[1];
+    const pdfBuffer = Buffer.from(base64Data, 'base64');
+    const data = await pdf(pdfBuffer);
+    return data.text;
+}
+
 
 // --- Stage 2: Text Model for Structuring ---
 async function structureTextWithLLM(rawText: string): Promise<any> {
@@ -51,42 +60,32 @@ export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
   try {
-    const uris = Array.isArray(input.documentDataUri) ? input.documentDataUri : [input.documentDataUri];
-    let allTransactions: ExtractedTransaction[] = [];
-    
-    for (const uri of uris) {
-        const mimeTypeMatch = uri.match(/^data:(.*?);base64,/);
-        if (!mimeTypeMatch) {
-            console.warn("Skipping invalid data URI.");
-            continue;
-        }
-        const base64Data = uri.split(',')[1];
-        
-        // STAGE 1: Extract raw text using OCR
-        const rawText = await extractTextWithVisionModel(base64Data);
+    const { documentDataUri, mimeType } = input;
+    let rawText: string;
 
-        if (!rawText || rawText.trim().length < 10) {
-            console.warn("Extracted text was empty or too short. Skipping this document/page.");
-            continue;
-        }
-
-        // STAGE 2: Structure the raw text into JSON
-        const extractedData = await structureTextWithLLM(rawText);
-        
-        // Ensure the output is an array before trying to spread it
-        if (Array.isArray(extractedData)) {
-            allTransactions.push(...(extractedData as ExtractedTransaction[]));
-        } else {
-            console.warn("AI did not return a valid array of transactions. Output:", extractedData);
-        }
+    // STAGE 1: Extract raw text based on file type
+    if (mimeType.startsWith('image/')) {
+        const base64Data = documentDataUri.split(',')[1];
+        rawText = await extractTextWithVision(base64Data);
+    } else if (mimeType === 'application/pdf') {
+        rawText = await extractTextFromPdf(documentDataUri);
+    } else {
+        throw new Error(`Unsupported file type: ${mimeType}. Please upload a PDF or an image.`);
     }
 
-    if (allTransactions.length === 0) {
-      throw new Error("No transactions were extracted from the document(s). The document might be empty, unreadable, or not a financial statement.");
+    if (!rawText || rawText.trim().length < 10) {
+        throw new Error("Could not extract any readable text from the document. It might be empty, corrupted, or an image-only PDF that requires OCR.");
+    }
+
+    // STAGE 2: Structure the raw text into JSON
+    const extractedData = await structureTextWithLLM(rawText);
+    
+    if (!Array.isArray(extractedData) || extractedData.length === 0) {
+        throw new Error("AI could not find any transactions in the document. Please ensure it is a financial statement.");
     }
 
     // Final validation against the Zod schema
-    const finalResult = { transactions: allTransactions };
+    const finalResult = { transactions: extractedData as ExtractedTransaction[] };
     const validatedData = ExtractTransactionsOutputSchema.parse(finalResult);
     return validatedData;
 

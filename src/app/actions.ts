@@ -51,7 +51,7 @@ export async function extractTransactionsAction(
     console.error('Error in transaction extraction action:', error);
     return {
       success: false,
-      error: `Failed to extract transactions: ${error.message}`,
+      error: `${error.message}`,
     };
   }
 }

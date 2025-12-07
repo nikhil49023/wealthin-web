@@ -272,7 +272,10 @@ export default function FundManagementPage() {
     try {
         const dataUri = await fileToDataUri(file);
 
-        const result = await extractTransactionsAction({ documentDataUri: dataUri });
+        const result = await extractTransactionsAction({ 
+          documentDataUri: dataUri,
+          mimeType: file.type
+        });
 
         finishProgressAnimation();
 
@@ -390,7 +393,7 @@ export default function FundManagementPage() {
                                 onDragEnter={() => setIsDragging(true)} onDragLeave={() => setIsDragging(false)}
                                 onClick={() => fileInputRef.current?.click()}
                               >
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf,image/png,image/jpeg" className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="application/pdf,image/png,image/jpeg" className="hidden" />
                                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                   <FileUp className="w-8 h-8" />
                                   <p className="font-semibold">Upload a PDF or Image</p>

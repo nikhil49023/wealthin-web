@@ -29,10 +29,11 @@ export const ExtractedTransactionSchema = z.object({
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
 
 export const ExtractTransactionsInputSchema = z.object({
-  documentDataUri: z.union([z.string(), z.array(z.string())])
+  documentDataUri: z.string()
     .describe(
-      "A document (like a bank statement) containing transactions, as a single data URI or an array of data URIs for multi-page documents. Each URI must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
+      "A document page containing transactions, as a data URI. The URI must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
+  mimeType: z.string().describe("The MIME type of the document (e.g., 'application/pdf', 'image/png').")
 });
 export type ExtractTransactionsInput = z.infer<
   typeof ExtractTransactionsInputSchema
