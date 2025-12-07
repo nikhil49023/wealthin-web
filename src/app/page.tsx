@@ -104,7 +104,7 @@ import { generateDashboardSummaryAction, generateFinBiteAction } from './actions
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FormattedText } from '@/components/financify/formatted-text';
+import { FormattedText } from '@/components/wealthin/formatted-text';
 
 const db = getFirestore(app);
 
@@ -368,9 +368,24 @@ export default function DashboardPage() {
       }
 
       setIsLoading(true);
+      
+      // Sanitize transactions before sending to server action
+      const plainTransactions = transactions.map(t => {
+        const plainT: { [key: string]: any } = { ...t };
+        for (const key in plainT) {
+            if (plainT[key] instanceof Timestamp) {
+                plainT[key] = plainT[key].toDate().toISOString();
+            } else if (plainT[key] && typeof plainT[key] === 'object' && 'toDate' in plainT[key]) {
+                // This handles cases where it might be a Timestamp-like object but not an instance
+                plainT[key] = (plainT[key] as Timestamp).toDate().toISOString();
+            }
+        }
+        return plainT as ExtractedTransaction;
+      });
+
 
       try {
-        const result = await generateDashboardSummaryAction({ transactions });
+        const result = await generateDashboardSummaryAction({ transactions: plainTransactions });
         if (!result.success) {
             throw new Error(result.error || 'Failed to generate summary.');
         }
