@@ -215,13 +215,7 @@ export default function ProfilePage() {
           <CardTitle className="text-2xl">{user.displayName || 'User'}</CardTitle>
           <CardDescription>{user.email}</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-           <Button asChild variant="outline">
-              <a href="https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4" target="_blank" rel="noopener noreferrer">
-                <MessageSquare className="mr-2" />
-                Feedback & Support
-              </a>
-           </Button>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">
@@ -246,7 +240,7 @@ export default function ProfilePage() {
           </AlertDialog>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="sm:col-span-2 lg:col-span-1">
+              <Button variant="destructive">
                 <Trash2 className="mr-2" />
                 Delete Account
               </Button>
@@ -273,77 +267,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
       
-      {/* Credits Section */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2"><Gem /> Credits</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1">
-                 <CardHeader>
-                    <CardTitle>Your Balance</CardTitle>
-                 </CardHeader>
-                 <CardContent className="text-center">
-                    <p className="text-5xl font-bold">{userProfile?.credits ?? 0}</p>
-                    <p className="text-muted-foreground">Available Credits</p>
-
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button className="mt-6 w-full">Recharge Credits</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Recharge Credits</DialogTitle>
-                                <DialogDescription>Select a pack to add credits to your account. (1 Credit ≈ ₹1)</DialogDescription>
-                            </DialogHeader>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
-                                {rechargeOptions.map(option => (
-                                    <Card key={option.credits} className="text-center p-4 cursor-pointer hover:border-primary transition-colors">
-                                        <p className="text-3xl font-bold">{option.credits}</p>
-                                        <p className="text-muted-foreground">Credits</p>
-                                        <Button variant="outline" size="sm" className="mt-4">
-                                            Pay ₹{option.price}
-                                        </Button>
-                                    </Card>
-                                ))}
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                 </CardContent>
-            </Card>
-            <Card className="lg:col-span-2">
-                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><History /> Credit History</CardTitle>
-                 </CardHeader>
-                 <CardContent>
-                    {sortedCreditHistory.length > 0 ? (
-                        <div className="space-y-4 pr-2">
-                            {sortedCreditHistory.map((tx, index) => (
-                                <div key={index} className="flex justify-between items-center text-sm">
-                                    <div className="flex items-center gap-3">
-                                        <div className={cn("flex items-center justify-center h-8 w-8 rounded-full", tx.amount > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600')}>
-                                            {tx.amount > 0 ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-                                        </div>
-                                        <div>
-                                            <p className="font-medium">{tx.description}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {tx.date instanceof Timestamp ? formatDistanceToNow(tx.date.toDate(), { addSuffix: true }) : 'Just now'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p className={cn("font-bold", tx.amount > 0 ? 'text-green-600' : 'text-red-600')}>
-                                        {tx.amount > 0 ? '+' : ''}{tx.amount}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground text-center py-10">No credit history yet.</p>
-                    )}
-                 </CardContent>
-            </Card>
-        </div>
-      </div>
-
-
       {isMsme && userProfile && (
         <Card>
            <CardHeader className="flex flex-row justify-between items-start">
@@ -446,6 +369,96 @@ export default function ProfilePage() {
             </CardContent>
         </Card>
       )}
+
+      {/* Credits Section */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold flex items-center gap-2"><Gem /> Credits</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1">
+                 <CardHeader>
+                    <CardTitle>Your Balance</CardTitle>
+                 </CardHeader>
+                 <CardContent className="text-center">
+                    <p className="text-5xl font-bold">{userProfile?.credits ?? 0}</p>
+                    <p className="text-muted-foreground">Available Credits</p>
+
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button className="mt-6 w-full">Recharge Credits</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Recharge Credits</DialogTitle>
+                                <DialogDescription>Select a pack to add credits to your account. (1 Credit ≈ ₹1)</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
+                                {rechargeOptions.map(option => (
+                                    <Card key={option.credits} className="text-center p-4 cursor-pointer hover:border-primary transition-colors">
+                                        <p className="text-3xl font-bold">{option.credits}</p>
+                                        <p className="text-muted-foreground">Credits</p>
+                                        <Button variant="outline" size="sm" className="mt-4">
+                                            Pay ₹{option.price}
+                                        </Button>
+                                    </Card>
+                                ))}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                 </CardContent>
+            </Card>
+            <Card className="lg:col-span-2">
+                 <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><History /> Credit History</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                    {sortedCreditHistory.length > 0 ? (
+                        <div className="space-y-4 pr-2">
+                            {sortedCreditHistory.map((tx, index) => (
+                                <div key={index} className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn("flex items-center justify-center h-8 w-8 rounded-full", tx.amount > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600')}>
+                                            {tx.amount > 0 ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium">{tx.description}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {tx.date instanceof Timestamp ? formatDistanceToNow(tx.date.toDate(), { addSuffix: true }) : 'Just now'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className={cn("font-bold", tx.amount > 0 ? 'text-green-600' : 'text-red-600')}>
+                                        {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-10">No credit history yet.</p>
+                    )}
+                 </CardContent>
+            </Card>
+        </div>
+      </div>
+      
+      {/* Feedback Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare /> Feedback & Support
+          </CardTitle>
+          <CardDescription>
+            Have a question or suggestion? Let us know.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <iframe
+            aria-label="Wealhin Feedback"
+            frameBorder="0"
+            style={{ height: '500px', width: '100%', border: 'none' }}
+            src="https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4"
+          ></iframe>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -586,7 +586,7 @@ function DPRReportContent() {
             <DialogFooter className="sm:justify-between gap-2">
                 <Button asChild variant="secondary" className="w-full sm:w-auto">
                     <a href="https://forms.zohopublic.in/sainikhilkilani621gm1/form/Contactwithfeedback/formperma/UDR5Z4RLNZJLRvVsEJg3IVod_kZviMOWQKbI7ERRYe4" target="_blank" rel="noopener noreferrer">
-                        Give Feedback
+                        Feedback & Support
                     </a>
                 </Button>
                 <Button asChild className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
@@ -640,4 +640,5 @@ export default function DPRReportPage() {
         </Suspense>
     )
 }
+
 
