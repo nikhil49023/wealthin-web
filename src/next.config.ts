@@ -34,10 +34,13 @@ const nextConfig: NextConfig = {
   experimental: {
     // This allows the Next.js dev server to accept requests from the
     // Firebase Studio preview proxy.
-    allowedDevOrigins: [
-        "https://*.cloudworkstations.dev",
-    ]
-  }
+    // allowedDevOrigins is no longer needed here as it's a top-level property now.
+  },
+  // This allows the Next.js dev server to accept requests from the
+  // Firebase Studio preview proxy.
+  allowedDevOrigins: [
+      "https://*.cloudworkstations.dev",
+  ]
 };
 
 export default nextConfig;
