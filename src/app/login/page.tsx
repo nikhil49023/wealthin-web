@@ -60,7 +60,7 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center items-center h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto">
             <Wallet className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold">Login to WealthIn</h1>
+          <h1 className="text-3xl font-bold">Login to Fin-Box</h1>
           <p className="text-balance text-muted-foreground">
             Enter your credentials to access your financial dashboard
           </p>

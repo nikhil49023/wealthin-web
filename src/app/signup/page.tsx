@@ -389,7 +389,7 @@ export default function SignUpPage() {
           <div className="mb-4 flex justify-center items-center h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto">
             <Wallet className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold">Create a WealthIn Account</h1>
+          <h1 className="text-3xl font-bold">Create a Fin-Box Account</h1>
         </div>
 
         <Card className="overflow-hidden">

@@ -144,7 +144,7 @@ export default function Sidebar({
             <Wallet className="h-8 w-8" />
         </div>
         <h1 className={cn('text-xl font-bold', {'hidden': isCollapsed})}>
-          WealthIn
+          Fin-Box
         </h1>
       </div>
       <nav className="flex-1 px-0 py-2 space-y-1 mt-4">
