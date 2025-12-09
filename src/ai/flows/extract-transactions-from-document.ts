@@ -28,33 +28,13 @@ async function extractTextFromPdf(dataUri: string): Promise<string[]> {
     const base64Data = dataUri.split(',')[1];
     const pdfBuffer = Buffer.from(base64Data, 'base64');
     
-    // This function will be called for each page to render its text content.
-    const render_page = async (pageData: any): Promise<string> => {
-        const textContent = await pageData.getTextContent();
-        let lastY, text = '';
-        for (let item of textContent.items) {
-            if (lastY === item.transform[5] || !lastY) {
-                text += item.str;
-            } else {
-                text += '\n' + item.str;
-            }
-            lastY = item.transform[5];
-        }
-        return text;
-    };
-
-    const data = await pdf(pdfBuffer, {pagerender: render_page});
+    // The `pdf` function from `pdf-parse` resolves with an object containing the text of all pages.
+    // We can split this text by a form feed character `\f` which often separates pages.
+    const data = await pdf(pdfBuffer);
     
-    const allPagesText: string[] = [];
-    for (let i = 1; i <= data.numpages; i++) {
-        // We get the page object and then render its text.
-        const page = await data.getPage(i);
-        const pageText = await render_page(page);
-        if (pageText && pageText.trim().length > 10) { // Only add non-empty pages
-            allPagesText.push(pageText);
-        }
-    }
-    return allPagesText;
+    // The `data.text` contains all text from the PDF. Pages are often separated by form feed characters.
+    // Splitting by this character is a common way to get an array of page texts.
+    return data.text.split(/\f/g).filter(text => text.trim().length > 10);
 }
 
 
