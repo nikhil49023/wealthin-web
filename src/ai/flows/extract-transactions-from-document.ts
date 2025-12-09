@@ -2,7 +2,8 @@
 'use server';
 /**
  * @fileOverview A flow for extracting financial transactions from a document.
- * It uses different strategies based on the file type (PDF vs. Image).
+ * It uses different strategies based on the file type (PDF vs. Image) and
+ * processes multi-page PDFs in batches to handle larger documents.
  */
 import { generateText, generateTextFromImage } from '@/services/catalyst';
 import type {
@@ -15,26 +16,51 @@ import { cleanAndParseJSON } from '@/lib/cleanJson';
 import pdf from 'pdf-parse';
 
 // --- Stage 1, Option A: Vision Model for Image OCR ---
-async function extractTextWithVision(base64Image: string): Promise<string> {
+async function extractTextWithVision(base64Image: string): Promise<string[]> {
     const ocrSystemPrompt = "You are an expert at optical character recognition. Extract all text content from the provided image of a document page. Return only the raw text, preserving the layout as best as possible. Do not summarize, interpret, or format the text.";
     const ocrUserPrompt = "Extract all text from this document image.";
     const rawText = await generateTextFromImage(ocrUserPrompt, [base64Image], ocrSystemPrompt);
-    return rawText;
+    return [rawText]; // Return as an array with a single page
 }
 
 // --- Stage 1, Option B: Direct Text Extraction for PDF ---
-async function extractTextFromPdf(dataUri: string): Promise<string> {
+async function extractTextFromPdf(dataUri: string): Promise<string[]> {
     const base64Data = dataUri.split(',')[1];
     const pdfBuffer = Buffer.from(base64Data, 'base64');
-    const data = await pdf(pdfBuffer);
-    return data.text;
+    
+    // This function will be called for each page to render its text content.
+    const render_page = async (pageData: any): Promise<string> => {
+        const textContent = await pageData.getTextContent();
+        let lastY, text = '';
+        for (let item of textContent.items) {
+            if (lastY === item.transform[5] || !lastY) {
+                text += item.str;
+            } else {
+                text += '\n' + item.str;
+            }
+            lastY = item.transform[5];
+        }
+        return text;
+    };
+
+    const data = await pdf(pdfBuffer, {pagerender: render_page});
+    
+    const allPagesText: string[] = [];
+    for (let i = 1; i <= data.numpages; i++) {
+        // We get the page object and then render its text.
+        const page = await data.getPage(i);
+        const pageText = await render_page(page);
+        if (pageText && pageText.trim().length > 10) { // Only add non-empty pages
+            allPagesText.push(pageText);
+        }
+    }
+    return allPagesText;
 }
 
 
 // --- Stage 2: Text Model for Structuring ---
-async function structureTextWithLLM(rawText: string): Promise<any> {
+async function structureTextWithLLM(rawText: string): Promise<ExtractedTransaction[]> {
     // Truncate the text to avoid exceeding payload or context limits.
-    // 24000 characters is a safe limit for dense bank statements.
     const truncatedText = rawText.substring(0, 24000);
 
     const systemPrompt = `You are an expert financial analyst. Your task is to exhaustively extract all transactions from the provided text. You MUST return ONLY a valid JSON array of transaction objects. Do not include any other text, markdown, or explanations.`;
@@ -53,9 +79,25 @@ Here is the text to process:
 ${truncatedText}
 ---
 `;
-    // Explicitly use the more powerful model for this complex structuring task.
     const jsonResponseText = await generateText(userPrompt, systemPrompt, "crm-di-qwen_text_14b-fp8-it");
-    return cleanAndParseJSON(jsonResponseText);
+    const parsedData = cleanAndParseJSON(jsonResponseText);
+    return Array.isArray(parsedData) ? parsedData as ExtractedTransaction[] : [];
+}
+
+
+// --- Stage 3: Deduplication ---
+function removeDuplicates(transactions: ExtractedTransaction[]): ExtractedTransaction[] {
+    const seen = new Set<string>();
+    return transactions.filter(transaction => {
+        // Create a unique key for each transaction
+        const key = `${transaction.date}|${transaction.description.toLowerCase()}|${transaction.amount}`;
+        if (seen.has(key)) {
+            return false; // It's a duplicate
+        } else {
+            seen.add(key);
+            return true; // It's unique
+        }
+    });
 }
 
 
@@ -63,38 +105,46 @@ ${truncatedText}
 export async function extractTransactionsFromDocument(
   input: ExtractTransactionsInput
 ): Promise<ExtractTransactionsOutput> {
-  let rawText = '';
+  let allExtractedTransactions: ExtractedTransaction[] = [];
+  let pageTexts: string[] = [];
+  
   try {
     const { documentDataUri, mimeType } = input;
 
-    // STAGE 1: Extract raw text based on file type
+    // STAGE 1: Extract raw text from all pages
     if (mimeType.startsWith('image/')) {
-        const base64Data = documentDataUri.split(',')[1];
-        rawText = await extractTextWithVision(base64Data);
+        pageTexts = await extractTextWithVision(documentDataUri);
     } else if (mimeType === 'application/pdf') {
-        rawText = await extractTextFromPdf(documentDataUri);
+        pageTexts = await extractTextFromPdf(documentDataUri);
     } else {
         throw new Error(`Unsupported file type: ${mimeType}. Please upload a PDF or an image.`);
     }
 
-    if (!rawText || rawText.trim().length < 10) {
-        throw new Error("Could not extract any readable text from the document. It might be empty, corrupted, or an image-only PDF that requires OCR.");
+    if (pageTexts.length === 0 || pageTexts.every(p => p.trim().length < 10)) {
+        throw new Error("Could not extract any readable text from the document. It might be empty, corrupted, or an image-only PDF.");
     }
 
-    // STAGE 2: Structure the raw text into JSON
-    const extractedData = await structureTextWithLLM(rawText);
+    // STAGE 2: Process each page's text with the LLM
+    for (const text of pageTexts) {
+        if (text.trim().length > 10) {
+            const pageTransactions = await structureTextWithLLM(text);
+            allExtractedTransactions.push(...pageTransactions);
+        }
+    }
     
-    if (!Array.isArray(extractedData) || extractedData.length === 0) {
+    if (allExtractedTransactions.length === 0) {
         throw new Error("AI could not find any transactions in the document. Please ensure it is a financial statement.");
     }
 
+    // STAGE 3: Deduplicate all transactions found across all pages
+    const uniqueTransactions = removeDuplicates(allExtractedTransactions);
+
     // Final validation against the Zod schema
-    const finalResult = { transactions: extractedData as ExtractedTransaction[] };
+    const finalResult = { transactions: uniqueTransactions };
     const validatedData = ExtractTransactionsOutputSchema.parse(finalResult);
     return validatedData;
 
   } catch (e: any) {
-    // Special handling for Zoho Catalyst config errors
     if (e.message.includes('CRITICAL RUNTIME ERROR') || e.message.includes('invalid_client') || e.message.includes('Internal Server Error')) {
        throw new Error('AI features are temporarily unavailable due to a configuration issue. Please contact support.');
     }
@@ -103,11 +153,8 @@ export async function extractTransactionsFromDocument(
         'The document could not be processed. Please check the quality of the PDF. It may be a scanned image without readable text.'
       );
     }
-    // Add more detailed logging for debugging
     console.error('Error during transaction extraction flow:', e);
-    console.error(`Raw text length at time of error: ${rawText.length}`);
     
-    // If it's a Zod validation error, the message will be more informative
     const errorMessage = e.errors ? JSON.stringify(e.errors, null, 2) : e.message;
     throw new Error(`Could not extract transactions. ${errorMessage}`);
   }
