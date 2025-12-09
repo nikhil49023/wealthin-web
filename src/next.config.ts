@@ -31,15 +31,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  ...(process.env.NODE_ENV === 'development' && {
-    experimental: {
-      // This allows the Next.js dev server to accept requests from the
-      // Firebase Studio preview proxy.
-      allowedDevOrigins: [
-          "https://*.cloudworkstations.dev",
-      ]
-    }
-  })
+  experimental: {
+    // This allows the Next.js dev server to accept requests from the
+    // Firebase Studio preview proxy.
+    allowedDevOrigins: [
+        "https://*.cloudworkstations.dev",
+    ]
+  }
 };
 
 export default nextConfig;
