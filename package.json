@@ -57,7 +57,7 @@
     "firebase": "^11.9.1",
     "framer-motion": "^11.5.7",
     "lucide-react": "^0.475.0",
-    "next": "latest",
+    "next": "15.5.7",
     "node-fetch": "^2.6.7",
     "pdf-parse": "^1.1.1",
     "react": "latest",
