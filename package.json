@@ -11,6 +11,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "@genkit-ai/firebase": "latest",
     "@genkit-ai/google-genai": "latest",
