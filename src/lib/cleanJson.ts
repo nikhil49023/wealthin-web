@@ -21,6 +21,7 @@ export function cleanAndParseJSON(llmOutput: string) {
     let startIndex = -1;
     let endIndex = -1;
 
+    // Prioritize arrays over objects if both are present
     if (firstBracket !== -1 && lastBracket > firstBracket) {
       startIndex = firstBracket;
       endIndex = lastBracket;
