@@ -13,45 +13,26 @@ class CatalystService {
 
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
-  private isInitialized = false;
-
+  
   constructor() {
-    // Initialization is deferred to the first API call.
-  }
+    this.clientId = process.env.ZOHO_CLIENT_ID;
+    this.clientSecret = process.env.ZOHO_CLIENT_SECRET;
+    this.refreshToken = process.env.ZOHO_REFRESH_TOKEN;
+    this.projectId = process.env.ZOHO_PROJECT_ID;
+    this.orgId = process.env.ZOHO_CATALYST_ORG_ID;
 
-  private initialize() {
-    if (this.isInitialized) {
-      return;
+    if (!this.clientId || !this.clientSecret || !this.refreshToken || !this.projectId || !this.orgId) {
+      // This will be caught by the initialization in genkit.ts, but serves as a fallback.
+      console.warn("One or more Zoho Catalyst environment variables are missing. AI features will fail.");
     }
-    
-    const requiredVars = {
-      ZOHO_CLIENT_ID: process.env.ZOHO_CLIENT_ID,
-      ZOHO_CLIENT_SECRET: process.env.ZOHO_CLIENT_SECRET,
-      ZOHO_REFRESH_TOKEN: process.env.ZOHO_REFRESH_TOKEN,
-      ZOHO_PROJECT_ID: process.env.ZOHO_PROJECT_ID,
-      ZOHO_CATALYST_ORG_ID: process.env.ZOHO_CATALYST_ORG_ID,
-    };
-
-    const missingVars = Object.entries(requiredVars).filter(([key, value]) => !value);
-
-    if (missingVars.length > 0) {
-      const missingVarKeys = missingVars.map(([key]) => key).join(', ');
-      throw new Error(
-        `CRITICAL RUNTIME ERROR: The following environment variables are missing from the deployment environment: [${missingVarKeys}]. Please set them in your hosting provider's configuration.`
-      );
-    }
-
-    this.clientId = requiredVars.ZOHO_CLIENT_ID;
-    this.clientSecret = requiredVars.ZOHO_CLIENT_SECRET;
-    this.refreshToken = requiredVars.ZOHO_REFRESH_TOKEN;
-    this.projectId = requiredVars.ZOHO_PROJECT_ID;
-    this.orgId = requiredVars.ZOHO_CATALYST_ORG_ID;
-
-    this.isInitialized = true;
   }
 
   private async getValidAccessToken(): Promise<string> {
-    this.initialize(); 
+    if (!this.refreshToken || !this.clientId || !this.clientSecret) {
+      throw new Error(
+        `CRITICAL RUNTIME ERROR: Zoho environment variables are not configured. Please check your deployment settings.`
+      );
+    }
 
     if (this.accessToken && this.tokenExpiry && new Date() < this.tokenExpiry) {
       return this.accessToken;
