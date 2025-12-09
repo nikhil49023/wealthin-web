@@ -50,6 +50,7 @@ Each transaction object in the JSON array must conform to this exact schema:
 {
   "description": "(string) A clear and concise description of the transaction.",
   "date": "(string) The date of the transaction. IMPORTANT: You must normalize this to YYYY-MM-DD format.",
+  "time": "(string, optional) The time of the transaction, extracted exactly as it appears in the document.",
   "type": "(string) Must be either 'income' or 'expense'. Infer 'expense' for debits/withdrawals/payments and 'income' for credits/deposits/receipts.",
   "amount": "(number) The transaction amount as a raw number, without currency symbols or commas. Correctly parse Indian number formats (e.g., '1,00,000' should be 100000)."
 }
@@ -69,8 +70,8 @@ ${truncatedText}
 function removeDuplicates(transactions: ExtractedTransaction[]): ExtractedTransaction[] {
     const seen = new Set<string>();
     return transactions.filter(transaction => {
-        // Create a unique key for each transaction
-        const key = `${transaction.date}|${transaction.description.toLowerCase()}|${transaction.amount}`;
+        // Create a unique key for each transaction. Include time if available for better accuracy.
+        const key = `${transaction.date}|${transaction.time || ''}|${transaction.description.toLowerCase()}|${transaction.amount}`;
         if (seen.has(key)) {
             return false; // It's a duplicate
         } else {
