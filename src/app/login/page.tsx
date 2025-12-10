@@ -6,7 +6,7 @@ import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import {useRouter}from 'next/navigation';
 import {useToast} from '@/hooks/use-toast';
 import {Loader2, Eye, EyeOff, Wallet} from 'lucide-react';
 import {app} from '@/lib/firebase';
@@ -60,7 +60,7 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center items-center h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto">
             <Wallet className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold">Login to Fin-Box</h1>
+          <h1 className="text-3xl font-bold">Login to WealthIn</h1>
           <p className="text-balance text-muted-foreground">
             Enter your credentials to access your financial dashboard
           </p>
@@ -128,5 +128,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

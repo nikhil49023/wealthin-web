@@ -30,7 +30,7 @@ export default function AppHeader() {
             <Wallet className="h-8 w-8" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">Fin-Box</h1>
+          <h1 className="text-lg font-bold">WealthIn</h1>
         </div>
       </div>
       <Link href="/profile">
@@ -43,5 +43,3 @@ export default function AppHeader() {
     </header>
   );
 }
-
-    
