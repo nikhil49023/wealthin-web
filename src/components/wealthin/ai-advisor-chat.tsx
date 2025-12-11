@@ -152,10 +152,19 @@ export default function AIAdvisorChat({initialMessage}: AIAdvisorChatProps) {
         return plainT as ExtractedTransaction;
       });
       
+      // Sanitize userProfile to create a plain object for the server action
+      const plainUserProfile = userProfile ? {
+        displayName: userProfile.displayName,
+        role: userProfile.role,
+        msmeName: userProfile.msmeName,
+        msmeService: userProfile.msmeService,
+        msmeLocation: userProfile.msmeLocation,
+      } : undefined;
+
       const result = await generateRagAnswerAction({
         query: queryText, 
         transactions: plainTransactions,
-        userProfile: userProfile || undefined,
+        userProfile: plainUserProfile,
         marketplaceProfiles: marketplaceProfiles,
       });
 
