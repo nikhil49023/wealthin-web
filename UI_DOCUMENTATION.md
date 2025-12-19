@@ -1,0 +1,149 @@
+# WealthIn - UI/UX Documentation for Re-platforming
+
+This document provides a detailed breakdown of the User Interface (UI) and User Experience (UX) of the WealthIn application. It is intended to serve as a comprehensive blueprint for re-platforming the app to a different technology stack, such as Flutter.
+
+## 1. Design System & Style Guide
+
+The app's aesthetic is modern, clean, and professional, with a focus on clarity and user trust.
+
+### 1.1. Color Palette
+
+-   **Primary (`#3D348B` / `hsl(244, 45%, 37%)`):** A deep, trustworthy indigo. Used for primary buttons, active navigation items, key icons, and headers.
+-   **Primary Foreground (`#FFFFFF`):** White text used on primary-colored backgrounds.
+-   **Background (`hsl(270, 100%, 99%)`):** An almost-white with a very faint purple tint. Provides a clean, soft canvas.
+-   **Foreground (`hsl(258, 40%, 18%)`):** A dark, shadowy blue-black for all primary text content.
+-   **Card Background (`hsl(270, 100%, 99%)`):** Same as the main background, creating a seamless look.
+-   **Accent (`#E63946` / `hsl(356, 79%, 53%)`):** A vibrant, energetic red. Used for urgent actions, alerts, or highlighting critical information. (Note: The theme uses a Coral accent, but destructive actions use this red).
+-   **Muted/Secondary (`hsl(270, 50%, 95%)`):** A light purple-gray used for secondary backgrounds, input fields, and disabled states.
+-   **Borders (`hsl(270, 40%, 90%)`):** A soft, low-contrast border color.
+
+### 1.2. Typography
+
+-   **Font:** `Inter`, a clean sans-serif font, is used for all text.
+-   **Headings:** Bold weight. Sizes range from `text-3xl` for page titles down to `text-lg` for card titles.
+-   **Body Text:** Regular weight. `text-sm` or `text-base`.
+-   **Muted Text:** Use `text-muted-foreground` color for secondary information and descriptions.
+
+### 1.3. Spacing & Layout
+
+-   **Grid System:** A consistent grid system is used with spacing values based on Tailwind's defaults (e.g., `p-4`, `p-6`, `gap-4`, `gap-6`).
+-   **Generous Whitespace:** Ample whitespace is used around elements to reduce cognitive load and improve readability.
+
+### 1.4. Core Component Styling
+
+-   **Border Radius:** A consistent, large border-radius is used for all components (`rounded-lg` or `rounded-xl`, which corresponds to `0.8rem`). This gives the app a modern, soft feel.
+-   **Shadows:** Subtle shadows (`shadow-sm`) are used on cards to create a sense of depth and elevation.
+-   **Icons:** `lucide-react` is the icon library. Icons are simple, line-based, and consistently sized (usually `h-4 w-4` or `h-5 w-5`).
+
+## 2. Main Application Layout
+
+The app uses a responsive layout that adapts from desktop to mobile.
+
+### 2.1. Desktop Layout (md screens and up)
+
+-   **Sidebar (Left):** A collapsible vertical navigation bar.
+    -   Contains icons and labels for main pages (Dashboard, Funds, Brainstorm, AI Advisor, Launchpad).
+    -   Also includes links to Profile, Language settings, and Logout at the bottom.
+    -   Can be collapsed to show only icons.
+-   **Header (Top):** A thin header bar appears above the main content area.
+    -   Contains a hamburger menu icon to toggle the sidebar's collapsed state.
+-   **Main Content Area:** The central, scrollable area where the page content is displayed. It has padding around the edges.
+
+### 2.2. Mobile Layout (screens smaller than md)
+
+-   **Header (Top):** A sticky header containing the app logo/name and a user avatar that links to the Profile page.
+-   **Main Content Area:** The scrollable page content.
+-   **Bottom Navigation Bar:** A fixed bottom bar with 5 icons for quick navigation between the primary app sections (Dashboard, Funds, AI Advisor, Brainstorm, Launchpad). This replaces the sidebar from the desktop view.
+
+## 3. Screen-by-Screen UI Breakdown
+
+### 3.1. Login & Signup Pages
+
+-   **Layout:** Centered, single-column form on the page.
+-   **Components:**
+    -   App logo/name at the top.
+    -   Large title (`h1`) and a descriptive paragraph (`p`).
+    -   Input fields with labels for email, password, name, etc. Passwords have a toggle for visibility.
+    -   A primary button for the main action (Login/Sign Up).
+    -   A text link below the form to switch between Login and Sign Up.
+    -   The Signup page is a multi-step "flashcard" style form, asking one question at a time (e.g., "What is your name?", "What is your email?").
+
+### 3.2. Dashboard (`/`)
+
+-   **Purpose:** Provide an at-a-glance summary of the user's financial health.
+-   **Components:**
+    -   **Greeting:** A personalized greeting (e.g., "Good Morning, [User Name]").
+    -   **Metric Cards:** A grid of 2-4 cards displaying key financial metrics:
+        -   Total Income (Green icon/accent)
+        -   Total Expenses (Red icon/accent)
+        -   Savings Rate (Primary color icon/accent)
+    -   **AI "Fin Bite" Card:** A prominent card featuring a single, actionable financial tip generated by the AI. It has a `Lightbulb` icon.
+    -   **Budgets Card:**
+        -   Displays a summary of the top 2-3 spending budgets.
+        -   Each budget shows the name, a progress bar indicating spending against the limit, and the amount spent vs. the budget amount.
+        -   Contains a "Manage Budgets" button that opens a dialog.
+    -   **Savings Goals Card:**
+        -   Displays the total amount saved towards all goals.
+        -   Shows a progress bar for the overall goal completion.
+        -   Clicking the card opens a dialog to view and manage all individual savings goals.
+
+### 3.3. Funds Management (`/funds`)
+
+-   **Purpose:** Detailed management of transactions, budgets, and tax information.
+-   **Components:**
+    -   **Tabbed Interface:** A primary set of tabs to switch between three sections: `Cashflow`, `Transactions`, and `Tax`.
+    -   **Import Button:** A prominent "Import" button that opens a dialog for uploading financial documents (PDFs, images).
+    -   **Transactions Tab:**
+        -   A "Add Transaction" button that opens a form dialog.
+        -   A table or list of all transactions, showing description, date, and amount (color-coded for income/expense).
+        -   Each transaction has a delete icon.
+    -   **Cashflow Tab:**
+        -   Features a line chart visualizing the user's account balance over time (monthly or yearly view).
+        -   Includes a summary card highlighting the lowest balance point during the period.
+        -   Below the chart, a daily or weekly breakdown of transactions is shown in a carousel or grid.
+    -   **Tax Tab:**
+        -   Provides links to official government tax portals (Income Tax, GST).
+        -   Features a checklist table of all *expenses*, allowing the user to mark them as "Tax Deductible". This helps in identifying expenses for tax filing.
+
+### 3.4. AI Advisor (`/ai-advisor`)
+
+-   **Purpose:** A conversational interface for asking financial questions.
+-   **Layout:** A classic chat interface.
+    -   A scrollable message area takes up most of the screen.
+    -   A fixed text input field and a "Send" button are at the bottom.
+-   **Components:**
+    -   **Disclaimer:** An alert box at the top warns that AI advice may be inaccurate.
+    -   **Chat Bubbles:**
+        -   User messages are aligned to the right, with a primary color background.
+        -   AI messages are aligned to the- left, with a muted/secondary background.
+        -   AI messages have a `Sparkles` icon next to them.
+    -   **Loading Indicator:** When the AI is "thinking," a loading animation (e.g., `Loader2` icon) appears in a new AI chat bubble.
+
+### 3.5. Brainstorm & Ideas (`/brainstorm`, `/investment-ideas/*`)
+
+-   **Purpose:** To help users explore and analyze new business ideas.
+-   **Brainstorm Page (`/brainstorm`):**
+    -   **"Analyze Your Own Idea" Card:** A large card with a `Textarea` for users to input their own business concept, and an "Analyze" button.
+    -   **"Get Inspired" Section:** A horizontal carousel of curated business ideas (e.g., "Organic Farming," "Digital Marketing Agency"). Each item in the carousel is a card with an icon, title, category, and brief description. Clicking a card navigates to the analysis page for that idea.
+-   **Idea Analysis Page (`/investment-ideas/custom?idea=...`):**
+    -   **Layout:** A single-column layout displaying the AI-generated analysis.
+    -   **Header Card:** Displays the idea's `title` and `summary`.
+    -   **Sectional Cards:** The main analysis is broken down into multiple cards, each corresponding to a specific section (e.g., "Investment Strategy," "Target Audience," "ROI").
+        -   Each card has a title and an icon.
+        -   The content inside is formatted HTML (headings, paragraphs, lists) generated by the AI.
+    -   **Action Buttons:** "Save Idea" and "Build DPR" buttons are prominently displayed.
+
+### 3.6. Detailed Project Report (DPR) Editor (`/dpr-report`)
+
+-   **Purpose:** An interactive editor for the AI-generated DPR document.
+-   **Layout:** Resembles a standard document editor (like Google Docs or Word).
+    -   A fixed sidebar on the left lists all the sections of the DPR (Executive Summary, Market Analysis, etc.). Clicking a section scrolls to it.
+    -   The main content area is a scrollable, A4-sized "page" where the report content is displayed.
+-   **Components:**
+    -   **Editable Content:** All text and headings within the document are content-editable.
+    -   **Floating Toolbar:** A floating toolbar provides basic rich-text editing controls (Bold, Italic, Heading, List).
+    -   **AI Toolkit:** A button opens a dialog where the user can enter a prompt to ask the AI to refine or rewrite the currently focused section.
+    -   **Image Placeholders:** The document contains placeholders for a company logo and promoter's photo, which can be clicked to upload an image.
+    -   **Charts:** The "Financial Projections" section includes embedded charts (Pie chart for cost breakdown, Bar chart for yearly projections) generated from AI data.
+
+This detailed documentation should give any AI or developer a very clear picture of the WealthIn app's UI and functionality, enabling a high-fidelity rebuild on a new platform.
